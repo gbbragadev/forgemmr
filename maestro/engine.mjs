@@ -49,7 +49,7 @@ const GATES_AFTER = {
   }),
   "L1/B5": (p) => ({
     id: "deploy",
-    prompt: `Ship check OK. Autorizar push/merge em master + deploy ${p.deploy.target} → https://${p.deploy.subdomain}.gbbragadev.com ?`,
+    prompt: `Ship check OK. Autorizar push/merge + deploy ${p.deploy.target} → https://${p.deploy.subdomain}.${p.deploy.baseUrl || "example.com"} ?`,
     payload: `deploy:${p.deploy.target}:${p.deploy.subdomain}`,
     choices: ["go", "kill"],
   }),
@@ -66,10 +66,59 @@ const COOLDOWN_MS = 60 * 60 * 1000;
 const JOB_TIMEOUT_MS = { "L0/P0": 15 * 60 * 1000, "L0/P1": 15 * 60 * 1000, default: 30 * 60 * 1000 };
 const JOB_MAX_TURNS = { "L0/P0": 25, "L0/P1": 25, "L1/B1": 50, "L1/B3": 50, "L1/B4": 40, default: 30 };
 
+// ---------- ProjectProfile (o "vertical" configurável — .forge/profile.md) ----------
+const PROFILE_DEFAULTS = {
+  name: "Forge",
+  namespace: "@forge",
+  niche: "generic",
+  ai: { provider: "zai", model: "", envKey: "ZAI_API_KEY" },
+  i18n: { defaultLocale: "pt-BR", locales: ["pt-BR"], rule: "single" },
+  ui: { theme: "", designSystem: "", tokenPrefix: "--af-" },
+  deploy: { baseUrl: "example.com", staticHost: "cf-pages", serverHost: "vercel" },
+  git: { targetBranch: "master", commitPrefix: "forge" },
+  legal: { ipRules: [] },
+  capabilities: ["static", "quiz", "chat"],
+};
+
+/** Lê .forge/profile.md: bloco ```forge-config``` (JSON, knobs) + corpo markdown (narrativo). */
+export function loadProfile(root) {
+  const p = path.join(root, ".forge", "profile.md");
+  let knobs = {};
+  let narrative = "";
+  if (fs.existsSync(p)) {
+    const raw = fs.readFileSync(p, "utf8");
+    // fence ancorado em início de linha + newline (ignora menções inline na doc)
+    const fence = /^```forge-config[ \t]*\r?\n([\s\S]*?)\r?\n```/m;
+    const m = raw.match(fence);
+    if (m) {
+      try {
+        knobs = JSON.parse(m[1]);
+      } catch (e) {
+        throw new Error(".forge/profile.md: bloco forge-config não é JSON válido — " + e.message);
+      }
+    }
+    narrative = raw.replace(fence, "").replace(/^>.*$/gm, "").trim();
+  }
+  const d = PROFILE_DEFAULTS;
+  const prof = {
+    ...d,
+    ...knobs,
+    ai: { ...d.ai, ...(knobs.ai || {}) },
+    i18n: { ...d.i18n, ...(knobs.i18n || {}) },
+    ui: { ...d.ui, ...(knobs.ui || {}) },
+    deploy: { ...d.deploy, ...(knobs.deploy || {}) },
+    git: { ...d.git, ...(knobs.git || {}) },
+    legal: { ...d.legal, ...(knobs.legal || {}) },
+  };
+  prof.narrative = narrative;
+  return prof;
+}
+
 export function createEngine({ root, emitLog, emitPipeline }) {
   const PIPELINE_PATH = path.join(root, "maestro", "pipeline.json");
   const RUNS_DIR = path.join(root, "maestro", "runs");
   const paths = { root };
+  const profile = loadProfile(root);
 
   /** @type {any} */
   let pipeline = null;
@@ -147,7 +196,8 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       `Ideia do app: ${p.idea}`,
       `Capability: ${p.capability}`,
       "",
-      `Você é o executor "${player.name}" do job ${job} na pipeline autônoma Forge (Maestro / anime-forge).`,
+      `Você é o executor "${player.name}" do job ${job} na pipeline autônoma Forge (Maestro / ${profile.name}).`,
+      `Projeto (nicho): ${profile.niche}. Namespace: ${profile.namespace}.`,
       template
         ? `Siga EXATAMENTE o template docs/prompts/${template} — preencha os campos <<< >>> com: App id=${p.appId}, Capability=${p.capability}, IDEIA=${p.idea}.`
         : "",
@@ -156,13 +206,30 @@ export function createEngine({ root, emitLog, emitPipeline }) {
         : "",
       "",
       "Regras da pipeline Forge:",
-      "- Conteúdo user-facing SEMPRE bilíngue: PT-BR + EN (toggle de idioma ou i18n simples; copy dos dois desde o primeiro build).",
+      profile.i18n.rule === "bilingual"
+        ? `- Conteúdo user-facing SEMPRE em ${profile.i18n.locales.join(" + ")} (toggle de idioma ou i18n simples; desde o primeiro build).`
+        : `- Conteúdo user-facing em ${profile.i18n.defaultLocale}.`,
+      ...(profile.legal.ipRules || []).map((r) => `- ${r}`),
       "- Execute UMA iteração deste job apenas; não avance para outros jobs.",
       "- NÃO rode git commit/push — o orquestrador Forge cuida do git.",
       "- Atualize workbench/HANDOFF.md ao final com 2-3 linhas do que fez.",
       `- Critério de sucesso (verificado pelo orquestrador): ${verifyDescription(job)}.`,
       pipelineFooter(),
     ];
+    // Contexto do projeto (profile) = fonte da verdade; templates podem citar exemplos de outro nicho.
+    if (profile.narrative) {
+      lines.push(
+        "",
+        "---",
+        "CONTEXTO DO PROJETO (fonte da verdade — os templates docs/prompts/ podem usar exemplos de outro nicho; ADAPTE ao contexto abaixo):",
+        profile.narrative
+      );
+    }
+    // Ground-truth da fase FOUNDATION (Fase C grava este arquivo): jobs L1 seguem o design aprovado.
+    const sysDesign = path.join(root, "docs", `system-design-${p.appId}.md`);
+    if (job.startsWith("L1/") && fs.existsSync(sysDesign)) {
+      lines.push("", "---", "DESIGN APROVADO (system design da FOUNDATION — siga à risca):", fs.readFileSync(sysDesign, "utf8"));
+    }
     if (p.mode === "feedback" && job === "ITERATE") {
       lines.push(
         "",
@@ -187,20 +254,22 @@ export function createEngine({ root, emitLog, emitPipeline }) {
   }
 
   function pipelineFooter() {
+    const aiKey = profile.ai.envKey || "PRODUCT_AI_KEY";
     return [
       "",
       "---",
       "Maestro HQ constraints:",
       `- Repo: ${root}`,
       "- Surgical / YAGNI. Gate: npm run build if code changes.",
-      "- Do not commit secrets. Product AI = Z.AI (ZAI_API_KEY), not coding brain.",
+      `- Do not commit secrets. Product AI = ${profile.ai.provider.toUpperCase()} (${aiKey}), not coding brain.`,
+      `- Deploy: ${profile.deploy.baseUrl} · git target branch: ${profile.git.targetBranch}.`,
     ].join("\n");
   }
 
   function verifyDescription(job) {
     if (job === "L0/P0") return `docs/scorecard-${pipeline.appId}.md existe com GO/NO-GO`;
     if (job === "L0/P1") return `docs/content-hooks-${pipeline.appId}.md existe`;
-    return `npm run build -w @forge/${pipeline.appId} sai com exit 0`;
+    return `npm run build -w ${profile.namespace}/${pipeline.appId} sai com exit 0`;
   }
 
   // ---------- verify ----------
@@ -223,8 +292,11 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     if (p.dryRun) return { pass: true, detail: "dry-run: verify de build pulado" };
     // appId nasce do slugify(), mas revalida aqui: é interpolado em shell (npm.cmd exige shell no Windows)
     if (!/^[a-z0-9-]+$/.test(p.appId)) return { pass: false, detail: `appId inválido: ${p.appId}` };
+    // namespace vem do profile (config) e é interpolado em shell — valida formato @scope
+    if (!/^@?[a-z0-9._-]+$/.test(profile.namespace))
+      return { pass: false, detail: `namespace inválido no profile: ${profile.namespace}` };
     try {
-      execSync(`npm run build -w @forge/${p.appId}`, {
+      execSync(`npm run build -w ${profile.namespace}/${p.appId}`, {
         cwd: root,
         stdio: "pipe",
         timeout: 10 * 60 * 1000,
@@ -405,7 +477,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
   function checkpoint(job) {
     try {
       git(["add", "-A"]);
-      git(["commit", "--allow-empty", "-m", `forge(${pipeline.appId}): ${job} PASS`]);
+      git(["commit", "--allow-empty", "-m", `${profile.git.commitPrefix}(${pipeline.appId}): ${job} PASS`]);
       const ref = git(["rev-parse", "HEAD"]);
       pipeline.git.checkpoints.push({ ref, job, at: new Date().toISOString() });
       pipeline.git.lastCheckpoint = ref;
@@ -432,15 +504,17 @@ export function createEngine({ root, emitLog, emitPipeline }) {
 
   async function runShip() {
     const p = pipeline;
-    log(`🚀 P3 ship — merge master + deploy ${p.deploy.target} → ${p.deploy.subdomain}.gbbragadev.com`);
+    const base = p.deploy.baseUrl || profile.deploy.baseUrl;
+    const branch = profile.git.targetBranch;
+    log(`🚀 P3 ship — merge ${branch} + deploy ${p.deploy.target} → ${p.deploy.subdomain}.${base}`);
     if (p.dryRun) {
-      p.deploy.url = `https://${p.deploy.subdomain}.gbbragadev.com (dry-run, não publicado)`;
+      p.deploy.url = `https://${p.deploy.subdomain}.${base} (dry-run, não publicado)`;
       return { pass: true, detail: "dry-run: ship simulado" };
     }
     try {
-      git(["checkout", "master"]);
-      git(["merge", "--no-ff", p.git.branch, "-m", `forge(${p.appId}): merge pipeline (ship)`]);
-      git(["push", "origin", "master"]);
+      git(["checkout", branch]);
+      git(["merge", "--no-ff", p.git.branch, "-m", `${profile.git.commitPrefix}(${p.appId}): merge pipeline (ship)`]);
+      git(["push", "origin", branch]);
       log("✓ merge + push master");
     } catch (e) {
       try {
@@ -614,15 +688,16 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       history: [],
       cooldowns: {},
       deploy: {
-        target: params.target || (capability === "chat" ? "vercel" : "cf-pages"),
+        target: params.target || (capability === "chat" ? profile.deploy.serverHost : profile.deploy.staticHost),
         subdomain: slugify(params.subdomain || appId),
+        baseUrl: profile.deploy.baseUrl,
         url: null,
         dns: { status: "pending" },
       },
       startedAt: new Date().toISOString(),
       endedAt: null,
     };
-    log(`🎼 forge new · app=${appId} · team=${team} · capability=${capability}${pipeline.dryRun ? " · DRY-RUN" : ""}`);
+    log(`🎼 forge new · app=${appId} · team=${team} · capability=${capability} · profile=${profile.name}${pipeline.dryRun ? " · DRY-RUN" : ""}`);
     workbench.handoffUpdate(paths, pipeline);
     save();
     advanceLoop();
@@ -702,8 +777,9 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       history: [],
       cooldowns: {},
       deploy: {
-        target: params.target || prevDeploy?.target || (capability === "chat" ? "vercel" : "cf-pages"),
+        target: params.target || prevDeploy?.target || (capability === "chat" ? profile.deploy.serverHost : profile.deploy.staticHost),
         subdomain: slugify(params.subdomain || prevDeploy?.subdomain || appId),
+        baseUrl: prevDeploy?.baseUrl || profile.deploy.baseUrl,
         url: null,
         dns: { status: "pending" },
       },

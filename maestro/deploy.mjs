@@ -217,8 +217,9 @@ async function deployToCloudflarePages(pipeline, { root, log }) {
   }
   const defaultUrl = `https://${pagesHost}`;
 
-  // 3. Custom domain SEMPRE — o objetivo é <subdomain>.gbbragadev.com
-  const customDomain = `${deploy.subdomain}.gbbragadev.com`;
+  // 3. Custom domain SEMPRE — o objetivo é <subdomain>.<baseUrl> (do profile)
+  const zoneName = deploy.baseUrl || "gbbragadev.com";
+  const customDomain = `${deploy.subdomain}.${zoneName}`;
   {
     log(`▶ custom domain ${customDomain}`);
 
@@ -242,9 +243,9 @@ async function deployToCloudflarePages(pipeline, { root, log }) {
     }
 
     // Setup DNS CNAME
-    const zoneRes = await cf("/zones?name=gbbragadev.com");
+    const zoneRes = await cf(`/zones?name=${zoneName}`);
     if (!zoneRes.ok) {
-      log(`✗ encontrar zone gbbragadev.com falhou`);
+      log(`✗ encontrar zone ${zoneName} falhou`);
       return {
         ok: true,
         url: defaultUrl,
