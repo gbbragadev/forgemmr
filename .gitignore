@@ -43,3 +43,7 @@ maestro/proposals/
 
 # apps têm repo git próprio (repo-por-app) — a fábrica não rastreia o conteúdo de apps/
 apps/
+
+# estado/arquivo de runs do maestro (a fábrica não participa dos runs)
+maestro/pipelines/
+maestro/runs/
