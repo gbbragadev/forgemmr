@@ -105,7 +105,7 @@ async function waitUrl(url, delaysMs = [30000, 60000, 120000, 300000]) {
 // ---------- targets ----------
 
 /** Cloudflare Pages + custom domain setup */
-async function deployToCloudflarePages(pipeline, { root, log }) {
+async function deployToCloudflarePages(pipeline, { root, log, limits }) {
   const { appId, deploy } = pipeline;
   const outDir = path.join(root, "apps", appId, "out");
 
@@ -117,7 +117,7 @@ async function deployToCloudflarePages(pipeline, { root, log }) {
   // 1. Valida output do build
   if (!fs.existsSync(outDir)) {
     log(`▶ build ${appId} (falta out/)`);
-    const buildRes = run(`npm run build -w @forge/${appId}`, {}, 10 * 60 * 1000, root);
+    const buildRes = run(`npm run build -w @forge/${appId}`, {}, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, root);
     if (!buildRes.ok) {
       return {
         ok: false,
@@ -298,7 +298,7 @@ async function deployToCloudflarePages(pipeline, { root, log }) {
 }
 
 /** GitHub Pages — fallback (CI automático via workflow) */
-async function deployToGitHubPages(pipeline, { root, log }) {
+async function deployToGitHubPages(pipeline, { root, log, limits, profileDeploy }) {
   const { appId } = pipeline;
   const workflowPath = path.join(root, ".github", "workflows", "*.yml");
 
@@ -326,8 +326,8 @@ async function deployToGitHubPages(pipeline, { root, log }) {
   }
 
   log(`▶ GitHub Pages (CI automático)`);
-  const baseUrl = `https://gbbragadev.github.io/anime-forge`;
-  const urlCheck = await waitUrl(baseUrl, [30000, 60000, 120000]);
+  const baseUrl = profileDeploy?.ghPagesUrl || "https://gbbragadev.github.io/anime-forge";
+  const urlCheck = await waitUrl(baseUrl, (limits?.deployRetryDelaysMs || [30000, 60000, 120000, 300000]).slice(0, 3));
 
   if (urlCheck.ok) {
     log(`✓ ${baseUrl} acessível`);
@@ -343,7 +343,7 @@ async function deployToGitHubPages(pipeline, { root, log }) {
 }
 
 /** Vercel deploy */
-async function deployToVercel(pipeline, { root, log }) {
+async function deployToVercel(pipeline, { root, log, limits }) {
   const token = process.env.VERCEL_TOKEN;
   if (!token) {
     return {
@@ -360,7 +360,7 @@ async function deployToVercel(pipeline, { root, log }) {
   const { appId } = pipeline;
   log(`▶ vercel deploy --prod ${appId}`);
   const deployCmd = `npx --yes vercel@latest deploy --prod --yes --cwd apps/${appId}`;
-  const deployRes = run(deployCmd, { VERCEL_TOKEN: token }, 10 * 60 * 1000);
+  const deployRes = run(deployCmd, { VERCEL_TOKEN: token }, limits?.deployBuildTimeoutMs || 10 * 60 * 1000);
 
   if (!deployRes.ok) {
     return {

@@ -130,10 +130,7 @@ export function resolvePlan({ root, blueprint, capability, appId }) {
   return { blueprint: bp.name, jobs: bp.jobs.slice(), jobSpecs };
 }
 
-const MAX_ATTEMPTS_PER_PLAYER = 3;
-const COOLDOWN_MS = 60 * 60 * 1000;
-const JOB_TIMEOUT_MS = { "L0/P0": 15 * 60 * 1000, "L0/P1": 15 * 60 * 1000, default: 30 * 60 * 1000 };
-const JOB_MAX_TURNS = { "L0/P0": 25, "L0/P1": 25, "L1/B1": 50, "L1/B3": 50, "L1/B4": 40, default: 30 };
+// limites do run: defaults em PROFILE_DEFAULTS.limits — override por profile (bloco forge-config "limits")
 
 // ---------- ProjectProfile (o "vertical" configurável — .forge/profile.md) ----------
 const PROFILE_DEFAULTS = {
@@ -143,10 +140,18 @@ const PROFILE_DEFAULTS = {
   ai: { provider: "zai", model: "", envKey: "ZAI_API_KEY" },
   i18n: { defaultLocale: "pt-BR", locales: ["pt-BR"], rule: "single" },
   ui: { theme: "", designSystem: "", tokenPrefix: "--af-" },
-  deploy: { baseUrl: "example.com", staticHost: "cf-pages", serverHost: "vercel" },
+  deploy: { baseUrl: "example.com", staticHost: "cf-pages", serverHost: "vercel", ghPagesUrl: "https://gbbragadev.github.io/anime-forge" },
   git: { targetBranch: "master", commitPrefix: "forge" },
   legal: { ipRules: [] },
   capabilities: ["static", "quiz", "chat"],
+  limits: {
+    maxAttemptsPerPlayer: 3,
+    cooldownMs: 60 * 60 * 1000,
+    jobTimeoutMs: { "L0/P0": 15 * 60 * 1000, "L0/P1": 15 * 60 * 1000, default: 30 * 60 * 1000 },
+    jobMaxTurns: { "L0/P0": 25, "L0/P1": 25, "L1/B1": 50, "L1/B3": 50, "L1/B4": 40, default: 30 },
+    deployRetryDelaysMs: [30000, 60000, 120000, 300000],
+    deployBuildTimeoutMs: 10 * 60 * 1000,
+  },
 };
 
 /** Lê .forge/profile.md: bloco ```forge-config``` (JSON, knobs) + corpo markdown (narrativo). */
@@ -182,6 +187,12 @@ export function loadProfile(root) {
     deploy: { ...d.deploy, ...(knobs.deploy || {}) },
     git: { ...d.git, ...(knobs.git || {}) },
     legal: { ...d.legal, ...(knobs.legal || {}) },
+    limits: {
+      ...d.limits,
+      ...(knobs.limits || {}),
+      jobTimeoutMs: { ...d.limits.jobTimeoutMs, ...(knobs.limits?.jobTimeoutMs || {}) },
+      jobMaxTurns: { ...d.limits.jobMaxTurns, ...(knobs.limits?.jobMaxTurns || {}) },
+    },
   };
   prof.narrative = narrative;
   return prof;
@@ -623,7 +634,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       try {
         spec = buildSpawn(player.env || player.cli, prompt, {
           root,
-          maxTurns: JOB_MAX_TURNS[job] || JOB_MAX_TURNS.default,
+          maxTurns: profile.limits.jobMaxTurns[job] || profile.limits.jobMaxTurns.default,
           model: player.model !== "default" ? player.model : undefined,
           effort: player.effort,
         });
@@ -678,7 +689,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       proc.stderr?.on("data", onChunk);
       proc.on("error", (err) => log(`✗ process error: ${err.message}`));
 
-      const timeoutMs = JOB_TIMEOUT_MS[job] || JOB_TIMEOUT_MS.default;
+      const timeoutMs = profile.limits.jobTimeoutMs[job] || profile.limits.jobTimeoutMs.default;
       const killProc = (why) => {
         log(`■ ${why} — encerrando executor`);
         try {
@@ -732,15 +743,16 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       workbench.queueStart(paths, job, p.appId);
 
       let rateLimited = false;
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_PLAYER; attempt++) {
+      const maxAttempts = profile.limits.maxAttemptsPerPlayer;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const prompt = buildPrompt(job, player, attempt, feedback);
         feedback = null;
         const started = new Date().toISOString();
         const res = await runExecutor(player, prompt, job);
 
         if (detectRateLimit(res.tail)) {
-          p.cooldowns[player.id] = new Date(Date.now() + COOLDOWN_MS).toISOString();
-          log(`⏳ rate-limit em ${player.id} — cooldown 60min, tentando fallback (L2 automático)`);
+          p.cooldowns[player.id] = new Date(Date.now() + profile.limits.cooldownMs).toISOString();
+          log(`⏳ rate-limit em ${player.id} — cooldown ${Math.round(profile.limits.cooldownMs / 60000)}min, tentando fallback (L2 automático)`);
           workbench.handoffUpdate(paths, p, `L2: rate-limit em ${player.id}, redispatch automático`);
           rateLimited = true;
           save();
@@ -767,10 +779,10 @@ export function createEngine({ root, emitLog, emitPipeline }) {
           workbench.queueDone(paths, job, p.appId, player.id);
           return { pass: true, player, detail: v.detail };
         }
-        log(`✗ ${job} verify FAIL (tentativa ${attempt}/${MAX_ATTEMPTS_PER_PLAYER}): ${v.detail}`);
+        log(`✗ ${job} verify FAIL (tentativa ${attempt}/${maxAttempts}): ${v.detail}`);
       }
 
-      // player saiu (rate-limit ou 3 falhas) → estado determinístico p/ o fallback recomeçar
+      // player saiu (rate-limit ou N falhas) → estado determinístico p/ o fallback recomeçar
       excluded.push(player.id);
       rollback(rateLimited ? `rate-limit de ${player.id} em ${job}` : `3 falhas de ${player.id} em ${job}`);
       workbench.claimFree(paths);
@@ -840,7 +852,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     }
     try {
       const { deployApp } = await import("./deploy.mjs");
-      const result = await deployApp(p, { root, log });
+      const result = await deployApp(p, { root, log, limits: profile.limits, profileDeploy: profile.deploy });
       if (!result.ok) return { pass: false, detail: result.error || "deploy falhou", manual: result.fallbackSteps };
       p.deploy.url = result.url;
       p.deploy.dns = result.dns || p.deploy.dns;

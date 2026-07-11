@@ -93,3 +93,30 @@ test("importActiveProfile: sem .forge/profile.md devolve null e não cria nada",
   assert.equal(importActiveProfile(root), null);
   assert.ok(!fs.existsSync(path.join(root, "profiles")));
 });
+
+test("loadProfile: limits tem defaults e aceita override raso (merge preserva mapas por job)", () => {
+  const root = tmpRoot();
+  fs.mkdirSync(path.join(root, ".forge"), { recursive: true });
+  const md = [
+    "# Teste — ProjectProfile",
+    "```forge-config",
+    JSON.stringify({ name: "Teste", limits: { maxAttemptsPerPlayer: 1, jobMaxTurns: { default: 10 } } }),
+    "```",
+  ].join("\n");
+  fs.writeFileSync(path.join(root, ".forge", "profile.md"), md, "utf8");
+  const prof = loadProfile(root);
+  assert.equal(prof.limits.maxAttemptsPerPlayer, 1); // override
+  assert.equal(prof.limits.jobMaxTurns.default, 10); // override no mapa
+  assert.equal(prof.limits.jobMaxTurns["L1/B1"], 50); // default do mapa preservado
+  assert.equal(prof.limits.cooldownMs, 60 * 60 * 1000); // default intacto
+  assert.deepEqual(prof.limits.deployRetryDelaysMs, [30000, 60000, 120000, 300000]);
+});
+
+test("loadProfile: sem bloco limits usa exatamente os defaults antigos", () => {
+  const root = tmpRoot();
+  const prof = loadProfile(root); // sem .forge/profile.md → só defaults
+  assert.equal(prof.limits.maxAttemptsPerPlayer, 3);
+  assert.equal(prof.limits.jobTimeoutMs["L0/P0"], 15 * 60 * 1000);
+  assert.equal(prof.limits.jobTimeoutMs.default, 30 * 60 * 1000);
+  assert.equal(prof.limits.jobMaxTurns["L1/B4"], 40);
+});
