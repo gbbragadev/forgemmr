@@ -19,12 +19,6 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 ## Done
 
 
-- [x] **L1/B1** e2e-alfa — forge/fake-dry (2026-07-11)
-- [x] **L0/P1** e2e-alfa — forge/fake-dry (2026-07-11)
-- [x] **DS-GEN** e2e-alfa — forge/fake-dry (2026-07-11)
-- [x] **FOUNDATION** e2e-alfa — forge/fake-dry (2026-07-11)
-- [x] **L0/P0** e2e-beta — forge/fake-dry (2026-07-11)
-- [x] **L0/P0** e2e-alfa — forge/fake-dry (2026-07-11)
 - [x] **Meta** Pipeline/loops upgrade (lições B1/B3/GLM/ship) (2026-07-10)
 - [x] **Ship** commit + push + GitHub Pages anime-quiz (2026-07-10)
 - [x] **L1/B5** Ship check anime-quiz (2026-07-10)
