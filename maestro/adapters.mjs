@@ -110,7 +110,10 @@ export function resolveBin(name) {
  * escrita em log/raw log (ex.: wrangler ecoando token em mensagem de erro).
  */
 export function makeRedactor() {
-  const secrets = [
+  // pattern-based: qualquer env com cara de credencial entra, sem manter whitelist na mão
+  // (_ADM cobre o token de escrita CF_GBBRAGADEV_ADM). Lista fixa mantida como piso.
+  const NAME_RE = /(API_?KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|AUTH|_ADM$)/i;
+  const names = new Set([
     "GLM_API_KEY",
     "CLOUDFLARE_API_TOKEN",
     "VERCEL_TOKEN",
@@ -120,9 +123,12 @@ export function makeRedactor() {
     "OPENROUTER_API_KEY",
     "ZAI_API_KEY",
     "GITHUB_TOKEN",
-  ]
+  ]);
+  for (const k of Object.keys(process.env)) if (NAME_RE.test(k)) names.add(k);
+  const secrets = [...names]
     .map((k) => process.env[k])
-    .filter((v) => v && v.length >= 8);
+    .filter((v) => v && v.length >= 8)
+    .sort((a, b) => b.length - a.length); // maiores primeiro: segredo contido em outro não deixa resíduo
   return (s) => {
     let out = String(s);
     for (const v of secrets) out = out.split(v).join("[redacted]");
