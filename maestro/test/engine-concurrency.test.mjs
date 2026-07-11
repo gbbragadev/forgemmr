@@ -1,0 +1,113 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { createEngineManager } from "../engine.mjs";
+
+/** Root temporário com o mínimo que a engine precisa: roster com team dry-run. */
+function tmpRoot() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-conc-"));
+  fs.mkdirSync(path.join(root, "maestro"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "maestro", "roster.json"),
+    JSON.stringify({
+      version: "2.0",
+      players: [{ id: "fake-1", face: "🧪", name: "Fake", cli: "fake", model: "default", modelLabel: "Fake", effort: "low", jobs: [], roles: [] }],
+      teams: { "dry-run": { emoji: "🧪", label: "fake executor", dispatch: { default: "fake-1" }, fallbacks: {} } },
+    }),
+    "utf8"
+  );
+  return root;
+}
+
+function makeManager(root, logs = []) {
+  return createEngineManager({
+    root,
+    emitLog: (l) => logs.push(l),
+    emitPipeline: () => {},
+  });
+}
+
+/** espera até cond() ou estoura em ~timeoutMs */
+async function waitFor(cond, timeoutMs = 30000, label = "condição") {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    if (cond()) return;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`timeout esperando ${label}`);
+}
+
+test("concorrência: 2 dry-runs simultâneos avançam independentes até o gate p0-go", async () => {
+  const root = tmpRoot();
+  const logs = [];
+  const mgr = makeManager(root, logs);
+
+  mgr.start({ idea: "app A de teste concorrente", team: "dry-run", capability: "static", appId: "app-a" });
+  mgr.start({ idea: "app B de teste concorrente", team: "dry-run", capability: "static", appId: "app-b" });
+
+  // os dois SIMULTANEAMENTE vivos desde o começo
+  const snap0 = mgr.snapshot();
+  assert.deepEqual(Object.keys(snap0).sort(), ["app-a", "app-b"]);
+  assert.ok(["running", "paused_gate"].includes(snap0["app-a"].status));
+  assert.ok(["running", "paused_gate"].includes(snap0["app-b"].status));
+
+  await waitFor(() => {
+    const s = mgr.snapshot();
+    return s["app-a"].status === "paused_gate" && s["app-b"].status === "paused_gate";
+  }, 30000, "ambos em paused_gate");
+
+  const s = mgr.snapshot();
+  for (const id of ["app-a", "app-b"]) {
+    assert.equal(s[id].gates.filter((g) => !g.decision)[0].id, "p0-go", `${id} deveria estar no gate p0-go`);
+    // repo próprio com init + checkpoint
+    const log = execFileSync("git", ["log", "--oneline"], { cwd: path.join(root, "apps", id), encoding: "utf8" });
+    assert.ok(log.includes("L0/P0 PASS"), `${id}: falta checkpoint L0/P0`);
+    assert.ok(log.includes("init app repo"), `${id}: falta commit inicial`);
+    // scorecard no repo do app + estado por app
+    assert.ok(fs.existsSync(path.join(root, "apps", id, "docs", "scorecard.md")), `${id}: falta scorecard`);
+    assert.ok(fs.existsSync(path.join(root, "maestro", "pipelines", `${id}.json`)), `${id}: falta estado persistido`);
+  }
+
+  // logs etiquetados por app
+  assert.ok(logs.some((l) => l.startsWith("[app-a]")));
+  assert.ok(logs.some((l) => l.startsWith("[app-b]")));
+
+  // decidir o gate de A não afeta B
+  mgr.decide("app-a", "p0-go", "kill");
+  assert.equal(mgr.snapshot()["app-a"].status, "killed");
+  assert.equal(mgr.snapshot()["app-b"].status, "paused_gate");
+
+  // decide sem appId com exatamente 1 ativa → fallback resolve pra B
+  mgr.decide(undefined, "p0-go", "kill");
+  assert.equal(mgr.snapshot()["app-b"].status, "killed");
+});
+
+test("resume pós-restart: novo manager reconstrói pipelines de maestro/pipelines/*.json", async () => {
+  const root = tmpRoot();
+  const mgr1 = makeManager(root);
+  mgr1.start({ idea: "app persistente de teste", team: "dry-run", capability: "static", appId: "persist-a" });
+  await waitFor(() => mgr1.snapshot()["persist-a"].status === "paused_gate", 30000, "persist-a no gate");
+
+  // "restart": manager novo, do disco
+  const mgr2 = makeManager(root);
+  const snap = mgr2.snapshot();
+  assert.ok(snap["persist-a"], "estado não recarregado do disco");
+  assert.equal(snap["persist-a"].status, "paused_gate");
+  assert.equal(snap["persist-a"].gates.filter((g) => !g.decision)[0].id, "p0-go");
+  // e dá pra decidir no manager novo
+  mgr2.decide("persist-a", "p0-go", "kill");
+  assert.equal(mgr2.snapshot()["persist-a"].status, "killed");
+});
+
+test("migração: maestro/pipeline.json legado vira maestro/pipelines/<appId>.json", () => {
+  const root = tmpRoot();
+  const legacyState = { appId: "legado-x", status: "paused_gate", idea: "x", team: "dry-run", jobs: ["L0/P0"], jobIndex: 1, gates: [{ id: "p0-go", choices: ["go", "kill"], decision: null }], history: [], cooldowns: {}, git: {} };
+  fs.writeFileSync(path.join(root, "maestro", "pipeline.json"), JSON.stringify(legacyState), "utf8");
+  const mgr = makeManager(root);
+  assert.ok(!fs.existsSync(path.join(root, "maestro", "pipeline.json")), "legado deveria ter sido movido");
+  assert.ok(fs.existsSync(path.join(root, "maestro", "pipelines", "legado-x.json")));
+  assert.equal(mgr.snapshot()["legado-x"].status, "paused_gate");
+});

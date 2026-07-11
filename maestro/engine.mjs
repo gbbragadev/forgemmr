@@ -92,6 +92,11 @@ export function runDocRel(appId, kind) {
   return `apps/${appId}/docs/${kind}.md`;
 }
 
+/** Deriva o appId de um payload de start (fonte única — usada pela engine e pelo manager). */
+export function deriveAppId(params) {
+  return slugify(params.appId || params.slug || String(params.idea || ""));
+}
+
 export function slugify(s) {
   return String(s)
     .toLowerCase()
@@ -389,8 +394,11 @@ export function composeTeam(name, musicians, emoji = "🎼") {
   return { teamId, team, players };
 }
 
-export function createEngine({ root, emitLog, emitPipeline }) {
-  const PIPELINE_PATH = path.join(root, "maestro", "pipeline.json");
+export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId }) {
+  // com appId (via manager): estado por app em maestro/pipelines/<appId>.json; sem = legado single-file
+  const PIPELINE_PATH = boundAppId
+    ? path.join(root, "maestro", "pipelines", `${boundAppId}.json`)
+    : path.join(root, "maestro", "pipeline.json");
   const RUNS_DIR = path.join(root, "maestro", "runs");
   const paths = { root };
   // reatribuído a cada start()/startFeedback() — trocar .forge/profile.md vale sem reiniciar o server
@@ -419,6 +427,8 @@ export function createEngine({ root, emitLog, emitPipeline }) {
   }
 
   function git(args, opts = {}) {
+    // trava anti-walk-up: sem .git no cwd, o git subiria a árvore e operaria num repo PAI (ex.: HOME)
+    if (!fs.existsSync(path.join(root, ".git"))) throw new Error(`${root} não é um repo git — comando ignorado`);
     return execFileSync("git", args, { cwd: root, encoding: "utf8", ...opts }).trim();
   }
 
@@ -427,6 +437,10 @@ export function createEngine({ root, emitLog, emitPipeline }) {
   const appDir = (appId) => path.join(root, "apps", appId);
 
   function gitApp(appId, args, opts = {}) {
+    // trava anti-walk-up: app sem .git faria o git operar no repo pai (a fábrica) — só init passa
+    if (args[0] !== "init" && !fs.existsSync(path.join(appDir(appId), ".git"))) {
+      throw new Error(`apps/${appId} não é um repo git — rode ensureAppRepo antes`);
+    }
     return execFileSync("git", args, { cwd: appDir(appId), encoding: "utf8", ...opts }).trim();
   }
 
@@ -807,7 +821,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
 
         if (v.pass) {
           p.currentPlayer = null;
-          workbench.claimFree(paths);
+          workbench.claimFree(paths, p.appId);
           workbench.queueDone(paths, job, p.appId, player.id);
           return { pass: true, player, detail: v.detail };
         }
@@ -817,7 +831,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       // player saiu (rate-limit ou N falhas) → estado determinístico p/ o fallback recomeçar
       excluded.push(player.id);
       rollback(rateLimited ? `rate-limit de ${player.id} em ${job}` : `3 falhas de ${player.id} em ${job}`);
-      workbench.claimFree(paths);
+      workbench.claimFree(paths, p.appId);
     }
   }
 
@@ -1097,8 +1111,9 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     const dryRun = !!params.dryRun || team === "dry-run";
     const capability = params.capability || "static";
     const blueprint = params.blueprint || "generic";
-    const appId = slugify(params.appId || params.slug || idea);
+    const appId = deriveAppId(params);
     if (!appId) throw new Error("não consegui derivar app-id — passe --app-id ou --slug");
+    if (boundAppId && appId !== boundAppId) throw new Error(`engine é do app "${boundAppId}" — start de "${appId}" vai pelo manager`);
 
     const plan = resolvePlan({ root, blueprint, capability, appId });
 
@@ -1364,4 +1379,99 @@ export function createEngine({ root, emitLog, emitPipeline }) {
   }
 
   return { start, startFeedback, decide, stop, resume, snapshot };
+}
+
+/**
+ * Manager multi-pipeline: um engine POR APP (Map<appId, engine>). Cada engine encapsula
+ * naturalmente o estado do seu run (pipeline/child/loop/profile) — N apps rodam concorrentes,
+ * cada um dirigindo o próprio repo (repo-por-app). Estado em maestro/pipelines/<appId>.json.
+ */
+export function createEngineManager({ root, emitLog, emitPipeline }) {
+  const PIPES_DIR = path.join(root, "maestro", "pipelines");
+  const engines = new Map(); // appId → engine
+
+  // migração: maestro/pipeline.json legado (single-pipeline) vira maestro/pipelines/<appId>.json
+  const legacy = path.join(root, "maestro", "pipeline.json");
+  if (fs.existsSync(legacy)) {
+    try {
+      const saved = JSON.parse(fs.readFileSync(legacy, "utf8"));
+      if (saved.appId) {
+        fs.mkdirSync(PIPES_DIR, { recursive: true });
+        const dest = path.join(PIPES_DIR, `${saved.appId}.json`);
+        if (!fs.existsSync(dest)) fs.renameSync(legacy, dest);
+        else fs.rmSync(legacy);
+      }
+    } catch {}
+  }
+
+  function snapshotAll() {
+    const out = {};
+    for (const [id, e] of engines) out[id] = e.snapshot();
+    return out;
+  }
+
+  function engineFor(appId) {
+    if (!engines.has(appId)) {
+      engines.set(
+        appId,
+        createEngine({
+          root,
+          appId,
+          emitLog: (line) => emitLog(`[${appId}] ${line}`),
+          emitPipeline: () => emitPipeline(snapshotAll()),
+        })
+      );
+    }
+    return engines.get(appId);
+  }
+
+  // boot: recarrega todo estado persistido (cada engine se restaura do próprio .json)
+  if (fs.existsSync(PIPES_DIR)) {
+    for (const f of fs.readdirSync(PIPES_DIR)) {
+      if (f.endsWith(".json")) engineFor(f.slice(0, -5));
+    }
+  }
+
+  const ACTIVE = ["running", "paused_gate", "blocked"];
+  const activeEntries = () => [...engines.entries()].filter(([, e]) => ACTIVE.includes(e.snapshot().status));
+
+  /** resolve o alvo: appId explícito, ou fallback quando há exatamente 1 pipeline ativa (compat CLI) */
+  function target(appId) {
+    if (appId) {
+      if (!engines.has(appId)) throw new Error(`pipeline "${appId}" não existe — ativas: ${activeEntries().map(([id]) => id).join(", ") || "nenhuma"}`);
+      return engines.get(appId);
+    }
+    const act = activeEntries();
+    if (act.length === 1) return act[0][1];
+    if (act.length === 0) throw new Error("nenhuma pipeline ativa");
+    throw new Error(`há ${act.length} pipelines ativas (${act.map(([id]) => id).join(", ")}) — informe o appId`);
+  }
+
+  return {
+    start(params) {
+      const appId = deriveAppId(params);
+      if (!appId) throw new Error("não consegui derivar app-id — passe appId/slug ou uma ideia com texto");
+      return engineFor(appId).start(params);
+    },
+    startFeedback(params) {
+      const appId = slugify(params.appId || "");
+      if (!appId) throw new Error("forge feedback <app> — appId obrigatório");
+      return engineFor(appId).startFeedback(params);
+    },
+    decide(appId, gateId, choice, feedback) {
+      return target(appId).decide(gateId, choice, feedback);
+    },
+    stop(appId) {
+      return target(appId).stop();
+    },
+    resume(appId) {
+      return target(appId).resume();
+    },
+    snapshot() {
+      return snapshotAll();
+    },
+    snapshotFor(appId) {
+      return engines.has(appId) ? engines.get(appId).snapshot() : { status: "idle" };
+    },
+  };
 }

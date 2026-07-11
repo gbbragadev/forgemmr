@@ -67,13 +67,17 @@ export function claimSet(paths, player, loop, job, appId) {
   }
 }
 
-export function claimFree(paths) {
+export function claimFree(paths, appId) {
   try {
     const p = section(paths, "CLAIMS.md");
     let md = read(p);
+    // com appId solta só o claim daquele app (N pipelines concorrentes); sem = todos (legado)
+    const mine = appId
+      ? new RegExp(`^\\| F \\|.*\\| ${appId} \\|.*\\| forge autopilot \\|\\s*$`)
+      : /^\| F \|.*\| forge autopilot \|\s*$/;
     md = md
       .split("\n")
-      .filter((l) => !/^\| F \|.*\| forge autopilot \|\s*$/.test(l))
+      .filter((l) => !mine.test(l))
       .join("\n");
     if (!md.includes(FREE_ROW)) md = md.replace(/(\|------\|.*\|\s*\n)/, `$1${FREE_ROW}\n`);
     write(p, md);
@@ -82,17 +86,20 @@ export function claimFree(paths) {
   }
 }
 
-const BEGIN = "<!-- forge:begin -->";
-const END = "<!-- forge:end -->";
+// blocos por app: N pipelines concorrentes têm cada uma sua seção no HANDOFF.md
+const BEGIN = (appId) => `<!-- forge:begin:${appId} -->`;
+const END = (appId) => `<!-- forge:end:${appId} -->`;
+const LEGACY_BLOCK = /<!-- forge:begin -->[\s\S]*?<!-- forge:end -->\n?/;
 
-/** Substitui (ou cria) a seção do autopilot no HANDOFF.md */
+/** Substitui (ou cria) a seção do autopilot deste app no HANDOFF.md */
 export function handoffUpdate(paths, pipeline, extra = "") {
   try {
     const p = section(paths, "HANDOFF.md");
     let md = read(p);
+    md = md.replace(LEGACY_BLOCK, ""); // migra: remove bloco antigo sem appId (uma vez)
     const gate = (pipeline.gates || []).find((g) => !g.decision);
     const lines = [
-      BEGIN,
+      BEGIN(pipeline.appId),
       `## Forge autopilot — ${pipeline.appId}`,
       "",
       `- **Ideia:** ${pipeline.idea}`,
@@ -103,12 +110,14 @@ export function handoffUpdate(paths, pipeline, extra = "") {
       pipeline.deploy?.url ? `- **URL:** ${pipeline.deploy.url}` : null,
       extra ? `- ${extra}` : null,
       "",
-      `_Atualizado ${new Date().toISOString()} pelo forge (maestro/engine.mjs). Estado completo: maestro/pipeline.json_`,
-      END,
+      `_Atualizado ${new Date().toISOString()} pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/${pipeline.appId}.json_`,
+      END(pipeline.appId),
     ].filter(Boolean);
     const block = lines.join("\n");
-    if (md.includes(BEGIN) && md.includes(END)) {
-      md = md.replace(new RegExp(`${BEGIN}[\\s\\S]*?${END}`), block);
+    const b = BEGIN(pipeline.appId);
+    const e = END(pipeline.appId);
+    if (md.includes(b) && md.includes(e)) {
+      md = md.replace(new RegExp(`${b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), block);
     } else {
       md = md.trimEnd() + "\n\n" + block + "\n";
     }

@@ -8,6 +8,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
+
+const MAESTRO_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 /** Strip ANSI / OSC / TUI control codes */
 export function stripAnsi(input) {
@@ -270,11 +273,12 @@ export function buildSpawn(cli, goal, opts) {
   }
 
   if (cli === "fake") {
-    // Dry-run: gera artefatos esperados sem tocar em código real
+    // Dry-run: gera artefatos esperados sem tocar em código real.
+    // Script sempre do maestro real; artefatos vão pro root do run (FORGE_ROOT) — permite tmp-root em teste.
     return {
       cmd: process.execPath,
-      args: [path.join(root, "maestro", "fake-exec.mjs"), goal],
-      env: base,
+      args: [path.join(MAESTRO_DIR, "fake-exec.mjs"), goal],
+      env: { ...base, FORGE_ROOT: root },
     };
   }
 

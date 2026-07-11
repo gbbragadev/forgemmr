@@ -11,7 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runDocRel } from "./engine.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = process.env.FORGE_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /** docs do run vivem no repo do app — garante o dir e devolve o path absoluto */
 function docPath(appId, kind) {
