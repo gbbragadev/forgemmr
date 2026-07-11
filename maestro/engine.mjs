@@ -128,6 +128,51 @@ export function loadProfile(root) {
   return prof;
 }
 
+/**
+ * Autora o conteúdo de .forge/profile.md a partir dos inputs do wizard (forge profile init).
+ * Pura/testável: o resultado passa de volta por loadProfile() e os knobs batem (round-trip).
+ */
+export function buildProfileMd(data) {
+  const {
+    name = "Meu Projeto",
+    namespace = "@forge",
+    niche = "generic",
+    baseUrl = "example.com",
+    i18nRule = "single",
+    locales = i18nRule === "bilingual" ? ["pt-BR", "en"] : ["pt-BR"],
+    context = "",
+    capabilities = ["static", "quiz", "chat"],
+  } = data || {};
+  const knobs = {
+    name,
+    namespace,
+    niche,
+    i18n: { defaultLocale: "pt-BR", locales, rule: i18nRule },
+    deploy: { baseUrl, staticHost: "cf-pages", serverHost: "vercel" },
+    git: { targetBranch: "master", commitPrefix: "forge" },
+    capabilities,
+  };
+  return [
+    `# ${name} — ProjectProfile`,
+    "> setado por `forge profile init` · edite à vontade; o bloco forge-config abaixo é lido pela engine.",
+    "",
+    "```forge-config",
+    JSON.stringify(knobs, null, 2),
+    "```",
+    "",
+    "## Contexto & temas",
+    (context || "").trim() || "(descreva o projeto: temas principais, público, tom de voz)",
+    "",
+    "## Stack & decisões de arquitetura",
+    "A fase FOUNDATION propõe arquitetura, stack e design patterns a partir da ideia + deste contexto.",
+    "Fixe aqui decisões que quer impor a TODOS os apps (ex.: \"Next.js static export\", \"sem backend na v0\").",
+    "",
+    "## Guardrails & regras",
+    "Regras que todo job deve seguir (acessibilidade, tom, regras de IP/marca). Viram fonte da verdade nos prompts.",
+    "",
+  ].join("\n");
+}
+
 export function createEngine({ root, emitLog, emitPipeline }) {
   const PIPELINE_PATH = path.join(root, "maestro", "pipeline.json");
   const RUNS_DIR = path.join(root, "maestro", "runs");

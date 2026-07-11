@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import readline from "node:readline";
+import { buildProfileMd } from "./engine.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -492,6 +493,166 @@ async function wizard() {
   await attachTUI();
 }
 
+// ---------- profile init wizard (forge profile init — autora .forge/profile.md) ----------
+async function profileWizard() {
+  const profilePath = path.join(ROOT, ".forge", "profile.md");
+  let existingName = null;
+  try {
+    const m = fs.readFileSync(profilePath, "utf8").match(/"name"\s*:\s*"([^"]+)"/);
+    existingName = m ? m[1] : "(sem nome)";
+  } catch {}
+
+  const i18nOpts = [
+    ["single", "só pt-BR", ["pt-BR"]],
+    ["bilingual", "pt-BR + inglês (toggle no app)", ["pt-BR", "en"]],
+  ];
+  const fields = [
+    { key: "name", title: "Nome do projeto", ex: "Anime Forge · Fitplan · FinTrack", min: 2, max: 60 },
+    { key: "niche", title: "Nicho / vertical", ex: "anime · fitness · finanças pessoais", min: 2, max: 40 },
+    { key: "namespace", title: "Namespace dos apps (npm workspaces)", ex: "@forge  → apps viram @forge/<app>", min: 2, max: 40 },
+    { key: "baseUrl", title: "Domínio de deploy", ex: "gbbragadev.com  → <app>.gbbragadev.com", min: 3, max: 60 },
+  ];
+  const CONTEXT_STEP = fields.length; // textarea
+  const I18N_STEP = fields.length + 1;
+  const CONFIRM_STEP = fields.length + 2;
+  const stepNames = ["nome", "nicho", "namespace", "domínio", "contexto", "idiomas", "gravar"];
+
+  const st = { step: 0, name: "", niche: "", namespace: "@forge", baseUrl: "gbbragadev.com", context: "", i18nIdx: 0, err: "" };
+
+  process.stdout.write(`${ESC}?1049h${ESC}?25l`);
+  const restore = () => process.stdout.write(`${ESC}?25h${ESC}?1049l`);
+  enableKeys();
+
+  function render() {
+    const cols = Math.max(64, Math.min(process.stdout.columns || 100, 100));
+    const W = cols - 2;
+    const out = [];
+    const row = (s) => fg(PURPLE, "│") + padTo(" " + truncTo(s, W - 2), W) + fg(PURPLE, "│");
+    const blank = () => row("");
+    out.push(fg(PURPLE, "┌─ ") + bold(fg(PURPLE, "🎼 FORGE · PROFILE INIT")) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - 27)) + "┐"));
+    out.push(row(stepNames.map((n, i) => (i === st.step ? bold(fg(CYAN, `● ${n}`)) : i < st.step ? fg(GREEN, `✓ ${n}`) : dim(`○ ${n}`))).join(dim(" ─ "))));
+    out.push(blank());
+
+    if (st.step < CONTEXT_STEP) {
+      const f = fields[st.step];
+      out.push(row(bold(f.title + "?")));
+      out.push(blank());
+      out.push(row(fg(CYAN, `  ${st[f.key]}▌`)));
+      out.push(blank());
+      out.push(row(dim(`  ex.: ${f.ex}`)));
+    } else if (st.step === CONTEXT_STEP) {
+      out.push(row(bold("Contexto & temas principais")));
+      out.push(blank());
+      out.push(row(dim("  descreva o projeto: temas, público, tom — vira fonte da verdade nos prompts")));
+      out.push(blank());
+      // textarea: quebra em linhas de ~W-4
+      const words = st.context.split(" ");
+      let line = "  ";
+      const lines = [];
+      for (const w of words) {
+        if (visibleLen(line + w) > W - 6) { lines.push(line); line = "  "; }
+        line += w + " ";
+      }
+      lines.push(line + "▌");
+      for (const l of lines.slice(-6)) out.push(row(fg(CYAN, l)));
+      out.push(blank());
+      out.push(row(dim(`  ${st.context.length}/800 · Enter = continuar · Shift+Enter não precisa`)));
+    } else if (st.step === I18N_STEP) {
+      out.push(row(bold("Idiomas do conteúdo user-facing?")));
+      out.push(blank());
+      i18nOpts.forEach(([id, label], i) => {
+        const sel = i === st.i18nIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(id) : id}  ${dim(label)}`));
+      });
+    } else {
+      out.push(row(bold("Profile pronto:")));
+      out.push(blank());
+      out.push(row(`  nome       ${fg(CYAN, st.name)}`));
+      out.push(row(`  nicho      ${fg(CYAN, st.niche)}`));
+      out.push(row(`  namespace  ${fg(CYAN, st.namespace)}`));
+      out.push(row(`  domínio    ${fg(CYAN, st.baseUrl)}`));
+      out.push(row(`  idiomas    ${fg(CYAN, i18nOpts[st.i18nIdx][2].join(" + "))}`));
+      out.push(row(`  contexto   ${dim(truncTo(st.context || "(vazio — edite depois)", W - 16))}`));
+      out.push(blank());
+      out.push(row(dim(`  grava em .forge/profile.md`)));
+      if (existingName) out.push(row(fg(YELLOW, `  ⚠ substitui o profile atual: "${existingName}"`)));
+      out.push(blank());
+      out.push(row(bold(fg(GREEN, "  Enter = gravar profile ▶"))));
+    }
+
+    out.push(blank());
+    if (st.err) out.push(row(fg(RED, st.err)));
+    const hints = st.step === I18N_STEP ? "↑↓ escolhe · Enter continua · ← volta · Esc sai" : "Enter continua · ← volta · Esc sai";
+    out.push(fg(PURPLE, "└─ ") + dim(hints) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - visibleLen(hints) - 5)) + "┘"));
+
+    let frame = `${ESC}H`;
+    for (const line of out) frame += line + `${ESC}K\n`;
+    frame += `${ESC}J`;
+    process.stdout.write(frame);
+  }
+
+  const data = await new Promise((resolve) => {
+    const bootAt = Date.now();
+    const onKey = (str, key) => {
+      if (Date.now() - bootAt < 350) return; // engole ESC fantasma do raw mode (Windows)
+      st.err = "";
+      if ((key.ctrl && key.name === "c") || key.name === "escape") return finish(null);
+
+      if (st.step < CONTEXT_STEP) {
+        const f = fields[st.step];
+        if (key.name === "return") {
+          if (String(st[f.key]).trim().length >= f.min) st.step++;
+          else st.err = `mínimo ${f.min} caracteres`;
+        } else if (key.name === "backspace") st[f.key] = st[f.key].slice(0, -1);
+        else if (key.name === "left") st.step = Math.max(0, st.step - 1);
+        else if (str && !key.ctrl && str >= " " && st[f.key].length < f.max) st[f.key] += str;
+      } else if (st.step === CONTEXT_STEP) {
+        if (key.name === "return") st.step++;
+        else if (key.name === "backspace") st.context = st.context.slice(0, -1);
+        else if (key.name === "left" && !st.context) st.step--;
+        else if (str && !key.ctrl && str >= " " && st.context.length < 800) st.context += str;
+      } else if (st.step === I18N_STEP) {
+        if (key.name === "up") st.i18nIdx = (st.i18nIdx + i18nOpts.length - 1) % i18nOpts.length;
+        else if (key.name === "down") st.i18nIdx = (st.i18nIdx + 1) % i18nOpts.length;
+        else if (key.name === "return") st.step++;
+        else if (key.name === "left") st.step--;
+      } else {
+        if (key.name === "return") {
+          const [rule, , locales] = i18nOpts[st.i18nIdx];
+          return finish({
+            name: st.name.trim(),
+            niche: st.niche.trim(),
+            namespace: st.namespace.trim(),
+            baseUrl: st.baseUrl.trim(),
+            i18nRule: rule,
+            locales,
+            context: st.context.trim(),
+          });
+        }
+        if (key.name === "left") st.step--;
+      }
+      render();
+    };
+    const finish = (v) => {
+      process.stdin.removeListener("keypress", onKey);
+      resolve(v);
+    };
+    process.stdin.on("keypress", onKey);
+    render();
+  });
+
+  restore();
+  if (!data) {
+    console.log(dim("profile init cancelado"));
+    process.exit(0);
+  }
+  fs.mkdirSync(path.dirname(profilePath), { recursive: true });
+  fs.writeFileSync(profilePath, buildProfileMd(data), "utf8");
+  console.log(fg(GREEN, `✓ profile gravado: .forge/profile.md`) + dim(`  (nicho: ${data.niche} · namespace: ${data.namespace})`));
+  console.log(dim("  edite as seções Stack/Guardrails à vontade — a engine lê o bloco forge-config + o narrativo."));
+  console.log(dim("  próximo: forge new \"<sua ideia>\"  → P0 → FOUNDATION (system design) → build → ship"));
+}
+
 // ---------- comandos ----------
 function printStatus(p) {
   if (!p || !p.appId) {
@@ -516,6 +677,8 @@ async function main() {
 ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (anime-forge)
 
   ${bold("forge")}           tela de setup interativa (ideia → time → tipo → RUN)
+  ${bold("forge profile init")}   wizard que autora .forge/profile.md (nicho, stack, contexto, idiomas)
+  ${bold("forge profile show")}   imprime o profile atual
   ${bold("forge new")} "<ideia>" [--team X] [--app-id X] [--capability static|quiz|chat]
             [--subdomain X] [--target cf-pages|vercel] [--dry-run]
   ${bold("forge new --idea-file")} ideia.md   ideia GRANDE/estruturada (markdown multi-linha —
@@ -573,6 +736,17 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     console.log(fg(GREEN, `🔁 iteração de feedback iniciada: ${r.pipeline.appId} (fb${r.pipeline.iterationNum}) · team ${r.pipeline.team}`));
     await attachTUI();
     return;
+  }
+
+  if (cmd === "profile") {
+    const sub = rest[0] || "init";
+    if (sub === "init") return profileWizard();
+    if (sub === "show") {
+      const p = path.join(ROOT, ".forge", "profile.md");
+      console.log(fs.existsSync(p) ? fs.readFileSync(p, "utf8") : dim("sem .forge/profile.md — rode: forge profile init"));
+      return;
+    }
+    throw new Error("uso: forge profile init | forge profile show");
   }
 
   if (cmd === "attach") return attachTUI();
