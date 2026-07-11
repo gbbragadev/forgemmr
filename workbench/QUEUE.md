@@ -16,10 +16,11 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 ## Doing
 
 
-- [ ] **L0/P1** e2e-alfa — forge autopilot
 ## Done
 
 
+- [x] **L1/B1** e2e-alfa — forge/fake-dry (2026-07-11)
+- [x] **L0/P1** e2e-alfa — forge/fake-dry (2026-07-11)
 - [x] **DS-GEN** e2e-alfa — forge/fake-dry (2026-07-11)
 - [x] **FOUNDATION** e2e-alfa — forge/fake-dry (2026-07-11)
 - [x] **L0/P0** e2e-beta — forge/fake-dry (2026-07-11)
