@@ -22,6 +22,7 @@ const HQ_PORT = Number(process.env.MAESTRO_PORT || 8799);
 const JOB_TEMPLATES = {
   "L0/P0": "L0-P0-scorecard.md",
   FOUNDATION: "FOUNDATION.md",
+  "DS-GEN": "DS-GEN.md",
   "L0/P1": "L0-P1-content-hooks.md",
   "L1/B1": "L1-B1-scaffold.md",
   "L1/B2": "L1-B2-personas.md",
@@ -32,9 +33,9 @@ const JOB_TEMPLATES = {
 };
 
 const JOBS_BY_CAPABILITY = {
-  static: ["L0/P0", "FOUNDATION", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
-  quiz: ["L0/P0", "FOUNDATION", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
-  chat: ["L0/P0", "FOUNDATION", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "P3"],
+  static: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
+  quiz: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
+  chat: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "P3"],
 };
 
 // gate criado DEPOIS do job passar; pipeline pausa até forge decide
@@ -50,6 +51,12 @@ const GATES_AFTER = {
     prompt: `System design pronto (docs/system-design-${p.appId}.md) — é o contrato de arquitetura que os builds vão seguir. Aprova, refaz ou mata?`,
     payload: `docs/system-design-${p.appId}.md`,
     choices: ["go", "retry", "kill"],
+  }),
+  "DS-GEN": (p) => ({
+    id: "ds-pick",
+    prompt: `3 propostas de design system em http://127.0.0.1:${HQ_PORT}/proposals/${p.appId}/proposal-1.html (…-2, …-3). Escolha 1/2/3 (a UI segue a escolhida), refaz ou mata.`,
+    payload: `proposals:${p.appId}`,
+    choices: ["1", "2", "3", "retry", "kill"],
   }),
   "L1/B3": (p) => ({
     id: "b3-visual",
@@ -343,8 +350,21 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     }
     // Ground-truth da FOUNDATION: todo job DEPOIS dela (P1 + builds) segue o design aprovado.
     const sysDesign = path.join(root, "docs", `system-design-${p.appId}.md`);
-    if (job !== "L0/P0" && job !== "FOUNDATION" && fs.existsSync(sysDesign)) {
+    if (job !== "L0/P0" && job !== "FOUNDATION" && job !== "DS-GEN" && fs.existsSync(sysDesign)) {
       lines.push("", "---", "DESIGN APROVADO (system design da FOUNDATION — siga à risca):", fs.readFileSync(sysDesign, "utf8"));
+    }
+    // Design system escolhido no gate ds-pick → todo build de UI segue a proposta aprovada.
+    if (p.dsChoice && job.startsWith("L1/")) {
+      const prop = path.join(root, "maestro", "proposals", p.appId, `proposal-${p.dsChoice}.html`);
+      if (fs.existsSync(prop)) {
+        lines.push(
+          "",
+          "---",
+          `DESIGN SYSTEM APROVADO: proposta ${p.dsChoice} (o dono escolheu no gate ds-pick). Aplique essa linguagem visual à risca:`,
+          `- abra maestro/proposals/${p.appId}/proposal-${p.dsChoice}.html — HTML self-contained com paleta, tipografia e componentes de referência;`,
+          `- e docs/design-system-${p.appId}.md — tokens/decisões. Use esses tokens em TODO o UI (não invente outro visual).`
+        );
+      }
     }
     if (p.mode === "feedback" && job === "ITERATE") {
       lines.push(
@@ -385,6 +405,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
   function verifyDescription(job) {
     if (job === "L0/P0") return `docs/scorecard-${pipeline.appId}.md existe com GO/NO-GO`;
     if (job === "FOUNDATION") return `docs/system-design-${pipeline.appId}.md existe com Arquitetura/Dados/Decisões/Padrões/Riscos`;
+    if (job === "DS-GEN") return `3 propostas em maestro/proposals/${pipeline.appId}/proposal-{1,2,3}.html + docs/design-system-${pipeline.appId}.md`;
     if (job === "L0/P1") return `docs/content-hooks-${pipeline.appId}.md existe`;
     return `npm run build -w ${profile.namespace}/${pipeline.appId} sai com exit 0`;
   }
@@ -414,6 +435,14 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       return hasSections
         ? { pass: true, detail: "system design com seções ok" }
         : { pass: false, detail: "system design sem as seções esperadas (Arquitetura/Decisões)" };
+    }
+    if (job === "DS-GEN") {
+      const propDir = path.join(root, "maestro", "proposals", p.appId);
+      const md = path.join(root, "docs", `design-system-${p.appId}.md`);
+      const missing = [1, 2, 3].filter((n) => !fs.existsSync(path.join(propDir, `proposal-${n}.html`)));
+      if (missing.length) return { pass: false, detail: `faltam propostas: ${missing.map((n) => `proposal-${n}.html`).join(", ")}` };
+      if (!fs.existsSync(md)) return { pass: false, detail: `faltou ${path.relative(root, md)}` };
+      return { pass: true, detail: "3 propostas de DS + design-system.md ok" };
     }
     if (p.dryRun) return { pass: true, detail: "dry-run: verify de build pulado" };
     // appId nasce do slugify(), mas revalida aqui: é interpolado em shell (npm.cmd exige shell no Windows)
@@ -799,6 +828,13 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     if (existing) throw new Error(`branch ${branch} já existe — apague ou use outro --app-id`);
     git(["checkout", "-b", branch]);
 
+    // DS gerado por projeto: pula DS-GEN se este app já tem design system (re-run do mesmo app)
+    let jobs = JOBS_BY_CAPABILITY[capability];
+    if (fs.existsSync(path.join(root, "docs", `design-system-${appId}.md`))) {
+      jobs = jobs.filter((j) => j !== "DS-GEN");
+      log(`· DS-GEN pulado — docs/design-system-${appId}.md já existe`);
+    }
+
     pipeline = {
       runId: new Date().toISOString().replace(/[:.]/g, "-"),
       appId,
@@ -808,7 +844,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       capability,
       dryRun,
       status: "running",
-      jobs: JOBS_BY_CAPABILITY[capability],
+      jobs,
       jobIndex: 0,
       currentJob: null,
       git: { branch, baseRef, checkpoints: [], lastCheckpoint: baseRef },
@@ -932,6 +968,12 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     gate.decidedAt = new Date().toISOString();
     if (feedback) gate.feedback = feedback;
     log(`✔ gate ${gateId} → ${choice}${feedback ? ` (${feedback.slice(0, 80)})` : ""}`);
+
+    // ds-pick: escolha 1/2/3 fixa a proposta de design system que os builds de UI vão seguir
+    if (gate.id === "ds-pick" && ["1", "2", "3"].includes(choice)) {
+      pipeline.dsChoice = choice;
+      log(`✔ design system: proposta ${choice} escolhida`);
+    }
 
     if (choice === "kill") {
       finish("killed");

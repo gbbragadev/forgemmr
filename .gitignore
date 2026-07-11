@@ -30,3 +30,6 @@ apps/*/out/
 .playwright-mcp/
 *.jpeg
 ideas/
+
+# propostas de design system geradas por app (DS-GEN) — vivem em disco p/ o gate ds-pick servir
+maestro/proposals/

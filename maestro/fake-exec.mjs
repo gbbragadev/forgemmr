@@ -42,6 +42,37 @@ if (job === "L0/P0") {
     "utf8"
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);
+} else if (job === "DS-GEN") {
+  const propDir = path.join(ROOT, "maestro", "proposals", appId);
+  fs.mkdirSync(propDir, { recursive: true });
+  const dirs = ["minimalista", "vibrante", "editorial"];
+  for (let n = 1; n <= 3; n++) {
+    fs.writeFileSync(
+      path.join(propDir, `proposal-${n}.html`),
+      `<!doctype html><meta charset="utf-8"><title>${appId} — proposta ${n} (dry-run)</title>` +
+        `<style>body{font-family:system-ui;background:#0a0612;color:#f5f0ff;padding:24px}` +
+        `.sw{display:inline-block;width:48px;height:48px;border-radius:8px;margin:4px}` +
+        `.btn{padding:8px 16px;border-radius:10px;border:0;background:#c44dff;color:#fff}</style>` +
+        `<h1>${appId} — direção ${n}: ${dirs[n - 1]} (dry-run)</h1>` +
+        `<p>Paleta:</p><span class="sw" style="background:#c44dff"></span><span class="sw" style="background:#38bdf8"></span>` +
+        `<span class="sw" style="background:#34d399"></span><p><button class="btn">Botão primário</button></p>` +
+        `<p>proposta fake gerada pelo dry-run para testar o gate ds-pick.</p>`,
+      "utf8"
+    );
+  }
+  const md = path.join(ROOT, "docs", `design-system-${appId}.md`);
+  fs.writeFileSync(
+    md,
+    `# Design System — ${appId} (dry-run)\n\n` +
+      dirs
+        .map(
+          (d, i) =>
+            `## Proposta ${i + 1}: ${d}\n| token | valor |\n|---|---|\n| primária | #c44dff |\n| bg | #0a0612 |\n| radius | 10px |\n| font | system-ui |\n\nQuando escolher: exemplo dry-run.\n`
+        )
+        .join("\n"),
+    "utf8"
+  );
+  console.log(`✓ escreveu 3 propostas + ${path.relative(ROOT, md)}`);
 } else if (job === "L0/P1") {
   const p = path.join(ROOT, "docs", `content-hooks-${appId}.md`);
   fs.writeFileSync(
