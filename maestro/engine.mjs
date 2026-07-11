@@ -34,6 +34,9 @@ const JOB_TEMPLATES = {
   ITERATE: "FEEDBACK-ITERATE.md",
 };
 
+// rótulos curtos por job (fonte única — TUI importa; index.html espelha em literal)
+export const JOB_SHORT = { "L0/P0": "P0", FOUNDATION: "Fundação", "DS-GEN": "Design", "L0/P1": "P1", "L1/B1": "B1", "L1/B2": "B2", "L1/B3": "B3", "L1/B4": "B4", "L1/B5": "B5", P3: "ship", ITERATE: "iterar" };
+
 export const JOBS_BY_CAPABILITY = {
   static: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
   quiz: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],

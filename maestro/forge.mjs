@@ -15,7 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import readline from "node:readline";
-import { buildProfileMd, composeTeam, TEAM_ROLES, slugify, listProfiles, activateProfile, importActiveProfile } from "./engine.mjs";
+import { buildProfileMd, composeTeam, TEAM_ROLES, slugify, listProfiles, activateProfile, importActiveProfile, JOB_SHORT } from "./engine.mjs";
 import { loadBlueprint } from "./blueprint-loader.mjs";
 import { recordDecision } from "./decisions.mjs";
 
@@ -121,7 +121,7 @@ function parseArgs(argv) {
 }
 
 // ---------- TUI ----------
-const JOB_SHORT = { "L0/P0": "P0", "L0/P1": "P1", "L1/B1": "B1", "L1/B2": "B2", "L1/B3": "B3", "L1/B4": "B4", "L1/B5": "B5", P3: "ship" };
+// JOB_SHORT: fonte única no engine (a cópia local divergia — faltavam FOUNDATION/DS-GEN)
 const SPIN = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 let keysEnabled = false;

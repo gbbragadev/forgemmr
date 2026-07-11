@@ -16,9 +16,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
-// buildSpawn = matriz única de executores (compartilhada com a engine).
-// Sanitizers locais mantidos aqui (equivalentes aos de adapters.mjs).
-import { buildSpawn, makeRedactor } from "./adapters.mjs";
+// buildSpawn = matriz única de executores; sanitizers com fonte única em adapters.mjs.
+import { buildSpawn, makeRedactor, stripAnsi, isNoiseLine } from "./adapters.mjs";
 import { createEngine } from "./engine.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -63,43 +62,6 @@ const state = {
 const sseClients = new Set();
 /** @type {import('node:child_process').ChildProcess | null} */
 let child = null;
-
-/** Strip ANSI / OSC / TUI control codes */
-function stripAnsi(input) {
-  let s = String(input);
-  s = s.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "");
-  s = s.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "");
-  s = s.replace(/\x1b[@-Z\\-_]/g, "");
-  s = s.replace(/\x1b./g, "");
-  // only strip CSI-like leftovers that look like escape params, not "[08:27:15]"
-  s = s.replace(/(?<![\w\d])\[[\?\d;]{1,40}[A-Za-z](?![\w])/g, "");
-  s = s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
-  return s;
-}
-
-/** True = don't show in HQ log */
-function isNoiseLine(line) {
-  const t = line.trim();
-  if (!t) return true;
-
-  // progress counters from TUI redraw: "1", "90", "*2", "i.7"
-  if (/^[\d*]+$/.test(t)) return true;
-  if (/^[*\s]*\d{1,4}$/.test(t)) return true;
-  if (/^[a-z]\.\d+$/i.test(t)) return true;
-  if (/^[\d.]+\s*%?$/.test(t)) return true;
-
-  // spinner / box drawing only
-  if (/^[\s│┃─┌┐└┘╭╮╰╯█░▒▓●○◦·▌▐▀▄]+$/u.test(t)) return true;
-
-  // very short fragments (TUI crumbs)
-  if (t.length <= 2 && !/^[✓✗▶■$]/.test(t)) return true;
-
-  // mostly non-text after strip
-  const letters = (t.match(/[A-Za-z\u00C0-\u024F]/g) || []).length;
-  if (t.length >= 6 && letters / t.length < 0.2) return true;
-
-  return false;
-}
 
 /**
  * Buffer bytes → only emit complete lines ending in \n.
