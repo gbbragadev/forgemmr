@@ -15,7 +15,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import readline from "node:readline";
-import { buildProfileMd, composeTeam, TEAM_ROLES } from "./engine.mjs";
+import { buildProfileMd, composeTeam, TEAM_ROLES, slugify } from "./engine.mjs";
+import { loadBlueprint } from "./blueprint-loader.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -877,6 +878,16 @@ async function teamWizard() {
   releaseStdin();
 }
 
+// ---------- blueprint scaffolding ----------
+export function scaffoldProject({ root, blueprint, slug, name, idea }) {
+  const dir = path.join(root, ".forge", "projects", slug);
+  fs.mkdirSync(path.join(dir, "decisions"), { recursive: true });
+  fs.mkdirSync(path.join(root, "docs", slug), { recursive: true });
+  const project = { blueprint, slug, name: name || slug, idea: idea || "", createdAt: new Date().toISOString(), status: "intake-pending" };
+  fs.writeFileSync(path.join(dir, "project.json"), JSON.stringify(project, null, 2), "utf8");
+  return dir;
+}
+
 // ---------- comandos ----------
 function printStatus(p) {
   if (!p || !p.appId) {
@@ -908,6 +919,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
             [--subdomain X] [--target cf-pages|vercel] [--dry-run]
   ${bold("forge new --idea-file")} ideia.md   ideia GRANDE/estruturada (markdown multi-linha —
             vai inteira pro prompt de todos os jobs; mais contexto = app melhor)
+  ${bold("forge new --blueprint gameads")} "<campanha>" [--slug X]   scaffold de projeto por blueprint
   ${bold("forge feedback")} <app> "<feedback geral>" [--team X] [--dry-run]
             loop de melhoria: aplica seu feedback no app pronto e redeploya
   ${bold("forge attach")}    TUI ao vivo da pipeline
@@ -923,6 +935,16 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
   }
 
   if (cmd === "new") {
+    // blueprint: forge new --blueprint gameads "<campanha>" [--slug X]
+    if (flags.blueprint && flags.blueprint !== "generic") {
+      loadBlueprint(flags.blueprint, { root: ROOT }); // valida (lança se inexistente)
+      const idea = rest.join(" ").trim();
+      if (!idea) throw new Error('uso: forge new --blueprint gameads "<campanha>" [--slug X]');
+      const slug = slugify(flags.slug || idea);
+      const dir = scaffoldProject({ root: ROOT, blueprint: flags.blueprint, slug, name: flags.name, idea });
+      console.log(fg(GREEN, `✓ projeto criado: ${path.relative(ROOT, dir)} — próximo: forge onboard ${slug}`));
+      return;
+    }
     // ideia grande/estruturada: forge new --idea-file ideia.md (markdown livre, multi-linha)
     let idea = rest.join(" ").trim();
     if (flags.ideaFile) {

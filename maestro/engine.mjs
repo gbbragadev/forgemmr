@@ -80,6 +80,22 @@ const GATES_AFTER = {
 };
 
 /**
+ * Converte uma string em slug: minúsculo, remove diacríticos, espaços → hífens, máx 3 partes.
+ * @example slugify("Acme Lançamento 2024") → "acme-lancamento-2024"
+ */
+export function slugify(s) {
+  return String(s)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .split("-")
+    .slice(0, 3)
+    .join("-");
+}
+
+/**
  * Resolve a lista de jobs + jobSpecs para uma pipeline. generic = defaults
  * internos (jobSpecs null → engine usa JOB_TEMPLATES/GATES_AFTER/switch).
  * Externo = jobs/jobSpecs do blueprint, com verify.path/gate interpolados p/ o appId.
@@ -315,18 +331,6 @@ export function createEngine({ root, emitLog, emitPipeline }) {
 
   function readRoster() {
     return JSON.parse(fs.readFileSync(path.join(root, "maestro", "roster.json"), "utf8"));
-  }
-
-  function slugify(s) {
-    return String(s)
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .split("-")
-      .slice(0, 3)
-      .join("-");
   }
 
   // ---------- dispatch ----------
