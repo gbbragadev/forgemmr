@@ -16,6 +16,7 @@ import { spawn, execFileSync, execSync } from "node:child_process";
 import { buildSpawn, createStreamSanitizer, detectRateLimit, makeRedactor } from "./adapters.mjs";
 import * as workbench from "./workbench.mjs";
 import { loadBlueprint, interpolate } from "./blueprint-loader.mjs";
+import { recordDecision, writeApproval } from "./decisions.mjs";
 
 // porta do Maestro HQ (server.mjs) — usada nos prompts de gate visual (preview)
 const HQ_PORT = Number(process.env.MAESTRO_PORT || 8799);
@@ -1055,6 +1056,24 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     if (gate.id === "ds-pick" && ["1", "2", "3"].includes(choice)) {
       pipeline.dsChoice = choice;
       log(`✔ design system: proposta ${choice} escolhida`);
+    }
+
+    // pick declarativo (concept-review etc.) → guarda no pipeline como dsChoice faz
+    if (gate.storePick && !["go", "retry", "kill"].includes(choice)) {
+      pipeline[gate.storePick] = choice;
+      log(`✔ ${gate.storePick} = ${choice}`);
+    }
+    // decisão versionada (projetos com projectDir: gameads)
+    if (pipeline.projectDir) {
+      recordDecision({ projectDir: pipeline.projectDir, gateId, choice, feedback });
+      if (gateId === "experience-plan-review" && choice === "go") {
+        writeApproval({ projectDir: pipeline.projectDir, payload: {
+          blueprint: pipeline.blueprint, slug: pipeline.slug,
+          approvedConcept: pipeline.conceptChoice || null,
+          planPath: `docs/${pipeline.slug}/experience-plan.md`,
+        }});
+        log(`✅ approval.json gravado — experience-plan aprovado`);
+      }
     }
 
     if (choice === "kill") {
