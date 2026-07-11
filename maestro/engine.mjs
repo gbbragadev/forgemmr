@@ -302,7 +302,8 @@ export function createEngine({ root, emitLog, emitPipeline }) {
   const PIPELINE_PATH = path.join(root, "maestro", "pipeline.json");
   const RUNS_DIR = path.join(root, "maestro", "runs");
   const paths = { root };
-  const profile = loadProfile(root);
+  // reatribuído a cada start()/startFeedback() — trocar .forge/profile.md vale sem reiniciar o server
+  let profile = loadProfile(root);
 
   /** @type {any} */
   let pipeline = null;
@@ -971,6 +972,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     if (pipeline && ["running", "paused_gate", "blocked"].includes(pipeline.status)) {
       throw new Error(`já existe pipeline ativa (${pipeline.appId} · ${pipeline.status}) — forge stop ou decide antes`);
     }
+    profile = loadProfile(root);
     const idea = String(params.idea || "").trim();
     if (!idea) throw new Error("idea vazia");
     const roster = readRoster();
@@ -1069,6 +1071,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     if (pipeline && ["running", "paused_gate", "blocked"].includes(pipeline.status)) {
       throw new Error(`já existe pipeline ativa (${pipeline.appId} · ${pipeline.status}) — forge stop ou decide antes`);
     }
+    profile = loadProfile(root);
     const appId = slugify(params.appId || "");
     if (!appId || !fs.existsSync(path.join(root, "apps", appId))) {
       throw new Error(`app "${params.appId}" não existe em apps/ — forge feedback <app> "<texto>"`);
