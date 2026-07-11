@@ -3,286 +3,121 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Maestro HQ — Anime Forge</title>
+  <title>Maestro HQ — Forge</title>
   <style>
     :root {
-      --bg: #0a0612;
-      --surface: #161022;
-      --surface2: #1f1730;
-      --ink: #f5f0ff;
-      --muted: #a89bc0;
-      --pink: #ff4d9a;
-      --purple: #c44dff;
-      --cyan: #38bdf8;
-      --green: #34d399;
-      --amber: #fbbf24;
+      --bg: #0a0612; --surface: #161022; --surface2: #1f1730;
+      --ink: #f5f0ff; --muted: #a89bc0;
+      --pink: #ff4d9a; --purple: #c44dff; --cyan: #38bdf8; --green: #34d399; --amber: #fbbf24; --red: #fb7185;
       --border: rgba(255,255,255,.08);
       --font: "Segoe UI", system-ui, sans-serif;
+      --mono: ui-monospace, Consolas, monospace;
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: var(--font);
-      color: var(--ink);
-      min-height: 100vh;
+      margin: 0; font-family: var(--font); color: var(--ink); min-height: 100vh;
       background:
         radial-gradient(800px 400px at 15% -5%, #5b21b680, transparent 50%),
         radial-gradient(700px 380px at 100% 0%, #9d174d55, transparent 45%),
         var(--bg);
     }
     .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
-
-    /* HERO / CARA */
     .hero {
-      display: grid;
-      grid-template-columns: 140px 1fr;
-      gap: 20px;
-      align-items: center;
-      padding: 24px;
-      border-radius: 24px;
+      display: grid; grid-template-columns: 96px 1fr; gap: 18px; align-items: center;
+      padding: 18px 22px; border-radius: 22px;
       border: 1px solid rgba(196,77,255,.35);
       background: linear-gradient(145deg, #241834ee, #120c1cee);
-      box-shadow: 0 0 48px rgba(196,77,255,.25);
-      margin-bottom: 20px;
+      box-shadow: 0 0 40px rgba(196,77,255,.22); margin-bottom: 18px;
     }
-    @media (max-width: 640px) {
-      .hero { grid-template-columns: 1fr; text-align: center; }
-    }
+    @media (max-width: 640px) { .hero { grid-template-columns: 1fr; text-align: center; } }
     .avatar {
-      width: 120px; height: 120px;
-      border-radius: 28px;
-      display: grid; place-items: center;
-      font-size: 64px;
-      background: linear-gradient(145deg, #7c3aed, #db2777);
-      box-shadow: 0 0 32px rgba(219,39,119,.45);
-      animation: pulse 3s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 28px rgba(219,39,119,.4); }
-      50% { box-shadow: 0 0 48px rgba(196,77,255,.65); }
+      width: 84px; height: 84px; border-radius: 22px; display: grid; place-items: center; font-size: 46px;
+      background: linear-gradient(145deg, #7c3aed, #db2777); box-shadow: 0 0 26px rgba(219,39,119,.45);
     }
     .hero h1 {
-      margin: 0 0 6px;
-      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      margin: 0 0 4px; font-size: clamp(1.4rem, 4vw, 2rem);
       background: linear-gradient(90deg, #fff, #ffb7d5, #c44dff);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .hero .tag { color: var(--muted); margin: 0 0 12px; font-size: 15px; }
-    .status-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
+    .hero .tag { color: var(--muted); margin: 0 0 10px; font-size: 14px; }
+    .status-row { display: flex; flex-wrap: wrap; gap: 8px; }
     @media (max-width: 640px) { .status-row { justify-content: center; } }
     .pill {
-      font-size: 12px; font-weight: 700;
-      padding: 6px 12px; border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      color: var(--muted);
+      font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface2); color: var(--muted);
     }
     .pill.on { border-color: rgba(52,211,153,.45); color: var(--green); background: rgba(52,211,153,.1); }
-    .pill.off { border-color: rgba(251,113,133,.4); color: #fb7185; }
+    .pill.off { border-color: rgba(251,113,133,.4); color: var(--red); }
+    .pill.warn { border-color: rgba(251,191,36,.45); color: var(--amber); background: rgba(251,191,36,.08); }
 
-    h2 {
-      margin: 28px 0 12px;
-      font-size: 1.05rem;
-      color: #e9d5ff;
-      letter-spacing: .02em;
-    }
+    h2 { margin: 26px 0 12px; font-size: 1.05rem; color: #e9d5ff; letter-spacing: .02em; }
+    .panel { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 18px; }
+    .muted { color: var(--muted); }
 
-    .grid-players {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-      gap: 12px;
+    /* pipeline progress */
+    .jobs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+    .job {
+      font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 8px;
+      background: rgba(255,255,255,.05); color: var(--muted); border: 1px solid transparent;
     }
-    .player {
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      padding: 16px;
-      transition: transform .15s, box-shadow .15s;
-    }
-    .player:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(0,0,0,.35);
-    }
-    .player .face {
-      width: 48px; height: 48px; border-radius: 14px;
-      display: grid; place-items: center; font-size: 26px;
-      margin-bottom: 10px;
-    }
-    .player h3 { margin: 0 0 4px; font-size: 1rem; }
-    .player .meta { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-    .player .jobs {
-      display: flex; flex-wrap: wrap; gap: 4px;
-    }
-    .job-tag {
-      font-size: 10px; font-weight: 700;
-      padding: 3px 8px; border-radius: 999px;
-      background: rgba(255,255,255,.06);
-      color: var(--muted);
-    }
-    .player p { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+    .job.done { color: var(--green); background: rgba(52,211,153,.1); }
+    .job.now { color: var(--cyan); border-color: rgba(56,189,248,.5); background: rgba(56,189,248,.1); }
+    .job.gate { color: var(--amber); border-color: rgba(251,191,36,.5); background: rgba(251,191,36,.08); }
 
-    .presets {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 10px;
+    /* players strip */
+    .players { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .pchip {
+      display: flex; align-items: center; gap: 8px; padding: 7px 11px; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--surface2); font-size: 12.5px;
     }
-    .preset {
-      text-align: left;
-      cursor: pointer;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px;
-      background: linear-gradient(160deg, #1f1730, #161022);
-      color: var(--ink);
-      font: inherit;
-      transition: border-color .15s, box-shadow .15s;
-    }
-    .preset:hover {
-      border-color: rgba(255,77,154,.5);
-      box-shadow: 0 0 24px rgba(255,77,154,.2);
-    }
-    .preset .em { font-size: 22px; display: block; margin-bottom: 6px; }
-    .preset strong { display: block; margin-bottom: 4px; }
-    .preset span { font-size: 12px; color: var(--muted); }
+    .pchip .mdl { color: var(--muted); font-size: 11px; }
+    .pchip.active { border-color: rgba(56,189,248,.6); box-shadow: 0 0 16px rgba(56,189,248,.2); }
 
-    .panel {
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: var(--surface);
-      padding: 16px;
-      margin-top: 12px;
+    /* gate */
+    .gate { border: 1px solid rgba(251,191,36,.4); border-radius: 16px; background: rgba(251,191,36,.05); padding: 16px; margin-top: 14px; }
+    .gate h3 { margin: 0 0 4px; font-size: 1rem; color: var(--amber); }
+    .gate .prompt { color: var(--ink); font-size: 13.5px; margin: 0 0 12px; line-height: 1.5; }
+    .doc {
+      max-height: 360px; overflow: auto; background: #05030a; border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; font-size: 13px; line-height: 1.55;
     }
-    textarea {
-      width: 100%;
-      min-height: 110px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #0a0610;
-      color: var(--ink);
-      padding: 12px;
-      font: inherit;
-      resize: vertical;
-    }
-    .actions {
-      display: flex; flex-wrap: wrap; gap: 10px;
-      margin-top: 12px;
-    }
-    .btn {
-      border: 0;
-      border-radius: 12px;
-      padding: 12px 18px;
-      font-weight: 700;
-      font: inherit;
-      cursor: pointer;
-    }
-    .btn.primary {
-      background: linear-gradient(90deg, var(--pink), var(--purple));
-      color: #fff;
-    }
-    .btn.ghost {
-      background: var(--surface2);
-      color: var(--ink);
-      border: 1px solid var(--border);
-    }
+    .doc h1, .doc h2, .doc h3 { color: #e9d5ff; margin: 12px 0 6px; }
+    .doc h1 { font-size: 1.15rem; } .doc h2 { font-size: 1rem; } .doc h3 { font-size: .92rem; }
+    .doc table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 12.5px; }
+    .doc th, .doc td { border: 1px solid var(--border); padding: 5px 8px; text-align: left; }
+    .doc th { background: var(--surface2); color: #e9d5ff; }
+    .doc code { color: #fbcfe8; font-family: var(--mono); }
+    .doc ul { margin: 6px 0; padding-left: 20px; }
+    .props { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 4px 0 6px; }
+    .props figure { margin: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface2); }
+    .props iframe { width: 100%; height: 280px; border: 0; background: #fff; display: block; }
+    .props figcaption { font-size: 12px; padding: 6px 10px; color: var(--muted); }
+    .preview-frame { width: 100%; height: 440px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center; }
+    .btn { border: 0; border-radius: 11px; padding: 11px 18px; font-weight: 700; font: inherit; cursor: pointer; }
+    .btn.go { background: linear-gradient(90deg, var(--green), #22c55e); color: #04120b; }
+    .btn.pick { background: linear-gradient(90deg, var(--cyan), var(--purple)); color: #fff; }
+    .btn.retry { background: var(--surface2); color: var(--ink); border: 1px solid var(--border); }
+    .btn.kill { background: rgba(251,113,133,.18); color: var(--red); border: 1px solid rgba(251,113,133,.4); }
     .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .fb { flex: 1 1 200px; min-width: 160px; border-radius: 10px; border: 1px solid var(--border); background: #0a0610; color: var(--ink); padding: 9px 12px; font: inherit; }
 
-    .links {
-      display: flex; flex-wrap: wrap; gap: 8px;
-      margin-top: 16px;
-    }
-    .links a {
-      color: #f9a8d4;
-      font-size: 13px;
-      text-decoration: none;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(0,0,0,.25);
-    }
+    .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .links a { color: #f9a8d4; font-size: 13px; text-decoration: none; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--border); background: rgba(0,0,0,.25); }
     .links a:hover { border-color: var(--pink); }
-
-    .map-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .map-table th, .map-table td {
-      border: 1px solid var(--border);
-      padding: 8px 10px;
-      text-align: left;
-    }
-    .map-table th {
-      background: var(--surface2);
-      color: #e9d5ff;
-      font-size: 11px;
-      text-transform: uppercase;
-    }
-    .map-table td { color: var(--muted); }
-    .map-table td strong { color: var(--ink); }
-
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #1f1730;
-      border: 1px solid rgba(52,211,153,.5);
-      color: var(--green);
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 600;
-      display: none;
-      z-index: 50;
-      max-width: 320px;
-    }
-    .toast.show { display: block; animation: fade .3s ease; }
-    @keyframes fade { from { opacity: 0; transform: translateY(8px); } }
-
     .logbox {
-      margin-top: 12px;
-      background: #05030a;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      height: 280px;
-      overflow: auto;
-      padding: 12px;
-      font-family: ui-monospace, Consolas, monospace;
-      font-size: 11.5px;
-      color: #c4b5fd;
-      white-space: pre-wrap;
-      line-height: 1.45;
+      margin-top: 12px; background: #05030a; border: 1px solid var(--border); border-radius: 12px;
+      height: 260px; overflow: auto; padding: 12px; font-family: var(--mono); font-size: 11.5px;
+      color: #c4b5fd; white-space: pre-wrap; line-height: 1.45;
     }
-    .logbox .err { color: #fb7185; }
-    .logbox .ok { color: #34d399; }
-    select#executor {
-      background: #0a0610;
-      color: var(--ink);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font: inherit;
+    .logbox .err { color: var(--red); } .logbox .ok { color: var(--green); }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; background: #1f1730; border: 1px solid rgba(52,211,153,.5);
+      color: var(--green); padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600;
+      display: none; z-index: 50; max-width: 320px;
     }
-    .btn.danger {
-      background: rgba(251,113,133,.2);
-      color: #fb7185;
-      border: 1px solid rgba(251,113,133,.4);
-    }
-    .run-banner {
-      margin-top: 10px;
-      font-size: 13px;
-      color: var(--amber);
-      font-weight: 600;
-    }
-
-    footer {
-      margin-top: 32px;
-      font-size: 12px;
-      color: var(--muted);
-      border-top: 1px solid var(--border);
-      padding-top: 14px;
-    }
+    .toast.show { display: block; }
+    footer { margin-top: 30px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 14px; }
     code { color: #fbcfe8; font-size: .9em; }
   </style>
 </head>
@@ -294,320 +129,214 @@
         <h1 id="maestro-name">Maestro</h1>
         <p class="tag" id="maestro-tagline">Eu conduzo o ensaio. Você decide a obra.</p>
         <div class="status-row" id="status-row">
-          <span class="pill" id="pill-api">API Maestro…</span>
-          <span class="pill" id="pill-run">idle</span>
-          <span class="pill" id="pill-roster">Roster carregando…</span>
+          <span class="pill" id="pill-api">API…</span>
+          <span class="pill" id="pill-pipe">sem pipeline</span>
         </div>
       </div>
     </header>
 
-    <h2>Orquestra (modelos pré-mapeados)</h2>
-    <p style="color:var(--muted);font-size:13px;margin:-4px 0 12px">
-      Controle total: cada “cara” = CLI + modelo fixo. Editável em <code>maestro/roster.json</code>.
-    </p>
-    <div class="grid-players" id="players"></div>
-
-    <h2>Dispatch map (job → músico)</h2>
-    <div class="panel" style="overflow-x:auto">
-      <table class="map-table" id="dispatch-table">
-        <thead>
-          <tr><th>Job</th><th>Player</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <h2>Cockpit da pipeline</h2>
+    <div class="panel" id="cockpit">
+      <p class="muted" id="cockpit-empty">Sem pipeline ativa. Rode <code>forge new "&lt;ideia&gt;"</code> no terminal — os gates (P0, fundação, design system, visual, deploy) aparecem aqui pra você decidir.</p>
+      <div id="cockpit-body" style="display:none"></div>
     </div>
 
-    <h2>Presets (1 clique)</h2>
-    <div class="presets" id="presets"></div>
-
-    <h2>▶ Execução ao vivo</h2>
-    <div class="panel">
-      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px">
-        <label style="font-size:13px;color:var(--muted)">Executor
-          <select id="executor">
-            <option value="grok" selected>⚡ Grok solo (recomendado teste)</option>
-            <option value="bernstein">🎼 Bernstein (multi-CLI)</option>
-            <option value="codex">⚙️ Codex</option>
-            <option value="claude">🎨 Claude</option>
-            <option value="gemini">✨ Gemini</option>
-          </select>
-        </label>
-        <span class="run-banner" id="run-banner">Pronto. Escolha preset E2E · só Grok e aperte RUN.</span>
-      </div>
-      <textarea id="goal" placeholder="Goal da run…"></textarea>
-      <div class="actions">
-        <button class="btn primary" type="button" id="btn-run">▶ RUN</button>
-        <button class="btn danger" type="button" id="btn-stop">■ STOP</button>
-        <button class="btn ghost" type="button" id="btn-copy">Copiar goal</button>
-        <button class="btn ghost" type="button" id="btn-clear">Limpar log</button>
-      </div>
-      <div class="logbox" id="logbox">Aguardando run…<br/>Log limpo = marcos + arquivos (TUI do Grok não aparece aqui).<br/>Suba: npm run maestro → http://127.0.0.1:8787</div>
-    </div>
+    <h2>▶ Log ao vivo</h2>
+    <div class="logbox" id="logbox">Aguardando eventos… (SSE)</div>
 
     <div class="links">
-      <a href="http://127.0.0.1:8787/" target="_blank" rel="noopener">Maestro server :8787</a>
-      <a href="http://127.0.0.1:8052/ui/" target="_blank" rel="noopener">Bernstein GUI :8052</a>
-      <a href="../docs/MAESTRO.md">docs/MAESTRO.md</a>
-      <a href="../docs/GUIA-VISUAL.html">Guia visual</a>
-      <a href="../docs/prompts/NOVO-APP.md">Novo app 1 prompt</a>
+      <a href="../docs/AGENT-PIPELINE.md">docs/AGENT-PIPELINE.md</a>
+      <a href="../AGENTS.md">AGENTS.md</a>
+      <a href="../docs/prompts/">prompts/</a>
     </div>
 
-    <footer>
-      Maestro HQ · Anime Forge · roster <span id="ver">—</span><br />
-      RUN real via <code>maestro/server.mjs</code> · default E2E = <strong>Grok solo</strong>
+    <footer id="footer">
+      Maestro HQ · Forge · TUI dirige + monta time · cockpit vê + decide · roster <span id="ver">—</span>
     </footer>
   </div>
 
   <div class="toast" id="toast"></div>
 
   <script>
-    const API = ""; // cockpit é servido pelo próprio Maestro server (same-origin)
-    let selectedPlayerId = "grok-solo";
-    let es = null;
+    const API = ""; // same-origin (servido pelo próprio Maestro server)
+    const JOB_SHORT = { "L0/P0":"P0", "FOUNDATION":"Fundação", "DS-GEN":"Design", "L0/P1":"P1", "L1/B1":"B1", "L1/B2":"B2", "L1/B3":"B3", "L1/B4":"B4", "L1/B5":"B5", "P3":"ship" };
+    let TOKEN = "", state = { pipeline: null, roster: null };
 
-    const toast = (msg) => {
-      const el = document.getElementById("toast");
-      el.textContent = msg;
-      el.classList.add("show");
-      setTimeout(() => el.classList.remove("show"), 2800);
-    };
+    const $ = (id) => document.getElementById(id);
+    const toast = (m) => { const el = $("toast"); el.textContent = m; el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 2600); };
+    const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[c]));
 
-    const logbox = document.getElementById("logbox");
-    function appendLog(line, cls) {
-      const span = document.createElement("div");
-      if (cls) span.className = cls;
-      span.textContent = line;
-      logbox.appendChild(span);
-      logbox.scrollTop = logbox.scrollHeight;
+    // markdown mínimo (headings, bold, code, tabelas, listas) — zero dep
+    function md(src) {
+      const lines = String(src).split(/\r?\n/); let html = "", i = 0;
+      const inline = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
+      while (i < lines.length) {
+        const l = lines[i];
+        if (/^\s*\|(.+)\|\s*$/.test(l) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i+1] || "")) {
+          const cells = (r) => r.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+          let t = "<table><thead><tr>" + cells(l).map((c) => `<th>${inline(c)}</th>`).join("") + "</tr></thead><tbody>";
+          i += 2;
+          while (i < lines.length && /^\s*\|(.+)\|\s*$/.test(lines[i])) { t += "<tr>" + cells(lines[i]).map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>"; i++; }
+          html += t + "</tbody></table>"; continue;
+        }
+        let m;
+        if ((m = l.match(/^(#{1,3})\s+(.*)/))) html += `<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`;
+        else if (/^\s*[-*]\s+/.test(l)) { let items = ""; while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { items += `<li>${inline(lines[i].replace(/^\s*[-*]\s+/, ""))}</li>`; i++; } html += `<ul>${items}</ul>`; continue; }
+        else if (l.trim()) html += `<p>${inline(l)}</p>`;
+        i++;
+      }
+      return html;
     }
+
+    async function loadToken() { try { TOKEN = (await (await fetch(API + "/api/token")).json()).token || ""; } catch {} }
+    async function decide(gateId, choice, feedback) {
+      try {
+        const r = await fetch(API + "/api/pipeline/decide", {
+          method: "POST", headers: { "Content-Type": "application/json", "X-Maestro-Token": TOKEN },
+          body: JSON.stringify({ gateId, choice, feedback: feedback || undefined }),
+        });
+        const j = await r.json();
+        if (j.ok === false) return toast("✗ " + (j.error || "falha"));
+        toast(`✔ ${gateId} → ${choice}`);
+      } catch (e) { toast("erro de rede"); }
+    }
+
+    const pendingGate = (p) => (p && p.gates || []).find((g) => !g.decision);
+
+    function renderCockpit() {
+      const p = state.pipeline, roster = state.roster;
+      const pill = $("pill-pipe");
+      if (!p || !p.appId || p.status === "idle") {
+        $("cockpit-empty").style.display = ""; $("cockpit-body").style.display = "none";
+        pill.textContent = "sem pipeline"; pill.className = "pill"; return;
+      }
+      $("cockpit-empty").style.display = "none";
+      const body = $("cockpit-body"); body.style.display = "";
+      pill.textContent = `${p.appId} · ${p.status}`;
+      pill.className = "pill " + (p.status === "running" ? "on" : (p.status === "paused_gate" || p.status === "blocked") ? "warn" : p.status === "done" ? "on" : "off");
+
+      const jobs = (p.jobs || []).map((j, idx) => {
+        const cls = idx < p.jobIndex ? "done" : (idx === p.jobIndex && p.status === "running") ? "now" : (idx === p.jobIndex && (p.status === "paused_gate" || p.status === "blocked")) ? "gate" : "";
+        return `<span class="job ${cls}">${JOB_SHORT[j] || j}${idx < p.jobIndex ? " ✓" : ""}</span>`;
+      }).join("");
+
+      // players do team
+      let playersHtml = "";
+      const team = roster && roster.teams && roster.teams[p.team];
+      if (team && roster) {
+        const ids = [...new Set([...Object.values(team.dispatch || {}), ...Object.values(team.fallbacks || {}).flat()])];
+        playersHtml = ids.map((id) => {
+          const pl = roster.players.find((x) => x.id === id); if (!pl) return "";
+          const active = p.currentPlayer === id && p.status === "running";
+          const ml = pl.modelLabel ? `${pl.modelLabel}${pl.effort ? " · " + String(pl.effort).toUpperCase() : ""}` : (pl.cli || "");
+          return `<span class="pchip ${active ? "active" : ""}">${pl.face || "·"} ${esc(pl.name)} <span class="mdl">${esc(ml)}</span></span>`;
+        }).join("");
+      }
+
+      body.innerHTML =
+        `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:6px">
+           <strong style="font-size:1.05rem">${esc(p.appId)}</strong>
+           <span class="muted">team ${esc(p.team)}${p.dryRun ? " · DRY-RUN" : ""}</span>
+           ${p.deploy && p.deploy.url ? `<a href="${esc(p.deploy.url)}" target="_blank" style="color:var(--cyan);font-size:13px">🌐 ${esc(p.deploy.url)}</a>` : ""}
+         </div>
+         <div class="muted" style="font-size:12.5px;margin-bottom:8px">ideia: ${esc((p.idea || "").slice(0, 160))}</div>
+         <div class="jobs">${jobs}</div>
+         <div class="players">${playersHtml}</div>
+         <div id="gate-slot"></div>`;
+
+      const g = pendingGate(p);
+      if (g) renderGate(g, p);
+    }
+
+    function gateButtons(g, { extra = "", goLabel = "✓ Aprovar (GO)" } = {}) {
+      const has = (c) => g.choices.includes(c);
+      let btns = extra;
+      if (has("go")) btns += `<button class="btn go" onclick="decide('${g.id}','go')">${goLabel}</button>`;
+      if (has("retry")) btns += `<button class="btn retry" onclick="sendRetry('${g.id}')">↻ Refazer</button>`;
+      if (has("kill")) btns += `<button class="btn kill" onclick="if(confirm('KILL a pipeline?'))decide('${g.id}','kill')">✗ Kill</button>`;
+      const needFb = has("retry");
+      return `<div class="actions">${btns}</div>${needFb ? `<div class="actions"><input class="fb" id="fb-${g.id}" placeholder="feedback pro retry (opcional)"/></div>` : ""}`;
+    }
+    window.sendRetry = (gateId) => { const el = $("fb-" + gateId); decide(gateId, "retry", el && el.value.trim()); };
+
+    async function renderGate(g, p) {
+      const slot = $("gate-slot"); if (!slot) return;
+      const payload = g.payload || "";
+      let inner = `<div class="gate"><h3>⏸ ${esc(g.id)}</h3><p class="prompt">${esc(g.prompt || "")}</p><div id="gate-doc"></div>`;
+
+      if (payload.startsWith("proposals:")) {
+        const app = payload.split(":")[1];
+        const frames = [1, 2, 3].map((n) => `<figure><iframe src="${API}/proposals/${app}/proposal-${n}.html" loading="lazy"></iframe><figcaption>proposta ${n}</figcaption></figure>`).join("");
+        const picks = [1, 2, 3].map((n) => `<button class="btn pick" onclick="decide('${g.id}','${n}')">Escolher ${n}</button>`).join("");
+        inner += `<div class="props">${frames}</div>` + gateButtons(g, { extra: picks });
+      } else if (payload.startsWith("preview:")) {
+        const app = payload.split(":")[1];
+        inner += `<iframe class="preview-frame" src="${API}/preview/${app}/"></iframe>` + gateButtons(g);
+      } else if (payload.startsWith("deploy:")) {
+        inner += `<p class="muted">alvo: <code>${esc(payload.slice(7))}</code></p>` + gateButtons(g, { goLabel: "🚀 Deploy" });
+      } else {
+        inner += gateButtons(g);
+      }
+      inner += `</div>`;
+      slot.innerHTML = inner;
+
+      // carrega doc markdown (scorecard/system-design) se o payload for um .md
+      if (/\.md$/.test(payload)) {
+        try {
+          const txt = await (await fetch(API + "/" + payload, { cache: "no-store" })).text();
+          const d = $("gate-doc"); if (d) { d.className = "doc"; d.innerHTML = md(txt); }
+        } catch { const d = $("gate-doc"); if (d) d.textContent = "(não consegui carregar " + payload + ")"; }
+      }
+    }
+
+    // ---- infra: roster, status, SSE (reusa o que já funcionava) ----
+    const logbox = $("logbox");
+    function appendLog(line, cls) { const s = document.createElement("div"); if (cls) s.className = cls; s.textContent = line; logbox.appendChild(s); logbox.scrollTop = logbox.scrollHeight; }
 
     async function loadRoster() {
-      const url = API ? API + "/api/roster" : "./roster.json";
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error("roster");
-      return res.json();
-    }
-
-    function render(roster) {
-      document.getElementById("ver").textContent = roster.version || "1";
-      const m = roster.maestro;
-      document.getElementById("maestro-face").textContent = m.avatar || "🎼";
-      document.getElementById("maestro-name").textContent = m.name;
-      document.getElementById("maestro-tagline").textContent = m.tagline;
-      document.getElementById("pill-roster").textContent = `${roster.players.length} músicos`;
-      document.getElementById("pill-roster").classList.add("on");
-
-      const players = document.getElementById("players");
-      players.innerHTML = "";
-      for (const p of roster.players) {
-        const card = document.createElement("div");
-        card.className = "player";
-        card.style.cursor = "pointer";
-        card.innerHTML = `
-          <div class="face" style="background:linear-gradient(135deg,${p.color}55,${p.color}22)">${p.face}</div>
-          <h3>${p.name}</h3>
-          <div class="meta">CLI <strong style="color:${p.color}">${p.cli}</strong> · model <strong>${p.model}</strong>${p.optional ? " · opcional" : ""}</div>
-          <div class="jobs">${(p.jobs || []).map((j) => `<span class="job-tag">${j}</span>`).join("")}</div>
-          <p>${p.blurb || ""}</p>
-        `;
-        card.addEventListener("click", () => {
-          selectedPlayerId = p.id;
-          document.getElementById("executor").value = p.cli === "grok" ? "grok" : p.cli;
-          toast("Executor: " + p.name);
-        });
-        players.appendChild(card);
-      }
-
-      const tbody = document.querySelector("#dispatch-table tbody");
-      tbody.innerHTML = "";
-      for (const [job, playerId] of Object.entries(roster.dispatch_map || {})) {
-        const player = roster.players.find((x) => x.id === playerId);
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td><strong>${job}</strong></td><td>${player ? player.face + " " + player.name : playerId} (${player?.cli || "?"})</td>`;
-        tbody.appendChild(tr);
-      }
-
-      const presets = document.getElementById("presets");
-      presets.innerHTML = "";
-      for (const pr of roster.presets || []) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "preset";
-        b.innerHTML = `<span class="em">${pr.emoji || "▶"}</span><strong>${pr.label}</strong><span>clique → preenche · RUN dispara</span>`;
-        b.addEventListener("click", () => {
-          document.getElementById("goal").value = pr.goal;
-          if (pr.executor) document.getElementById("executor").value = pr.executor;
-          if (pr.playerId) selectedPlayerId = pr.playerId;
-          toast("Preset: " + pr.label);
-        });
-        presets.appendChild(b);
-      }
-
-      // auto-select E2E Grok preset
-      const e2e = (roster.presets || []).find((p) => p.id === "e2e-grok");
-      if (e2e) {
-        document.getElementById("goal").value = e2e.goal;
-        document.getElementById("executor").value = e2e.executor || "grok";
-        selectedPlayerId = e2e.playerId || "grok-solo";
-      }
-    }
-
-    let TOKEN = "";
-    async function loadToken() {
-      // same-origin only (sem CORS); necessário nos POSTs contra CSRF
       try {
-        TOKEN = (await (await fetch((API || "") + "/api/token")).json()).token || "";
-      } catch { /* server off */ }
+        state.roster = await (await fetch(API + "/api/roster", { cache: "no-store" })).json();
+        const m = state.roster.maestro || {};
+        $("maestro-face").textContent = m.avatar || "🎼";
+        $("maestro-name").textContent = m.name || "Maestro";
+        if (m.tagline) $("maestro-tagline").textContent = m.tagline;
+        $("ver").textContent = state.roster.version || "1";
+      } catch {}
     }
+    async function loadPipeline() { try { state.pipeline = await (await fetch(API + "/api/pipeline", { cache: "no-store" })).json(); } catch {} }
 
     async function checkApi() {
-      const pill = document.getElementById("pill-api");
+      const pill = $("pill-api");
       try {
-        const r = await fetch((API || "") + "/api/status");
-        if (!r.ok) throw new Error("bad");
-        const j = await r.json();
-        if (!TOKEN) loadToken();
-        pill.textContent = "API :8787 online";
-        pill.classList.add("on");
-        setRunPill(j.status, j.executor);
-        return true;
-      } catch {
-        pill.textContent = "API off — node maestro/server.mjs";
-        pill.classList.add("off");
-        return false;
-      }
+        const r = await fetch(API + "/api/status"); if (!r.ok) throw 0;
+        if (!TOKEN) await loadToken();
+        pill.textContent = "API online"; pill.className = "pill on"; return true;
+      } catch { pill.textContent = "API off — npm run maestro"; pill.className = "pill off"; return false; }
     }
 
-    function setRunPill(status, executor) {
-      const pill = document.getElementById("pill-run");
-      const banner = document.getElementById("run-banner");
-      pill.textContent = status + (executor ? " · " + executor : "");
-      pill.classList.remove("on", "off");
-      if (status === "running") {
-        pill.classList.add("on");
-        banner.textContent = "▶ Run em andamento…";
-      } else if (status === "done") {
-        pill.classList.add("on");
-        banner.textContent = "✓ Última run OK";
-      } else if (status === "error") {
-        pill.classList.add("off");
-        banner.textContent = "✗ Última run com erro — veja o log";
-      } else {
-        banner.textContent = "Pronto. Preset E2E · só Grok · aperte RUN.";
-      }
-    }
-
+    let es = null;
     function connectSSE() {
       if (es) es.close();
-      const url = (API || "") + "/api/events";
-      try {
-        es = new EventSource(url);
-      } catch {
-        return;
-      }
+      try { es = new EventSource(API + "/api/events"); } catch { return; }
       es.onmessage = (ev) => {
-        try {
-          const msg = JSON.parse(ev.data);
-          if (msg.type === "log") {
-            let line = msg.line || "";
-            // client-side belt-and-suspenders strip (server already cleans)
-            line = line
-              .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "")
-              .replace(/\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)/g, "")
-              .replace(/\u001b[@-Z\\-_]/g, "")
-              .replace(/\[[\?\d;]*[A-Za-z]/g, "");
-            if (!line.trim()) return;
-            const cls =
-              line.includes("✗") || (line.includes("stderr:") && /error|fail|denied/i.test(line))
-                ? "err"
-                : line.includes("✓")
-                  ? "ok"
-                  : "";
-            // don't paint all stderr red (grok used to dump TUI there)
-            if (line.startsWith("[") && line.includes("stderr:") && !/error|fail|denied|unexpected/i.test(line)) {
-              appendLog(line.replace("stderr: ", ""), "");
-              return;
-            }
-            appendLog(line, cls);
-          }
-          if (msg.type === "status") setRunPill(msg.status, msg.executor);
-        } catch { /* ignore */ }
+        let msg; try { msg = JSON.parse(ev.data); } catch { return; }
+        if (msg.type === "log") {
+          const line = (msg.line || "").replace(/\[[0-9;?]*[ -/]*[@-~]/g, "");
+          if (!line.trim()) return;
+          appendLog(line, line.includes("✗") ? "err" : line.includes("✓") ? "ok" : "");
+        } else if (msg.type === "pipeline") {
+          state.pipeline = msg.pipeline; renderCockpit();
+        }
       };
     }
 
-    document.getElementById("btn-run").addEventListener("click", async () => {
-      const goal = document.getElementById("goal").value.trim();
-      if (!goal) {
-        toast("Escolha um preset ou escreva um goal");
-        return;
-      }
-      const executor = document.getElementById("executor").value;
-      const online = await checkApi();
-      if (!online) {
-        toast("Suba: node maestro/server.mjs");
-        return;
-      }
-      appendLog("--- RUN requested ---");
-      try {
-        const r = await fetch((API || "") + "/api/run", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Maestro-Token": TOKEN },
-          body: JSON.stringify({
-            goal,
-            executor,
-            playerId: selectedPlayerId,
-            maxTurns: 40,
-          }),
-        });
-        const j = await r.json();
-        if (!j.ok) {
-          toast(j.error || "Falha ao iniciar");
-          appendLog("✗ " + (j.error || "fail"), "err");
-          return;
-        }
-        toast("RUN · " + j.executor);
-        setRunPill("running", j.executor);
-      } catch (e) {
-        toast("Erro de rede na API");
-        appendLog(String(e), "err");
-      }
-    });
-
-    document.getElementById("btn-stop").addEventListener("click", async () => {
-      try {
-        await fetch((API || "") + "/api/stop", { method: "POST", headers: { "X-Maestro-Token": TOKEN } });
-        toast("STOP enviado");
-      } catch {
-        toast("API offline");
-      }
-    });
-
-    document.getElementById("btn-copy").addEventListener("click", async () => {
-      const goal = document.getElementById("goal").value.trim();
-      if (!goal) return toast("Goal vazio");
-      try {
-        await navigator.clipboard.writeText(goal);
-        toast("Goal copiado");
-      } catch {
-        toast("Ctrl+C manual");
-      }
-    });
-
-    document.getElementById("btn-clear").addEventListener("click", () => {
-      logbox.innerHTML = "";
-      appendLog("Log limpo.");
-    });
-
-    loadRoster()
-      .then(render)
-      .catch(() => {
-        document.getElementById("pill-roster").textContent = "Falha roster";
-        document.getElementById("pill-roster").classList.add("off");
-      });
-    checkApi().then((ok) => {
+    (async () => {
+      await loadRoster(); await loadPipeline();
+      const ok = await checkApi();
+      renderCockpit();
       if (ok) connectSSE();
-    });
-    setInterval(checkApi, 8000);
+      setInterval(checkApi, 8000);
+    })();
   </script>
 </body>
 </html>

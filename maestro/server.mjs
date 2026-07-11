@@ -758,6 +758,20 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // docs/ read-only (cockpit renderiza scorecard/system-design/design-system nos gates)
+  if (url.pathname.startsWith("/docs/")) {
+    const docsDir = path.join(ROOT, "docs");
+    const f = path.resolve(docsDir, "." + url.pathname.slice("/docs".length));
+    if (insideDir(docsDir, f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
+      res.writeHead(200, { "Content-Type": contentType(f) });
+      fs.createReadStream(f).pipe(res);
+      return;
+    }
+    res.writeHead(404);
+    res.end("doc não encontrado");
+    return;
+  }
+
   // Preview estático do app buildado (gate visual pós-B3): /preview/<appId>/...
   if (url.pathname.startsWith("/preview/")) {
     const parts = url.pathname.split("/").filter(Boolean);
