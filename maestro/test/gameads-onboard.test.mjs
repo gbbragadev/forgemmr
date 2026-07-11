@@ -35,7 +35,6 @@ test("writeApproval não sobrescreve approval existente", () => {
 
 test("writeBriefArtifacts escreve intake.json, brief.json e brief.md", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "forge-"));
-  fs.mkdirSync(path.join(tmp, ".forge", "projects", "acme"), { recursive: true });
   const { briefMd } = writeBriefArtifacts({
     root: tmp, slug: "acme",
     intake: { company: "Acme", brand: "Acme", product: "X", campaign: "lançar" },
@@ -45,4 +44,8 @@ test("writeBriefArtifacts escreve intake.json, brief.json e brief.md", () => {
   const md = fs.readFileSync(path.join(tmp, "docs", "acme", "brief.md"), "utf8");
   assert.match(md, /Acme/);
   assert.match(md, /baixa consideração/);
+  const intakeBack = JSON.parse(fs.readFileSync(path.join(tmp, ".forge", "projects", "acme", "intake.json"), "utf8"));
+  assert.equal(intakeBack.company, "Acme");
+  const briefBack = JSON.parse(fs.readFileSync(path.join(tmp, ".forge", "projects", "acme", "brief.json"), "utf8"));
+  assert.equal(briefBack.problem, "baixa consideração");
 });

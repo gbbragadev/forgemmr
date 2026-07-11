@@ -893,6 +893,7 @@ export function scaffoldProject({ root, blueprint, slug, name, idea }) {
 export function writeBriefArtifacts({ root, slug, intake, brief }) {
   const pdir = path.join(root, ".forge", "projects", slug);
   const ddir = path.join(root, "docs", slug);
+  fs.mkdirSync(pdir, { recursive: true });
   fs.mkdirSync(ddir, { recursive: true });
   fs.writeFileSync(path.join(pdir, "intake.json"), JSON.stringify(intake, null, 2), "utf8");
   fs.writeFileSync(path.join(pdir, "brief.json"), JSON.stringify(brief, null, 2), "utf8");
