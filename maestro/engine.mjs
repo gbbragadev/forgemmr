@@ -367,7 +367,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       `Você é o executor "${player.name}" do job ${job} na pipeline autônoma Forge (Maestro / ${profile.name}).`,
       `Projeto (nicho): ${profile.niche}. Namespace: ${profile.namespace}.`,
       template
-        ? `Siga EXATAMENTE o template ${spec ? template : `docs/prompts/${template}`} — preencha os campos <<< >>> com: App id=${p.appId}, IDEIA=${p.idea}.`
+        ? `Siga EXATAMENTE o template ${spec ? template : `docs/prompts/${template}`} — preencha os campos <<< >>> com: App id=${p.appId}, Capability=${p.capability}, IDEIA=${p.idea}.`
         : "",
       job === "L1/B3"
         ? `Você é um coding agent com acesso aos arquivos: aplique você mesmo o brief denso de docs/prompts/L1-B3-TEMPLATE.md (não gere prompt para terceiros — VOCÊ é quem implementa a UI).`
