@@ -97,7 +97,11 @@ export function loadProfile(root) {
         throw new Error(".forge/profile.md: bloco forge-config não é JSON válido — " + e.message);
       }
     }
-    narrative = raw.replace(fence, "").replace(/^>.*$/gm, "").trim();
+    narrative = raw
+      .replace(fence, "")
+      .replace(/^>.*$/gm, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
   }
   const d = PROFILE_DEFAULTS;
   const prof = {
