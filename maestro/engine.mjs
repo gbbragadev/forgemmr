@@ -173,6 +173,63 @@ export function buildProfileMd(data) {
   ].join("\n");
 }
 
+// Papéis do team builder → jobs que cada papel cobre no dispatch da pipeline.
+export const TEAM_ROLES = [
+  { id: "Estrategista", jobs: ["L0/P0", "FOUNDATION", "L0/P1", "L1/B2"], desc: "scorecard · fundação · hooks · personas" },
+  { id: "Engenheiro", jobs: ["L1/B1", "L1/B4"], desc: "scaffold · API/wire" },
+  { id: "Designer", jobs: ["L1/B3", "ITERATE", "DS-GEN"], desc: "UI polish · iteração · design system" },
+  { id: "QA", jobs: ["L1/B5"], desc: "ship check" },
+  { id: "Revisor", jobs: [], desc: "overlay: revisa após B1/B4 (opcional)" },
+];
+
+function teamSlug(s) {
+  return (
+    String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "time"
+  );
+}
+
+/**
+ * Compõe um team + players a partir de "músicos" (provider+model+effort+papéis).
+ * Pura/testável: retorna a estrutura que a engine já consome (dispatch[job]→playerId + default + review).
+ * @param {string} name
+ * @param {Array<{provider,cli,env?,model,modelLabel,effort,roles:string[],face?,color?,name?}>} musicians
+ */
+export function composeTeam(name, musicians, emoji = "🎼") {
+  const teamId = teamSlug(name);
+  const roleJobs = Object.fromEntries(TEAM_ROLES.map((r) => [r.id, r.jobs]));
+  const players = [];
+  const dispatch = {};
+  let defaultId = null;
+  let reviewPlayer = null;
+  musicians.forEach((mu, i) => {
+    const id = `${teamId}-${mu.provider}${i + 1}`;
+    players.push({
+      id,
+      face: mu.face || "·",
+      name: mu.name || mu.modelLabel || id,
+      cli: mu.cli,
+      ...(mu.env ? { env: mu.env } : {}),
+      model: mu.model,
+      modelLabel: mu.modelLabel,
+      effort: mu.effort,
+      roles: mu.roles,
+      color: mu.color || "#8b8b9e",
+      blurb: `${mu.modelLabel} · ${mu.roles.join("/")}`,
+      generated: true,
+    });
+    for (const role of mu.roles) {
+      for (const job of roleJobs[role] || []) dispatch[job] = id;
+      if (role === "Engenheiro" && !defaultId) defaultId = id;
+      if (role === "Revisor") reviewPlayer = id;
+    }
+  });
+  if (!defaultId) defaultId = players[0] ? players[0].id : null;
+  dispatch.default = defaultId;
+  const team = { label: name, emoji, dispatch, fallbacks: {} };
+  if (reviewPlayer) team.review = { after: ["L1/B1", "L1/B4"], player: reviewPlayer };
+  return { teamId, team, players };
+}
+
 export function createEngine({ root, emitLog, emitPipeline }) {
   const PIPELINE_PATH = path.join(root, "maestro", "pipeline.json");
   const RUNS_DIR = path.join(root, "maestro", "runs");

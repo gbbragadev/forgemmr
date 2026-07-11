@@ -15,7 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import readline from "node:readline";
-import { buildProfileMd } from "./engine.mjs";
+import { buildProfileMd, composeTeam, TEAM_ROLES } from "./engine.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -653,6 +653,218 @@ async function profileWizard() {
   console.log(dim("  próximo: forge new \"<sua ideia>\"  → P0 → FOUNDATION (system design) → build → ship"));
 }
 
+// ---------- team builder wizard (forge team — Provedor→Modelo→Effort→Funções) ----------
+// Catálogo de provedores (subscription only). `real` = o effort muda o comportamento de fato
+// (grok --effort · codex model_reasoning_effort); senão é etiqueta (claude/glm/-p sem flag).
+const PROVIDERS = [
+  { id: "grok", cli: "grok", face: "⚡", color: "#22d3ee", real: true, efforts: ["high", "medium", "low"],
+    models: [{ id: "default", label: "Grok 4.5" }] },
+  { id: "codex", cli: "codex", face: "⚙️", color: "#38bdf8", real: true, efforts: ["medium", "high", "xhigh", "low"],
+    models: [{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol" }, { id: "gpt-5.6-terra", label: "GPT-5.6 Terra" }, { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" }] },
+  { id: "claude", cli: "claude", face: "🎨", color: "#f59e0b", real: false, efforts: ["high", "medium"],
+    models: [{ id: "opus", label: "Claude Opus" }, { id: "sonnet", label: "Claude Sonnet" }] },
+  { id: "glm", cli: "claude", env: "glm", face: "🖌️", color: "#00b8a9", real: false, efforts: ["max"],
+    models: [{ id: "opus", label: "GLM 5.2" }] },
+  { id: "gemini", cli: "gemini", face: "✨", color: "#a78bfa", real: false, efforts: ["medium"],
+    models: [{ id: "default", label: "Gemini (agy)" }] },
+];
+
+function writeTeamToRoster(teamId, team, newPlayers) {
+  const rosterPath = path.join(__dirname, "roster.json");
+  const roster = JSON.parse(fs.readFileSync(rosterPath, "utf8"));
+  const byId = new Map(roster.players.map((p) => [p.id, p]));
+  for (const p of newPlayers) byId.set(p.id, p); // dedup/replace por id
+  roster.players = [...byId.values()];
+  roster.teams = roster.teams || {};
+  roster.teams[teamId] = team;
+  fs.writeFileSync(rosterPath, JSON.stringify(roster, null, 2), "utf8");
+}
+
+async function teamWizard() {
+  const st = {
+    phase: "name", // name → provider → model → effort → roles → more → confirm
+    teamName: "",
+    musicians: [],
+    provIdx: 0, modelIdx: 0, effortIdx: 0,
+    roleSel: TEAM_ROLES.map(() => false), roleCursor: 0,
+    moreIdx: 0,
+    err: "",
+  };
+  const phaseOrder = ["nome", "provedor", "modelo", "effort", "funções", "+músico", "gravar"];
+  const phaseIdx = { name: 0, provider: 1, model: 2, effort: 3, roles: 4, more: 5, confirm: 6 };
+
+  process.stdout.write(`${ESC}?1049h${ESC}?25l`);
+  const restore = () => process.stdout.write(`${ESC}?25h${ESC}?1049l`);
+  enableKeys();
+
+  const curProv = () => PROVIDERS[st.provIdx];
+
+  function render() {
+    const cols = Math.max(64, Math.min(process.stdout.columns || 100, 100));
+    const W = cols - 2;
+    const out = [];
+    const row = (s) => fg(PURPLE, "│") + padTo(" " + truncTo(s, W - 2), W) + fg(PURPLE, "│");
+    const blank = () => row("");
+    out.push(fg(PURPLE, "┌─ ") + bold(fg(PURPLE, "🎼 FORGE · MONTAR TIME")) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - 26)) + "┐"));
+    const cur = phaseIdx[st.phase];
+    out.push(row(phaseOrder.map((n, i) => (i === cur ? bold(fg(CYAN, `● ${n}`)) : dim(`○ ${n}`))).join(dim(" "))));
+    if (st.musicians.length) out.push(row(dim(`  músicos: ${st.musicians.map((m) => `${m.modelLabel}(${m.roles.map((r) => r[0]).join("")})`).join(" · ")}`)));
+    out.push(blank());
+
+    if (st.phase === "name") {
+      out.push(row(bold("Nome do time?")));
+      out.push(blank());
+      out.push(row(fg(CYAN, `  ${st.teamName}▌`)));
+      out.push(blank());
+      out.push(row(dim("  ex.: Sol solo · Grok+GLM · Opus backend + Sonnet front")));
+    } else if (st.phase === "provider") {
+      out.push(row(bold(`Músico ${st.musicians.length + 1} · provedor?`)));
+      out.push(blank());
+      PROVIDERS.forEach((p, i) => {
+        const sel = i === st.provIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${p.face} ${sel ? bold(p.id) : p.id}  ${dim(`${p.cli}${p.env ? "/" + p.env : ""} · effort ${p.real ? "real" : "etiqueta"}`)}`));
+      });
+    } else if (st.phase === "model") {
+      const p = curProv();
+      out.push(row(bold(`${p.face} ${p.id} · modelo?`)));
+      out.push(blank());
+      p.models.forEach((m, i) => {
+        const sel = i === st.modelIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(m.label) : m.label}  ${dim(m.id)}`));
+      });
+    } else if (st.phase === "effort") {
+      const p = curProv();
+      out.push(row(bold(`${p.face} ${p.models[st.modelIdx].label} · effort?`)));
+      out.push(blank());
+      p.efforts.forEach((e, i) => {
+        const sel = i === st.effortIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(e.toUpperCase()) : e.toUpperCase()}`));
+      });
+      out.push(blank());
+      out.push(row(dim(p.real ? "  effort REAL neste provedor (muda o raciocínio)" : "  etiqueta: este CLI não expõe effort — informativo")));
+    } else if (st.phase === "roles") {
+      out.push(row(bold(`${curProv().models[st.modelIdx].label} · funções? (espaço marca · a = todas)`)));
+      out.push(blank());
+      TEAM_ROLES.forEach((r, i) => {
+        const on = st.roleSel[i];
+        const cursor = i === st.roleCursor;
+        out.push(row(`${cursor ? bold(fg(CYAN, "▸ ")) : "  "}${on ? fg(GREEN, "[x]") : "[ ]"} ${cursor ? bold(r.id) : r.id}  ${dim(r.desc)}`));
+      });
+    } else if (st.phase === "more") {
+      out.push(row(bold("Time montado até aqui:")));
+      out.push(blank());
+      st.musicians.forEach((m) => out.push(row(`  ${m.face} ${fg(CYAN, m.modelLabel)} ${m.effort.toUpperCase()} ${dim("→ " + m.roles.join(" · "))}`)));
+      out.push(blank());
+      [["+ adicionar outro músico", ""], ["finalizar e gravar", ""]].forEach(([label], i) => {
+        const sel = i === st.moreIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(label) : label}`));
+      });
+    } else {
+      const { team, players } = composeTeam(st.teamName.trim() || "time", st.musicians);
+      const covered = new Set(Object.keys(team.dispatch).filter((k) => k !== "default"));
+      const coreRoles = ["Estrategista", "Engenheiro", "Designer", "QA"];
+      const missing = coreRoles.filter((r) => !st.musicians.some((m) => m.roles.includes(r)));
+      out.push(row(bold(`Gravar time "${st.teamName.trim()}" (${players.length} músico(s))`)));
+      out.push(blank());
+      st.musicians.forEach((m) => out.push(row(`  ${m.face} ${fg(CYAN, m.modelLabel)} ${m.effort.toUpperCase()} ${dim("→ " + m.roles.join("/"))}`)));
+      out.push(blank());
+      out.push(row(dim(`  cobre ${covered.size} jobs · default = ${team.dispatch.default || "—"}`)));
+      if (missing.length) out.push(row(fg(YELLOW, `  ⚠ sem papel: ${missing.join(", ")} → cai no default nesses jobs`)));
+      out.push(blank());
+      out.push(row(bold(fg(GREEN, "  Enter = gravar no roster.json ▶"))));
+    }
+
+    out.push(blank());
+    if (st.err) out.push(row(fg(RED, st.err)));
+    const hints =
+      st.phase === "name" ? "Enter continua · Esc sai"
+      : st.phase === "roles" ? "↑↓ move · espaço marca · a todas · Enter confirma · ← volta · Esc sai"
+      : st.phase === "confirm" ? "Enter grava · ← volta · Esc sai"
+      : "↑↓ escolhe · Enter continua · ← volta · Esc sai";
+    out.push(fg(PURPLE, "└─ ") + dim(hints) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - visibleLen(hints) - 5)) + "┘"));
+
+    let frame = `${ESC}H`;
+    for (const line of out) frame += line + `${ESC}K\n`;
+    frame += `${ESC}J`;
+    process.stdout.write(frame);
+  }
+
+  const result = await new Promise((resolve) => {
+    const bootAt = Date.now();
+    const commitMusician = () => {
+      const p = curProv();
+      st.musicians.push({
+        provider: p.id, cli: p.cli, env: p.env, model: p.models[st.modelIdx].id,
+        modelLabel: p.models[st.modelIdx].label, effort: p.efforts[st.effortIdx],
+        roles: TEAM_ROLES.filter((_, i) => st.roleSel[i]).map((r) => r.id),
+        face: p.face, color: p.color,
+      });
+      st.provIdx = 0; st.modelIdx = 0; st.effortIdx = 0;
+      st.roleSel = TEAM_ROLES.map(() => false); st.roleCursor = 0;
+    };
+    const onKey = (str, key) => {
+      if (Date.now() - bootAt < 350) return;
+      st.err = "";
+      if ((key.ctrl && key.name === "c") || key.name === "escape") return finish(null);
+
+      if (st.phase === "name") {
+        if (key.name === "return") { if (st.teamName.trim().length >= 2) st.phase = "provider"; else st.err = "mínimo 2 caracteres"; }
+        else if (key.name === "backspace") st.teamName = st.teamName.slice(0, -1);
+        else if (str && !key.ctrl && str >= " " && st.teamName.length < 40) st.teamName += str;
+      } else if (st.phase === "provider") {
+        const n = PROVIDERS.length;
+        if (key.name === "up") st.provIdx = (st.provIdx + n - 1) % n;
+        else if (key.name === "down") st.provIdx = (st.provIdx + 1) % n;
+        else if (key.name === "return") { st.modelIdx = 0; st.effortIdx = 0; st.phase = "model"; }
+        else if (key.name === "left") st.phase = st.musicians.length ? "more" : "name";
+      } else if (st.phase === "model") {
+        const n = curProv().models.length;
+        if (key.name === "up") st.modelIdx = (st.modelIdx + n - 1) % n;
+        else if (key.name === "down") st.modelIdx = (st.modelIdx + 1) % n;
+        else if (key.name === "return") { st.effortIdx = 0; st.phase = "effort"; }
+        else if (key.name === "left") st.phase = "provider";
+      } else if (st.phase === "effort") {
+        const n = curProv().efforts.length;
+        if (key.name === "up") st.effortIdx = (st.effortIdx + n - 1) % n;
+        else if (key.name === "down") st.effortIdx = (st.effortIdx + 1) % n;
+        else if (key.name === "return") st.phase = "roles";
+        else if (key.name === "left") st.phase = "model";
+      } else if (st.phase === "roles") {
+        const n = TEAM_ROLES.length;
+        if (key.name === "up") st.roleCursor = (st.roleCursor + n - 1) % n;
+        else if (key.name === "down") st.roleCursor = (st.roleCursor + 1) % n;
+        else if (str === " ") st.roleSel[st.roleCursor] = !st.roleSel[st.roleCursor];
+        else if (str === "a") st.roleSel = TEAM_ROLES.map(() => true);
+        else if (key.name === "return") {
+          if (st.roleSel.some(Boolean)) { commitMusician(); st.moreIdx = 0; st.phase = "more"; }
+          else st.err = "marque ao menos 1 função (espaço) ou 'a' pra todas";
+        } else if (key.name === "left") st.phase = "effort";
+      } else if (st.phase === "more") {
+        if (key.name === "up" || key.name === "down") st.moreIdx = st.moreIdx ? 0 : 1;
+        else if (key.name === "return") st.phase = st.moreIdx === 0 ? "provider" : "confirm";
+        else if (key.name === "left") st.phase = "provider";
+      } else {
+        if (key.name === "return") return finish({ teamName: st.teamName.trim(), musicians: st.musicians });
+        if (key.name === "left") { st.moreIdx = 1; st.phase = "more"; }
+      }
+      render();
+    };
+    const finish = (v) => { process.stdin.removeListener("keypress", onKey); resolve(v); };
+    process.stdin.on("keypress", onKey);
+    render();
+  });
+
+  restore();
+  if (!result || !result.musicians.length) {
+    console.log(dim("montagem de time cancelada"));
+    process.exit(0);
+  }
+  const { teamId, team, players } = composeTeam(result.teamName, result.musicians, result.musicians[0].face || "🎼");
+  writeTeamToRoster(teamId, team, players);
+  console.log(fg(GREEN, `✓ time "${teamId}" gravado no roster.json`) + dim(`  (${players.length} músico(s))`));
+  console.log(dim(`  usar: forge new "<ideia>" --team ${teamId}   ·   ver: forge roster`));
+}
+
 // ---------- comandos ----------
 function printStatus(p) {
   if (!p || !p.appId) {
@@ -679,6 +891,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (anime-forge)
   ${bold("forge")}           tela de setup interativa (ideia → time → tipo → RUN)
   ${bold("forge profile init")}   wizard que autora .forge/profile.md (nicho, stack, contexto, idiomas)
   ${bold("forge profile show")}   imprime o profile atual
+  ${bold("forge team")}          monta um time na TUI (Provedor→Modelo→Effort→Funções) e grava no roster
   ${bold("forge new")} "<ideia>" [--team X] [--app-id X] [--capability static|quiz|chat]
             [--subdomain X] [--target cf-pages|vercel] [--dry-run]
   ${bold("forge new --idea-file")} ideia.md   ideia GRANDE/estruturada (markdown multi-linha —
@@ -748,6 +961,8 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     }
     throw new Error("uso: forge profile init | forge profile show");
   }
+
+  if (cmd === "team") return teamWizard();
 
   if (cmd === "attach") return attachTUI();
 
