@@ -2,7 +2,7 @@
  * Maestro HQ server — Run real (sem digitar bernstein na mão)
  *
  *   node maestro/server.mjs
- *   http://127.0.0.1:8787
+ *   http://127.0.0.1:8799
  *
  * POST /api/run  { goal, executor?, playerId?, maxTurns? }
  * GET  /api/status
@@ -23,7 +23,7 @@ import { createEngine } from "./engine.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const PORT = Number(process.env.MAESTRO_PORT || 8787);
+const PORT = Number(process.env.MAESTRO_PORT || 8799);
 const ROSTER_PATH = path.join(__dirname, "roster.json");
 
 // Token por instalação: bloqueia CSRF de sites no browser contra o loopback.

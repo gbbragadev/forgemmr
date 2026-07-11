@@ -97,6 +97,11 @@ export function resolveBin(name) {
     const p = path.join(home, ".grok", "bin", isWin ? "grok.exe" : "grok");
     if (fs.existsSync(p)) return p;
   }
+  if (name === "agy" || name === "agy.exe") {
+    const local = process.env.LOCALAPPDATA || path.join(home, "AppData", "Local");
+    const p = path.join(local, "agy", "bin", isWin ? "agy.exe" : "agy");
+    if (fs.existsSync(p)) return p;
+  }
   return name;
 }
 
@@ -214,7 +219,27 @@ export function buildSpawn(cli, goal, opts) {
   }
 
   if (cli === "gemini") {
-    return { cmd: "gemini", args: ["-p", goal.replace(/\r?\n/g, " "), "-y"], env: base };
+    // Gemini roda via Antigravity CLI (agy) — o binário `gemini` foi descontinuado.
+    // Flags REAIS (verificadas em `agy --help`): -p = 1 prompt headless que imprime a resposta;
+    // --dangerously-skip-permissions = auto-aprova permissões de tool (edita arquivos).
+    // ponytail: se um dia `-p` só responder sem editar, trocar por --prompt-interactive num pty —
+    //   sem evidência disso hoje; player é opcional e não está em nenhum team default.
+    const agy = resolveBin("agy");
+    if (agy === "agy") {
+      throw new Error(
+        "agy.exe não encontrado em %LOCALAPPDATA%\\agy\\bin — instale o Antigravity CLI; player gemini indisponível"
+      );
+    }
+    return {
+      cmd: agy,
+      args: [
+        "-p",
+        goal.replace(/\r?\n/g, " "),
+        "--dangerously-skip-permissions",
+        ...(model && model !== "default" ? ["--model", model] : []),
+      ],
+      env: base,
+    };
   }
 
   if (cli === "bernstein") {

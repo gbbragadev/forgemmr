@@ -16,6 +16,9 @@ import { spawn, execFileSync, execSync } from "node:child_process";
 import { buildSpawn, createStreamSanitizer, detectRateLimit, makeRedactor } from "./adapters.mjs";
 import * as workbench from "./workbench.mjs";
 
+// porta do Maestro HQ (server.mjs) — usada nos prompts de gate visual (preview)
+const HQ_PORT = Number(process.env.MAESTRO_PORT || 8799);
+
 const JOB_TEMPLATES = {
   "L0/P0": "L0-P0-scorecard.md",
   FOUNDATION: "FOUNDATION.md",
@@ -50,7 +53,7 @@ const GATES_AFTER = {
   }),
   "L1/B3": (p) => ({
     id: "b3-visual",
-    prompt: `UI polida. Preview: http://127.0.0.1:8787/preview/${p.appId}/ (ou npm run dev). Aprova o visual?`,
+    prompt: `UI polida. Preview: http://127.0.0.1:${HQ_PORT}/preview/${p.appId}/ (ou npm run dev). Aprova o visual?`,
     payload: `preview:${p.appId}`,
     choices: ["go", "retry", "kill"],
   }),
@@ -62,7 +65,7 @@ const GATES_AFTER = {
   }),
   ITERATE: (p) => ({
     id: "iterate-visual",
-    prompt: `Feedback aplicado. Preview: http://127.0.0.1:8787/preview/${p.appId}/ (ou npm run dev). Aprova a iteração?`,
+    prompt: `Feedback aplicado. Preview: http://127.0.0.1:${HQ_PORT}/preview/${p.appId}/ (ou npm run dev). Aprova a iteração?`,
     payload: `preview:${p.appId}`,
     choices: ["go", "retry", "kill"],
   }),
@@ -352,7 +355,8 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       const rawFd = fs.openSync(rawPath, "w");
 
       fs.writeFileSync(path.join(root, "maestro", ".run-goal.txt"), prompt, "utf8");
-      log(`▶ ${job} → ${player.name} (${player.cli}${player.env ? "/" + player.env : ""})`);
+      const mlabel = player.modelLabel ? ` · ${player.modelLabel}${player.effort ? " " + String(player.effort).toUpperCase() : ""}` : "";
+      log(`▶ ${job} → ${player.name}${mlabel} (${player.cli}${player.env ? "/" + player.env : ""})`);
       log(`  raw → ${path.relative(root, rawPath)}`);
 
       let tail = "";

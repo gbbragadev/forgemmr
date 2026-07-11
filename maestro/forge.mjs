@@ -7,7 +7,7 @@
  *   forge attach | status | decide <gate> <go|kill|retry> [feedback…] | stop | resume | roster
  *
  * Teclas na TUI: [g] go · [k] kill (2x) · [r] retry · [f] retry + feedback · [q] detach
- * O server (maestro/server.mjs :8787) é iniciado automaticamente se não estiver de pé.
+ * O server (maestro/server.mjs :8799) é iniciado automaticamente se não estiver de pé.
  */
 
 import { spawn } from "node:child_process";
@@ -18,7 +18,7 @@ import readline from "node:readline";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const API = `http://127.0.0.1:${process.env.MAESTRO_PORT || 8787}`;
+const API = `http://127.0.0.1:${process.env.MAESTRO_PORT || 8799}`;
 
 // ---------- ANSI ----------
 const ESC = "\x1b[";
@@ -307,7 +307,8 @@ async function attachTUI() {
             : cd
               ? fg(RED, "⏳ cooldown")
               : dim("idle");
-          out.push(row(`${pl.face || "·"} ${fg(pl.color, padTo(pl.name, 16))} ${padTo(stateTxt, 14)} ${done.length ? fg(GREEN, "✓ " + done.join(" ")) : ""}`));
+          const mtag = pl.modelLabel ? dim(pl.modelLabel + (pl.effort ? " · " + String(pl.effort).toUpperCase() : "")) : "";
+          out.push(row(`${pl.face || "·"} ${fg(pl.color, padTo(pl.name, 15))} ${padTo(mtag, 22)} ${padTo(stateTxt, 13)} ${done.length ? fg(GREEN, "✓ " + done.join(" ")) : ""}`));
         }
       } else {
         out.push(row(dim("roster indisponível")));
@@ -617,7 +618,8 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     }
     console.log(bold("\nPlayers:"));
     for (const pl of r.players.filter((x) => !x.hidden)) {
-      console.log(`  ${pl.face} ${fg(pl.color, pl.name.padEnd(16))} ${dim(`${pl.cli}${pl.env ? "/" + pl.env : ""} · ${(pl.jobs || []).join(" ")}`)}`);
+      const ml = pl.modelLabel ? `${pl.modelLabel}${pl.effort ? " " + String(pl.effort).toUpperCase() : ""} · ` : "";
+      console.log(`  ${pl.face} ${fg(pl.color, pl.name.padEnd(16))} ${dim(ml + `${pl.cli}${pl.env ? "/" + pl.env : ""} · ${(pl.jobs || []).join(" ")}`)}`);
     }
     console.log("");
     return;

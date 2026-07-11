@@ -5,7 +5,7 @@ $ErrorActionPreference = "Continue"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
 
-$MaestroPort = 8787
+$MaestroPort = 8799
 $Ui = "http://127.0.0.1:$MaestroPort/"
 
 Write-Host ""

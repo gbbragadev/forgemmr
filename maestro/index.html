@@ -361,7 +361,7 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const API = location.port === "8787" ? "" : "http://127.0.0.1:8787";
+    const API = ""; // cockpit é servido pelo próprio Maestro server (same-origin)
     let selectedPlayerId = "grok-solo";
     let es = null;
 
