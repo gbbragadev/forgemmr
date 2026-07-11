@@ -13,7 +13,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import readline from "node:readline";
 import { buildProfileMd, composeTeam, TEAM_ROLES, slugify } from "./engine.mjs";
 import { loadBlueprint } from "./blueprint-loader.mjs";
@@ -1228,7 +1228,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
 }
 
 // Apenas executa CLI quando invocado diretamente (não quando importado em testes)
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((e) => {
     console.error(fg(RED, `✗ ${e.message || e}`));
     process.exitCode = 1; // não usar process.exit(): mata handles do stdin no meio (assertion do libuv)
