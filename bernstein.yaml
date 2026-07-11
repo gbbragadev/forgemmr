@@ -1,0 +1,24 @@
+# Anime Forge × Bernstein — controlado pelo Maestro HQ
+# Cara/identidade: maestro/roster.json · UI: maestro/index.html
+# Launch sem digitar: scripts/start-maestro.ps1 (duplo clique / atalho)
+
+# Goal padrão (troque no Maestro HQ ou aqui)
+goal: |
+  Aguardando goal do Maestro HQ.
+  Preferir presets em maestro/roster.json.
+  Gate: npm run build. Surgical. Sem secrets. Sem billing/image.
+
+# NÃO "auto" cego — team fixo da factory
+cli: auto
+team: anime-forge
+budget: "$8"
+
+constraints:
+  - "Node.js monorepo (npm workspaces)"
+  - "TypeScript / Next.js 15"
+  - "Gate primary: npm run build (not pytest)"
+  - "Roster: frontend=claude/sonnet · backend=codex · qa=claude · copy=gemini se PATH"
+  - "Surgical / YAGNI / karpathy-guidelines"
+  - "Product AI = Z.AI (ZAI_API_KEY) — not coding agent brain"
+  - "Do not ask for API keys in chat"
+  - "Do not expand to billing or image capability unless goal says so"

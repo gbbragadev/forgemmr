@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maestro HQ — Anime Forge</title>
+  <style>
+    :root {
+      --bg: #0a0612;
+      --surface: #161022;
+      --surface2: #1f1730;
+      --ink: #f5f0ff;
+      --muted: #a89bc0;
+      --pink: #ff4d9a;
+      --purple: #c44dff;
+      --cyan: #38bdf8;
+      --green: #34d399;
+      --amber: #fbbf24;
+      --border: rgba(255,255,255,.08);
+      --font: "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      min-height: 100vh;
+      background:
+        radial-gradient(800px 400px at 15% -5%, #5b21b680, transparent 50%),
+        radial-gradient(700px 380px at 100% 0%, #9d174d55, transparent 45%),
+        var(--bg);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+
+    /* HERO / CARA */
+    .hero {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 20px;
+      align-items: center;
+      padding: 24px;
+      border-radius: 24px;
+      border: 1px solid rgba(196,77,255,.35);
+      background: linear-gradient(145deg, #241834ee, #120c1cee);
+      box-shadow: 0 0 48px rgba(196,77,255,.25);
+      margin-bottom: 20px;
+    }
+    @media (max-width: 640px) {
+      .hero { grid-template-columns: 1fr; text-align: center; }
+    }
+    .avatar {
+      width: 120px; height: 120px;
+      border-radius: 28px;
+      display: grid; place-items: center;
+      font-size: 64px;
+      background: linear-gradient(145deg, #7c3aed, #db2777);
+      box-shadow: 0 0 32px rgba(219,39,119,.45);
+      animation: pulse 3s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 28px rgba(219,39,119,.4); }
+      50% { box-shadow: 0 0 48px rgba(196,77,255,.65); }
+    }
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      background: linear-gradient(90deg, #fff, #ffb7d5, #c44dff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .hero .tag { color: var(--muted); margin: 0 0 12px; font-size: 15px; }
+    .status-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
+    @media (max-width: 640px) { .status-row { justify-content: center; } }
+    .pill {
+      font-size: 12px; font-weight: 700;
+      padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+    }
+    .pill.on { border-color: rgba(52,211,153,.45); color: var(--green); background: rgba(52,211,153,.1); }
+    .pill.off { border-color: rgba(251,113,133,.4); color: #fb7185; }
+
+    h2 {
+      margin: 28px 0 12px;
+      font-size: 1.05rem;
+      color: #e9d5ff;
+      letter-spacing: .02em;
+    }
+
+    .grid-players {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 12px;
+    }
+    .player {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 16px;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .player:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0,0,0,.35);
+    }
+    .player .face {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: grid; place-items: center; font-size: 26px;
+      margin-bottom: 10px;
+    }
+    .player h3 { margin: 0 0 4px; font-size: 1rem; }
+    .player .meta { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .player .jobs {
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .job-tag {
+      font-size: 10px; font-weight: 700;
+      padding: 3px 8px; border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+    }
+    .player p { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .preset {
+      text-align: left;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      background: linear-gradient(160deg, #1f1730, #161022);
+      color: var(--ink);
+      font: inherit;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .preset:hover {
+      border-color: rgba(255,77,154,.5);
+      box-shadow: 0 0 24px rgba(255,77,154,.2);
+    }
+    .preset .em { font-size: 22px; display: block; margin-bottom: 6px; }
+    .preset strong { display: block; margin-bottom: 4px; }
+    .preset span { font-size: 12px; color: var(--muted); }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface);
+      padding: 16px;
+      margin-top: 12px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0a0610;
+      color: var(--ink);
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .actions {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-top: 12px;
+    }
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-weight: 700;
+      font: inherit;
+      cursor: pointer;
+    }
+    .btn.primary {
+      background: linear-gradient(90deg, var(--pink), var(--purple));
+      color: #fff;
+    }
+    .btn.ghost {
+      background: var(--surface2);
+      color: var(--ink);
+      border: 1px solid var(--border);
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .links {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-top: 16px;
+    }
+    .links a {
+      color: #f9a8d4;
+      font-size: 13px;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.25);
+    }
+    .links a:hover { border-color: var(--pink); }
+
+    .map-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .map-table th, .map-table td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+    }
+    .map-table th {
+      background: var(--surface2);
+      color: #e9d5ff;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .map-table td { color: var(--muted); }
+    .map-table td strong { color: var(--ink); }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1f1730;
+      border: 1px solid rgba(52,211,153,.5);
+      color: var(--green);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+      z-index: 50;
+      max-width: 320px;
+    }
+    .toast.show { display: block; animation: fade .3s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px); } }
+
+    .logbox {
+      margin-top: 12px;
+      background: #05030a;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      height: 280px;
+      overflow: auto;
+      padding: 12px;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 11.5px;
+      color: #c4b5fd;
+      white-space: pre-wrap;
+      line-height: 1.45;
+    }
+    .logbox .err { color: #fb7185; }
+    .logbox .ok { color: #34d399; }
+    select#executor {
+      background: #0a0610;
+      color: var(--ink);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+    .btn.danger {
+      background: rgba(251,113,133,.2);
+      color: #fb7185;
+      border: 1px solid rgba(251,113,133,.4);
+    }
+    .run-banner {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--amber);
+      font-weight: 600;
+    }
+
+    footer {
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+    code { color: #fbcfe8; font-size: .9em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="avatar" id="maestro-face">🎼</div>
+      <div>
+        <h1 id="maestro-name">Maestro</h1>
+        <p class="tag" id="maestro-tagline">Eu conduzo o ensaio. Você decide a obra.</p>
+        <div class="status-row" id="status-row">
+          <span class="pill" id="pill-api">API Maestro…</span>
+          <span class="pill" id="pill-run">idle</span>
+          <span class="pill" id="pill-roster">Roster carregando…</span>
+        </div>
+      </div>
+    </header>
+
+    <h2>Orquestra (modelos pré-mapeados)</h2>
+    <p style="color:var(--muted);font-size:13px;margin:-4px 0 12px">
+      Controle total: cada “cara” = CLI + modelo fixo. Editável em <code>maestro/roster.json</code>.
+    </p>
+    <div class="grid-players" id="players"></div>
+
+    <h2>Dispatch map (job → músico)</h2>
+    <div class="panel" style="overflow-x:auto">
+      <table class="map-table" id="dispatch-table">
+        <thead>
+          <tr><th>Job</th><th>Player</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h2>Presets (1 clique)</h2>
+    <div class="presets" id="presets"></div>
+
+    <h2>▶ Execução ao vivo</h2>
+    <div class="panel">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px">
+        <label style="font-size:13px;color:var(--muted)">Executor
+          <select id="executor">
+            <option value="grok" selected>⚡ Grok solo (recomendado teste)</option>
+            <option value="bernstein">🎼 Bernstein (multi-CLI)</option>
+            <option value="codex">⚙️ Codex</option>
+            <option value="claude">🎨 Claude</option>
+            <option value="gemini">✨ Gemini</option>
+          </select>
+        </label>
+        <span class="run-banner" id="run-banner">Pronto. Escolha preset E2E · só Grok e aperte RUN.</span>
+      </div>
+      <textarea id="goal" placeholder="Goal da run…"></textarea>
+      <div class="actions">
+        <button class="btn primary" type="button" id="btn-run">▶ RUN</button>
+        <button class="btn danger" type="button" id="btn-stop">■ STOP</button>
+        <button class="btn ghost" type="button" id="btn-copy">Copiar goal</button>
+        <button class="btn ghost" type="button" id="btn-clear">Limpar log</button>
+      </div>
+      <div class="logbox" id="logbox">Aguardando run…<br/>Log limpo = marcos + arquivos (TUI do Grok não aparece aqui).<br/>Suba: npm run maestro → http://127.0.0.1:8787</div>
+    </div>
+
+    <div class="links">
+      <a href="http://127.0.0.1:8787/" target="_blank" rel="noopener">Maestro server :8787</a>
+      <a href="http://127.0.0.1:8052/ui/" target="_blank" rel="noopener">Bernstein GUI :8052</a>
+      <a href="../docs/MAESTRO.md">docs/MAESTRO.md</a>
+      <a href="../docs/GUIA-VISUAL.html">Guia visual</a>
+      <a href="../docs/prompts/NOVO-APP.md">Novo app 1 prompt</a>
+    </div>
+
+    <footer>
+      Maestro HQ · Anime Forge · roster <span id="ver">—</span><br />
+      RUN real via <code>maestro/server.mjs</code> · default E2E = <strong>Grok solo</strong>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = location.port === "8787" ? "" : "http://127.0.0.1:8787";
+    let selectedPlayerId = "grok-solo";
+    let es = null;
+
+    const toast = (msg) => {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 2800);
+    };
+
+    const logbox = document.getElementById("logbox");
+    function appendLog(line, cls) {
+      const span = document.createElement("div");
+      if (cls) span.className = cls;
+      span.textContent = line;
+      logbox.appendChild(span);
+      logbox.scrollTop = logbox.scrollHeight;
+    }
+
+    async function loadRoster() {
+      const url = API ? API + "/api/roster" : "./roster.json";
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("roster");
+      return res.json();
+    }
+
+    function render(roster) {
+      document.getElementById("ver").textContent = roster.version || "1";
+      const m = roster.maestro;
+      document.getElementById("maestro-face").textContent = m.avatar || "🎼";
+      document.getElementById("maestro-name").textContent = m.name;
+      document.getElementById("maestro-tagline").textContent = m.tagline;
+      document.getElementById("pill-roster").textContent = `${roster.players.length} músicos`;
+      document.getElementById("pill-roster").classList.add("on");
+
+      const players = document.getElementById("players");
+      players.innerHTML = "";
+      for (const p of roster.players) {
+        const card = document.createElement("div");
+        card.className = "player";
+        card.style.cursor = "pointer";
+        card.innerHTML = `
+          <div class="face" style="background:linear-gradient(135deg,${p.color}55,${p.color}22)">${p.face}</div>
+          <h3>${p.name}</h3>
+          <div class="meta">CLI <strong style="color:${p.color}">${p.cli}</strong> · model <strong>${p.model}</strong>${p.optional ? " · opcional" : ""}</div>
+          <div class="jobs">${(p.jobs || []).map((j) => `<span class="job-tag">${j}</span>`).join("")}</div>
+          <p>${p.blurb || ""}</p>
+        `;
+        card.addEventListener("click", () => {
+          selectedPlayerId = p.id;
+          document.getElementById("executor").value = p.cli === "grok" ? "grok" : p.cli;
+          toast("Executor: " + p.name);
+        });
+        players.appendChild(card);
+      }
+
+      const tbody = document.querySelector("#dispatch-table tbody");
+      tbody.innerHTML = "";
+      for (const [job, playerId] of Object.entries(roster.dispatch_map || {})) {
+        const player = roster.players.find((x) => x.id === playerId);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td><strong>${job}</strong></td><td>${player ? player.face + " " + player.name : playerId} (${player?.cli || "?"})</td>`;
+        tbody.appendChild(tr);
+      }
+
+      const presets = document.getElementById("presets");
+      presets.innerHTML = "";
+      for (const pr of roster.presets || []) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "preset";
+        b.innerHTML = `<span class="em">${pr.emoji || "▶"}</span><strong>${pr.label}</strong><span>clique → preenche · RUN dispara</span>`;
+        b.addEventListener("click", () => {
+          document.getElementById("goal").value = pr.goal;
+          if (pr.executor) document.getElementById("executor").value = pr.executor;
+          if (pr.playerId) selectedPlayerId = pr.playerId;
+          toast("Preset: " + pr.label);
+        });
+        presets.appendChild(b);
+      }
+
+      // auto-select E2E Grok preset
+      const e2e = (roster.presets || []).find((p) => p.id === "e2e-grok");
+      if (e2e) {
+        document.getElementById("goal").value = e2e.goal;
+        document.getElementById("executor").value = e2e.executor || "grok";
+        selectedPlayerId = e2e.playerId || "grok-solo";
+      }
+    }
+
+    let TOKEN = "";
+    async function loadToken() {
+      // same-origin only (sem CORS); necessário nos POSTs contra CSRF
+      try {
+        TOKEN = (await (await fetch((API || "") + "/api/token")).json()).token || "";
+      } catch { /* server off */ }
+    }
+
+    async function checkApi() {
+      const pill = document.getElementById("pill-api");
+      try {
+        const r = await fetch((API || "") + "/api/status");
+        if (!r.ok) throw new Error("bad");
+        const j = await r.json();
+        if (!TOKEN) loadToken();
+        pill.textContent = "API :8787 online";
+        pill.classList.add("on");
+        setRunPill(j.status, j.executor);
+        return true;
+      } catch {
+        pill.textContent = "API off — node maestro/server.mjs";
+        pill.classList.add("off");
+        return false;
+      }
+    }
+
+    function setRunPill(status, executor) {
+      const pill = document.getElementById("pill-run");
+      const banner = document.getElementById("run-banner");
+      pill.textContent = status + (executor ? " · " + executor : "");
+      pill.classList.remove("on", "off");
+      if (status === "running") {
+        pill.classList.add("on");
+        banner.textContent = "▶ Run em andamento…";
+      } else if (status === "done") {
+        pill.classList.add("on");
+        banner.textContent = "✓ Última run OK";
+      } else if (status === "error") {
+        pill.classList.add("off");
+        banner.textContent = "✗ Última run com erro — veja o log";
+      } else {
+        banner.textContent = "Pronto. Preset E2E · só Grok · aperte RUN.";
+      }
+    }
+
+    function connectSSE() {
+      if (es) es.close();
+      const url = (API || "") + "/api/events";
+      try {
+        es = new EventSource(url);
+      } catch {
+        return;
+      }
+      es.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === "log") {
+            let line = msg.line || "";
+            // client-side belt-and-suspenders strip (server already cleans)
+            line = line
+              .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "")
+              .replace(/\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)/g, "")
+              .replace(/\u001b[@-Z\\-_]/g, "")
+              .replace(/\[[\?\d;]*[A-Za-z]/g, "");
+            if (!line.trim()) return;
+            const cls =
+              line.includes("✗") || (line.includes("stderr:") && /error|fail|denied/i.test(line))
+                ? "err"
+                : line.includes("✓")
+                  ? "ok"
+                  : "";
+            // don't paint all stderr red (grok used to dump TUI there)
+            if (line.startsWith("[") && line.includes("stderr:") && !/error|fail|denied|unexpected/i.test(line)) {
+              appendLog(line.replace("stderr: ", ""), "");
+              return;
+            }
+            appendLog(line, cls);
+          }
+          if (msg.type === "status") setRunPill(msg.status, msg.executor);
+        } catch { /* ignore */ }
+      };
+    }
+
+    document.getElementById("btn-run").addEventListener("click", async () => {
+      const goal = document.getElementById("goal").value.trim();
+      if (!goal) {
+        toast("Escolha um preset ou escreva um goal");
+        return;
+      }
+      const executor = document.getElementById("executor").value;
+      const online = await checkApi();
+      if (!online) {
+        toast("Suba: node maestro/server.mjs");
+        return;
+      }
+      appendLog("--- RUN requested ---");
+      try {
+        const r = await fetch((API || "") + "/api/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Maestro-Token": TOKEN },
+          body: JSON.stringify({
+            goal,
+            executor,
+            playerId: selectedPlayerId,
+            maxTurns: 40,
+          }),
+        });
+        const j = await r.json();
+        if (!j.ok) {
+          toast(j.error || "Falha ao iniciar");
+          appendLog("✗ " + (j.error || "fail"), "err");
+          return;
+        }
+        toast("RUN · " + j.executor);
+        setRunPill("running", j.executor);
+      } catch (e) {
+        toast("Erro de rede na API");
+        appendLog(String(e), "err");
+      }
+    });
+
+    document.getElementById("btn-stop").addEventListener("click", async () => {
+      try {
+        await fetch((API || "") + "/api/stop", { method: "POST", headers: { "X-Maestro-Token": TOKEN } });
+        toast("STOP enviado");
+      } catch {
+        toast("API offline");
+      }
+    });
+
+    document.getElementById("btn-copy").addEventListener("click", async () => {
+      const goal = document.getElementById("goal").value.trim();
+      if (!goal) return toast("Goal vazio");
+      try {
+        await navigator.clipboard.writeText(goal);
+        toast("Goal copiado");
+      } catch {
+        toast("Ctrl+C manual");
+      }
+    });
+
+    document.getElementById("btn-clear").addEventListener("click", () => {
+      logbox.innerHTML = "";
+      appendLog("Log limpo.");
+    });
+
+    loadRoster()
+      .then(render)
+      .catch(() => {
+        document.getElementById("pill-roster").textContent = "Falha roster";
+        document.getElementById("pill-roster").classList.add("off");
+      });
+    checkApi().then((ok) => {
+      if (ok) connectSSE();
+    });
+    setInterval(checkApi, 8000);
+  </script>
+</body>
+</html>

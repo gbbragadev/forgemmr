@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SINARA — Identidade Visual Neon Meme-Core</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --af-bg: #0b0614;
+      --af-surface: #161022;
+      --af-surface-2: #1f1730;
+      --af-ink: #f5f0ff;
+      --af-muted: #a89bc0;
+      --af-primary: #ff4d9a;
+      --af-primary-2: #c44dff;
+      --af-glow: rgba(255, 77, 154, 0.45);
+      --af-sakura: #ffb7d5;
+      --af-border: rgba(255, 255, 255, 0.08);
+      --af-display: "Bebas Neue", sans-serif;
+      --af-font: "Outfit", sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #3b1260 0%, transparent 50%),
+        radial-gradient(900px 500px at 100% 0%, #5a1040 0%, transparent 45%),
+        var(--af-bg);
+      color: var(--af-ink);
+      font-family: var(--af-font);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* ===== HEADER / BRAND ===== */
+    .header {
+      text-align: center;
+      padding: 60px 20px 40px;
+      position: relative;
+      border-bottom: 1px solid var(--af-border);
+      margin-bottom: 60px;
+    }
+
+    .logo-wrapper {
+      display: inline-block;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .logo-svg {
+      width: 140px;
+      height: 140px;
+      filter: drop-shadow(0 0 24px var(--af-glow));
+      animation: float-gentle 4s ease-in-out infinite;
+    }
+
+    @keyframes float-gentle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .header h1 {
+      font-family: var(--af-display);
+      font-size: 3.6rem;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      background: linear-gradient(90deg, #ffb7d5, #ff4d9a 50%, #c44dff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 12px;
+      line-height: 1;
+    }
+
+    .header .tagline {
+      font-size: 1.1rem;
+      color: var(--af-sakura);
+      margin-bottom: 28px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .seal {
+      display: inline-block;
+      font-size: 0.85rem;
+      padding: 6px 14px;
+      border: 1px solid color-mix(in srgb, var(--af-primary) 45%, transparent);
+      border-radius: 20px;
+      color: var(--af-muted);
+      background: color-mix(in srgb, var(--af-primary) 8%, transparent);
+      backdrop-filter: blur(8px);
+    }
+
+    /* ===== MAIN CONTAINER ===== */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px 80px;
+    }
+
+    /* ===== SECTION: FOUNDATION ===== */
+    .section {
+      margin-bottom: 80px;
+    }
+
+    .section-title {
+      font-family: var(--af-display);
+      font-size: 2.4rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      margin-bottom: 40px;
+      color: var(--af-ink);
+    }
+
+    /* ---- Palette ---- */
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .swatch {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--af-border);
+    }
+
+    .swatch-color {
+      height: 100px;
+      background: var(--color);
+      border-bottom: 1px solid var(--af-border);
+    }
+
+    .swatch-info {
+      padding: 12px;
+      background: var(--af-surface);
+      font-size: 0.9rem;
+    }
+
+    .swatch-name {
+      font-weight: 600;
+      color: var(--af-ink);
+      margin-bottom: 4px;
+    }
+
+    .swatch-hex {
+      font-family: monospace;
+      color: var(--af-muted);
+      font-size: 0.85rem;
+    }
+
+    /* ---- Typography ---- */
+    .typography {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .typography {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .font-specimen {
+      border: 1px solid var(--af-border);
+      border-radius: 14px;
+      padding: 32px 24px;
+      background: color-mix(in srgb, var(--af-surface) 60%, transparent);
+      backdrop-filter: blur(8px);
+    }
+
+    .font-label {
+      font-size: 0.9rem;
+      color: var(--af-muted);
+      margin-bottom: 16px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .specimen-display {
+      font-family: var(--af-display);
+      font-size: 2.8rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--af-ink);
+      margin-bottom: 24px;
+      line-height: 1.1;
+    }
+
+    .specimen-body {
+      font-family: var(--af-font);
+      font-size: 1rem;
+      color: var(--af-muted);
+      line-height: 1.6;
+    }
+
+    /* ---- Scale ---- */
+    .scale-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .scale-item {
+      border: 1px solid var(--af-border);
+      border-radius: 12px;
+      padding: 16px;
+      background: color-mix(in srgb, var(--af-surface-2) 40%, transparent);
+    }
+
+    .scale-label {
+      font-size: 0.85rem;
+      color: var(--af-muted);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .h1 { font-family: var(--af-display); font-size: 3.8rem; line-height: 1; }
+    .h2 { font-family: var(--af-display); font-size: 2.6rem; line-height: 1; }
+    .h3 { font-family: var(--af-display); font-size: 1.8rem; line-height: 1.2; }
+    .body-lg { font-family: var(--af-font); font-size: 1rem; line-height: 1.6; }
+    .body-md { font-family: var(--af-font); font-size: 0.95rem; line-height: 1.6; }
+    .body-sm { font-family: var(--af-font); font-size: 0.85rem; line-height: 1.5; }
+    .caption { font-family: var(--af-font); font-size: 0.75rem; line-height: 1.4; color: var(--af-muted); }
+
+    /* ===== SECTION: MOCKUPS ===== */
+    .mockups {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      margin-bottom: 60px;
+    }
+
+    @media (max-width: 900px) {
+      .mockups {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+    }
+
+    .phone-frame {
+      position: relative;
+      width: 100%;
+      max-width: 390px;
+      margin: 0 auto;
+    }
+
+    .phone-frame::before {
+      content: "";
+      display: block;
+      padding-bottom: 200%;
+      background: linear-gradient(135deg, #1f1730 0%, #161022 100%);
+      border-radius: 40px;
+      border: 1px solid var(--af-border);
+      position: relative;
+    }
+
+    .phone-screen {
+      position: absolute;
+      inset: 0;
+      border-radius: 40px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background:
+        radial-gradient(600px 300px at 50% -50%, color-mix(in srgb, #c44dff 35%, transparent), transparent 60%),
+        var(--af-bg);
+      padding: 24px;
+    }
+
+    .mockup-label {
+      font-family: var(--af-display);
+      font-size: 0.9rem;
+      color: var(--af-muted);
+      letter-spacing: 0.04em;
+      margin-bottom: 16px;
+      margin-top: 20px;
+    }
+
+    /* ---- INTRO Screen ---- */
+    .screen-intro {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 16px;
+    }
+
+    .intro-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--af-display);
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      padding: 5px 12px;
+      border: 1px solid color-mix(in srgb, var(--af-primary) 55%, transparent);
+      border-radius: 5px;
+      background: color-mix(in srgb, var(--af-primary) 12%, transparent);
+      color: var(--af-sakura);
+      box-shadow: 0 0 16px color-mix(in srgb, var(--af-glow) 55%, transparent);
+    }
+
+    .intro-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--af-sakura);
+      box-shadow: 0 0 6px var(--af-sakura);
+    }
+
+    .intro-silhouette {
+      width: 80px;
+      height: 100px;
+      margin: 8px auto;
+    }
+
+    .intro-title {
+      font-family: var(--af-display);
+      font-size: 1.6rem;
+      font-weight: 400;
+      line-height: 1;
+      margin: 8px 0;
+    }
+
+    .intro-lead {
+      font-size: 0.8rem;
+      color: var(--af-muted);
+      margin: 8px 0;
+      line-height: 1.3;
+    }
+
+    .archetypes-chips {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .arch-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+    }
+
+    .arch-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--af-display);
+      font-size: 0.9rem;
+      color: #120a1f;
+      background: var(--chip-color);
+      box-shadow:
+        0 0 0 2px rgba(11, 6, 20, 0.7),
+        0 0 10px color-mix(in srgb, var(--chip-color) 70%, transparent);
+    }
+
+    .arch-name {
+      color: var(--af-muted);
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .intro-btn {
+      min-height: 44px;
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(90deg, var(--af-primary), var(--af-primary-2));
+      color: #fff;
+      font-family: var(--af-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--af-glow) 55%, transparent);
+      transition: transform 140ms ease;
+      margin-top: 8px;
+    }
+
+    .intro-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .intro-toggle {
+      display: inline-flex;
+      gap: 0;
+      border: 1px solid var(--af-border);
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--af-surface-2) 40%, transparent);
+      margin-top: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .toggle-btn {
+      padding: 4px 10px;
+      border: 0;
+      background: transparent;
+      color: var(--af-muted);
+      cursor: pointer;
+      transition: color 140ms ease, background 140ms ease;
+    }
+
+    .toggle-btn.active {
+      background: color-mix(in srgb, var(--af-primary) 25%, transparent);
+      color: var(--af-ink);
+    }
+
+    .intro-seal-small {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 3px 8px;
+      border: 1px solid color-mix(in srgb, var(--af-primary) 35%, transparent);
+      border-radius: 3px;
+      color: var(--af-muted);
+      background: color-mix(in srgb, var(--af-primary) 5%, transparent);
+      margin-top: 8px;
+    }
+
+    /* ---- RESULT Screen ---- */
+    .screen-result {
+      align-items: center;
+      justify-content: flex-start;
+      padding: 24px 16px 32px;
+      gap: 12px;
+    }
+
+    .result-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .result-card {
+      --result-accent: #c44dff;
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      border-radius: 16px;
+      padding: 24px 16px;
+      border: 1px solid color-mix(in srgb, var(--result-accent) 45%, transparent);
+      background:
+        radial-gradient(500px 200px at 50% 0%, color-mix(in srgb, var(--result-accent) 38%, transparent), transparent 70%),
+        rgba(22, 16, 34, 0.93);
+      box-shadow: 0 0 40px color-mix(in srgb, var(--result-accent) 28%, transparent);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      animation: reveal 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .result-card::before {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .corner {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--result-accent);
+      z-index: 2;
+      opacity: 0.9;
+    }
+    .corner-tl { top: 12px; left: 12px; border-right: 0; border-bottom: 0; border-top-left-radius: 3px; }
+    .corner-tr { top: 12px; right: 12px; border-left: 0; border-bottom: 0; border-top-right-radius: 3px; }
+    .corner-bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; border-bottom-left-radius: 3px; }
+    .corner-br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; border-bottom-right-radius: 3px; }
+
+    .result-aura {
+      position: absolute;
+      top: -10%;
+      left: -25%;
+      right: -25%;
+      height: 50%;
+      z-index: 0;
+      background: repeating-conic-gradient(
+        from 0deg at 50% 100%,
+        color-mix(in srgb, var(--result-accent) 55%, transparent) 0deg 0.7deg,
+        transparent 0.7deg 7deg
+      );
+      -webkit-mask: radial-gradient(closest-side at 50% 100%, #000 25%, transparent 70%);
+      mask: radial-gradient(closest-side at 50% 100%, #000 25%, transparent 70%);
+      opacity: 0.4;
+    }
+
+    .result-head {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .result-monogram {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--af-display);
+      font-size: 2.8rem;
+      line-height: 1;
+      color: #120a1f;
+      background: var(--result-accent);
+      box-shadow:
+        0 0 0 4px var(--af-bg),
+        0 0 0 5px var(--result-accent),
+        0 0 32px color-mix(in srgb, var(--result-accent) 70%, transparent);
+    }
+
+    .result-kicker {
+      position: relative;
+      z-index: 2;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--af-sakura);
+      margin: 0;
+    }
+
+    .result-name {
+      position: relative;
+      z-index: 2;
+      margin: 0;
+      font-family: var(--af-font);
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--af-ink);
+      text-shadow: 0 0 16px color-mix(in srgb, var(--result-accent) 60%, transparent);
+    }
+
+    .result-blurb {
+      position: relative;
+      z-index: 2;
+      margin: 4px 0 0;
+      font-size: 0.85rem;
+      line-height: 1.35;
+      color: var(--af-ink);
+      max-width: 24ch;
+    }
+
+    .result-tags {
+      position: relative;
+      z-index: 2;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: center;
+      margin: 6px 0 0;
+    }
+
+    .result-tags li {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--result-accent) 45%, transparent);
+      color: var(--result-accent);
+      background: color-mix(in srgb, var(--result-accent) 10%, transparent);
+    }
+
+    .result-watermark {
+      position: relative;
+      z-index: 2;
+      margin-top: auto;
+      font-family: var(--af-display);
+      letter-spacing: 0.18em;
+      font-size: 0.65rem;
+      color: var(--af-muted);
+      opacity: 0.8;
+    }
+
+    @keyframes reveal {
+      from {
+        opacity: 0;
+        transform: scale(0.94) translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* ===== SECTION: RATIONALE ===== */
+    .rationale {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 32px;
+    }
+
+    .rationale-item {
+      border-left: 3px solid var(--af-primary);
+      padding-left: 20px;
+    }
+
+    .rationale-item strong {
+      display: block;
+      color: var(--af-sakura);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .rationale-item p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--af-muted);
+      line-height: 1.5;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid var(--af-border);
+      color: var(--af-muted);
+      font-size: 0.9rem;
+    }
+
+    .footer strong {
+      color: var(--af-ink);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <div class="header">
+    <div class="logo-wrapper">
+      <svg class="logo-svg" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="logoBg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ffb7d5" />
+            <stop offset="50%" stop-color="#ff4d9a" />
+            <stop offset="100%" stop-color="#c44dff" />
+          </linearGradient>
+        </defs>
+        <!-- Central circle aura -->
+        <circle cx="70" cy="70" r="65" fill="url(#logoBg)" opacity="0.15" />
+        <!-- Main symbol: four petals (energy burst) -->
+        <g fill="url(#logoBg)">
+          <ellipse cx="70" cy="25" rx="12" ry="18" />
+          <ellipse cx="115" cy="70" rx="18" ry="12" />
+          <ellipse cx="70" cy="115" rx="12" ry="18" />
+          <ellipse cx="25" cy="70" rx="18" ry="12" />
+        </g>
+        <!-- Center dot -->
+        <circle cx="70" cy="70" r="10" fill="url(#logoBg)" filter="drop-shadow(0 0 8px rgba(255, 77, 154, 0.6))" />
+      </svg>
+    </div>
+
+    <h1>SINARA</h1>
+    <p class="tagline">Seus arquétipos em neon</p>
+    <div class="seal">by @otaku_sincero69</div>
+
+    <div style="margin-top: 32px; font-size: 0.9rem; color: var(--af-muted); border-top: 1px solid var(--af-border); padding-top: 24px;">
+      <div style="color: var(--af-muted); font-size: 0.85rem; letter-spacing: 0.02em; margin-bottom: 12px; font-weight: 600;">Alternativas discretas</div>
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+        <div>
+          <strong style="color: var(--af-sakura); font-family: var(--af-display); font-size: 1.2rem;">ARCO</strong>
+          <div style="font-size: 0.8rem; margin-top: 4px;">Arc — story narrative</div>
+        </div>
+        <div>
+          <strong style="color: var(--af-sakura); font-family: var(--af-display); font-size: 1.2rem;">AURA</strong>
+          <div style="font-size: 0.8rem; margin-top: 4px;">Energy / Vibe essence</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="container">
+
+    <!-- SECTION: FOUNDATION -->
+    <section class="section">
+      <h2 class="section-title">Fundação</h2>
+
+      <div>
+        <h3 style="font-family: var(--af-display); font-size: 1.4rem; margin-bottom: 24px; letter-spacing: 0.03em;">Paleta de Cores</h3>
+        <div class="palette">
+          <div class="swatch">
+            <div class="swatch-color" style="--color: #0b0614;"></div>
+            <div class="swatch-info">
+              <div class="swatch-name">Fundo Noturno</div>
+              <div class="swatch-hex">#0b0614</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="--color: #ff4d9a;"></div>
+            <div class="swatch-info">
+              <div class="swatch-name">Neon Rosa</div>
+              <div class="swatch-hex">#ff4d9a</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="--color: #c44dff;"></div>
+            <div class="swatch-info">
+              <div class="swatch-name">Neon Roxo</div>
+              <div class="swatch-hex">#c44dff</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="--color: #ffb7d5;"></div>
+            <div class="swatch-info">
+              <div class="swatch-name">Sakura Suave</div>
+              <div class="swatch-hex">#ffb7d5</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="--color: #f5f0ff;"></div>
+            <div class="swatch-info">
+              <div class="swatch-name">Tinta Leve</div>
+              <div class="swatch-hex">#f5f0ff</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-color" style="--color: #a89bc0;"></div>
+            <div class="swatch-info">
+              <div class="swatch-name">Apagado</div>
+              <div class="swatch-hex">#a89bc0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 48px;">
+        <h3 style="font-family: var(--af-display); font-size: 1.4rem; margin-bottom: 24px; letter-spacing: 0.03em;">Tipografia</h3>
+        <div class="typography">
+          <div class="font-specimen">
+            <div class="font-label">Display — Bebas Neue</div>
+            <div class="specimen-display">COMEÇAR O ARCO</div>
+            <div class="specimen-body">Condensada, robusta, com energia de pôster manga. Usada em títulos, badges, CTAs, labels. Letra-espaçada para legibilidade em telas pequenas.</div>
+          </div>
+          <div class="font-specimen">
+            <div class="font-label">Body — Outfit</div>
+            <div class="specimen-body">Versátil, suporta diacríticos PT-BR com clareza. Corpo principal, descrições, tags. Leve em todos os pesos. Mantém elegância em 12px.</div>
+            <p style="font-size: 0.9rem; margin-top: 16px; line-height: 1.5;"><strong>Seu arquétipo:</strong> Você escolhe paz, escuta e um chá quente no meio do caos.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 48px;">
+        <h3 style="font-family: var(--af-display); font-size: 1.4rem; margin-bottom: 24px; letter-spacing: 0.03em;">Escala Tipográfica</h3>
+        <div class="scale-grid">
+          <div class="scale-item">
+            <div class="scale-label">H1 — Hero</div>
+            <div class="h1">3.8rem / 0.92 line-height</div>
+          </div>
+          <div class="scale-item">
+            <div class="scale-label">H2 — Seção</div>
+            <div class="h2">2.6rem / 1 line-height</div>
+          </div>
+          <div class="scale-item">
+            <div class="scale-label">H3 — Subsection</div>
+            <div class="h3">1.8rem / 1.2 line-height</div>
+          </div>
+          <div class="scale-item">
+            <div class="scale-label">Body Large</div>
+            <div class="body-lg">1rem / 1.6 line-height</div>
+          </div>
+          <div class="scale-item">
+            <div class="scale-label">Body Medium</div>
+            <div class="body-md">0.95rem / 1.6 line-height</div>
+          </div>
+          <div class="scale-item">
+            <div class="scale-label">Caption</div>
+            <div class="caption">0.75rem / 1.4 line-height</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 48px; padding: 24px; border: 1px solid var(--af-border); border-radius: 14px; background: color-mix(in srgb, var(--af-surface) 40%, transparent);">
+        <h3 style="font-family: var(--af-display); font-size: 1.2rem; margin: 0 0 16px; letter-spacing: 0.03em;">Spacing &amp; Radius</h3>
+        <ul style="margin: 0; padding: 0 0 0 20px; color: var(--af-muted); font-size: 0.95rem;">
+          <li><strong>Spacing:</strong> 4px base scale — 4, 8, 12, 16, 20, 24, 32, 40, 48, 60, 80px</li>
+          <li><strong>Border Radius:</strong> 5px (badges), 12px (buttons/options), 14px (panels), 16px (frames), 20px (cards)</li>
+          <li><strong>Glow Effect:</strong> drop-shadow(0 0 X color) — usar para neon accent, intensidade contextual</li>
+          <li><strong>Backdrop:</strong> blur(8px) + rgba(22, 16, 34, 0.85) para glass morphism</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION: MOCKUPS -->
+    <section class="section">
+      <h2 class="section-title">Telas</h2>
+
+      <div class="mockups">
+        <!-- INTRO -->
+        <div>
+          <div class="mockup-label">INTRO — Começo do Arco</div>
+          <div class="phone-frame">
+            <div class="phone-screen screen-intro">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%;">
+                <div class="intro-badge">
+                  <span class="intro-dot"></span>
+                  EP. 01 · QUIZ
+                </div>
+                <div class="intro-toggle">
+                  <button class="toggle-btn active">PT</button>
+                  <button class="toggle-btn">EN</button>
+                </div>
+              </div>
+
+              <svg viewBox="0 0 140 180" style="width: 80px; height: 100px; margin: 0 auto;">
+                <defs>
+                  <linearGradient id="silSvg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#ffb7d5" />
+                    <stop offset="0.5" stop-color="#ff4d9a" />
+                    <stop offset="1" stop-color="#c44dff" />
+                  </linearGradient>
+                </defs>
+                <g fill="url(#silSvg)" filter="drop-shadow(0 0 16px rgba(255, 77, 154, 0.45))">
+                  <ellipse cx="70" cy="50" rx="30" ry="33" />
+                  <path d="M40 54 L46 30 L52 49 L58 24 L64 47 L70 18 L76 47 L82 24 L88 49 L94 30 L100 54 C100 66 90 72 70 72 C50 72 40 66 40 54 Z" />
+                  <path d="M52 76 L88 76 L88 88 C104 92 116 108 118 130 L124 180 L16 180 L22 130 C24 108 36 92 52 88 Z" />
+                </g>
+              </svg>
+
+              <div class="intro-title">Quiz de Arquétipo</div>
+              <p class="intro-lead">Respostas honestas, resultado na hora.</p>
+
+              <div class="archetypes-chips">
+                <div class="arch-chip">
+                  <div class="arch-dot" style="--chip-color: #7dd3fc;">S</div>
+                  <span class="arch-name">Soft</span>
+                </div>
+                <div class="arch-chip">
+                  <div class="arch-dot" style="--chip-color: #fb7185;">R</div>
+                  <span class="arch-name">Rival</span>
+                </div>
+                <div class="arch-chip">
+                  <div class="arch-dot" style="--chip-color: #a78bfa;">C</div>
+                  <span class="arch-name">Cyber</span>
+                </div>
+                <div class="arch-chip">
+                  <div class="arch-dot" style="--chip-color: #f472b6;">I</div>
+                  <span class="arch-name">Idol</span>
+                </div>
+                <div class="arch-chip">
+                  <div class="arch-dot" style="--chip-color: #34d399;">M</div>
+                  <span class="arch-name">Mentor</span>
+                </div>
+                <div class="arch-chip">
+                  <div class="arch-dot" style="--chip-color: #22d3ee;">G</div>
+                  <span class="arch-name">Gamer</span>
+                </div>
+              </div>
+
+              <button class="intro-btn">Começar o arco</button>
+              <div class="intro-seal-small">by @otaku_sincero69</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESULT -->
+        <div>
+          <div class="mockup-label">RESULT — Card Compartilhável</div>
+          <div class="phone-frame">
+            <div class="phone-screen screen-result">
+              <div class="result-wrapper">
+              <div class="result-card" style="--result-accent: #a78bfa;">
+                <span class="corner corner-tl"></span>
+                <span class="corner corner-tr"></span>
+                <span class="corner corner-bl"></span>
+                <span class="corner corner-br"></span>
+                <div class="result-aura"></div>
+
+                <div class="result-head">
+                  <div class="result-monogram">C</div>
+                  <p class="result-kicker">Seu arquétipo</p>
+                  <h2 class="result-name">Sombra Neon</h2>
+                </div>
+
+                <p class="result-blurb">Você fala pouco, observa muito e sempre tem um plano B na manga.</p>
+
+                <ul class="result-tags">
+                  <li>misterioso</li>
+                  <li>cyber</li>
+                  <li>seco</li>
+                </ul>
+
+                <p class="result-watermark">SINARA · ARQUÉTIPOS</p>
+              </div>
+
+              <button class="intro-btn" style="width: auto; padding: 0 16px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" y1="2" x2="12" y2="15" />
+                </svg>
+                Compartilhar
+              </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: RATIONALE -->
+    <section class="section">
+      <h2 class="section-title">Racional</h2>
+
+      <div class="rationale">
+        <div class="rationale-item">
+          <strong>Neon Intencional</strong>
+          <p>Rosa + roxo graduado sobre preto quase-absoluto cria espaço visual brutal, legível em Stories/TikTok. Glow usado onde é sinal (auras de resultado, badges de episódio), não em tudo — economia = impacto.</p>
+        </div>
+        <div class="rationale-item">
+          <strong>Tipografia Otaku BR</strong>
+          <p>Bebas Neue condensada é manga/pôster, Outfit é corpo legível com acentos PT-BR. Copy como "Começar o arco" + "Sombra Neon" conversa com fã que entende anime + gamer + meme culture da conta.</p>
+        </div>
+        <div class="rationale-item">
+          <strong>Card 9:16 Nativo</strong>
+          <p>Resultado pensado p/ screenshot + repost direto (Instagram/TikTok portrait mode). Watermark discreto não compete com imagem, monograma + tags = shareable sem contexto.</p>
+        </div>
+        <div class="rationale-item">
+          <strong>Marca Secundária Leve</strong>
+          <p>"By @otaku_sincero69" é selo, não poluição. SINARA é face dos apps, instagram é ecossistema. Dois níveis de marca = tráfego cruzado sem conflito de identidade.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>Identidade Visual Neon Meme-Core <strong>SINARA</strong> · Proposta de Design</p>
+    <p style="font-size: 0.85rem; margin-top: 12px;">Cores, tipografia e layout refinados do arquivo-mãe. Estrutura responsiva móvel-first, 390px phone mockups, contraste WCAG AA em textos críticos.</p>
+  </div>
+
+</body>
+</html>

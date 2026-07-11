@@ -1,0 +1,96 @@
+{
+  "id": "anime-archetype-v1",
+  "title": "Qual arquétipo anime é o seu?",
+  "titleEn": "Which anime archetype are you?",
+  "locale": "pt-BR",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Sábado à noite ideal?",
+      "textEn": "Ideal Saturday night?",
+      "options": [
+        { "id": "a", "label": "Filme calmo + cobertor", "labelEn": "Chill movie + blanket", "weights": { "soft": 2, "sage": 1 } },
+        { "id": "b", "label": "Competir em algo (jogo, esporte, ranking)", "labelEn": "Competing at something (game, sport, ranked)", "weights": { "rival": 2, "gamer": 1 } },
+        { "id": "c", "label": "Explorar a cidade sozinho de fone", "labelEn": "Exploring the city alone with headphones", "weights": { "cyber": 2, "gamer": 1 } },
+        { "id": "d", "label": "Rolê com muita gente e foto", "labelEn": "Going out with a crowd and lots of pics", "weights": { "idol": 2, "soft": 1 } }
+      ]
+    },
+    {
+      "id": "q2",
+      "text": "No grupo, você é o que?",
+      "textEn": "In the group, you are the one who…",
+      "options": [
+        { "id": "a", "label": "Quem consolinha e organiza o clima", "labelEn": "Comforts everyone and keeps the vibe", "weights": { "soft": 2, "sage": 1 } },
+        { "id": "b", "label": "Quem puxa desafio e zoa o ranking", "labelEn": "Starts challenges and trash-talks the ranking", "weights": { "rival": 2, "idol": 1 } },
+        { "id": "c", "label": "Quem observa e solta a frase certeira", "labelEn": "Watches quietly and drops the perfect line", "weights": { "cyber": 2, "sage": 1 } },
+        { "id": "d", "label": "Quem vira o centro da conversa", "labelEn": "Becomes the center of the conversation", "weights": { "idol": 2, "rival": 1 } }
+      ]
+    },
+    {
+      "id": "q3",
+      "text": "Conflito com alguém próximo:",
+      "textEn": "Conflict with someone close:",
+      "options": [
+        { "id": "a", "label": "Conversa baixo e tenta entender", "labelEn": "Talk it out calmly and try to understand", "weights": { "soft": 2, "sage": 2 } },
+        { "id": "b", "label": "Enfrenta de frente, sem enrolação", "labelEn": "Face it head-on, no beating around", "weights": { "rival": 2, "cyber": 1 } },
+        { "id": "c", "label": "Some um pouco e volta com a solução", "labelEn": "Disappear for a bit and come back with the fix", "weights": { "cyber": 2, "gamer": 1 } },
+        { "id": "d", "label": "Desarme com humor e carinho", "labelEn": "Disarm it with humor and affection", "weights": { "idol": 2, "soft": 1 } }
+      ]
+    },
+    {
+      "id": "q4",
+      "text": "Seu “power-up” é…",
+      "textEn": "Your power-up is…",
+      "options": [
+        { "id": "a", "label": "Empatia e paciência", "labelEn": "Empathy and patience", "weights": { "soft": 2, "sage": 1 } },
+        { "id": "b", "label": "Orgulho + treino duro", "labelEn": "Pride + hard training", "weights": { "rival": 2 } },
+        { "id": "c", "label": "Estratégia e timing", "labelEn": "Strategy and timing", "weights": { "cyber": 2, "gamer": 1 } },
+        { "id": "d", "label": "Carisma e presença", "labelEn": "Charisma and presence", "weights": { "idol": 2 } }
+      ]
+    },
+    {
+      "id": "q5",
+      "text": "Playlist mental padrão:",
+      "textEn": "Default mental playlist:",
+      "options": [
+        { "id": "a", "label": "OST suave / lo-fi", "labelEn": "Soft OST / lo-fi", "weights": { "soft": 2, "sage": 1 } },
+        { "id": "b", "label": "Abertura de shonen no talo", "labelEn": "Shonen opening at full volume", "weights": { "rival": 2, "idol": 1 } },
+        { "id": "c", "label": "Synthwave / electronic dark", "labelEn": "Synthwave / dark electronic", "weights": { "cyber": 2, "gamer": 1 } },
+        { "id": "d", "label": "Idol / pop animado", "labelEn": "Idol / upbeat pop", "weights": { "idol": 2, "soft": 1 } }
+      ]
+    },
+    {
+      "id": "q6",
+      "text": "Como você toma decisão difícil?",
+      "textEn": "How do you make hard decisions?",
+      "options": [
+        { "id": "a", "label": "Pesa o impacto nas pessoas", "labelEn": "Weigh the impact on people", "weights": { "soft": 2, "sage": 1 } },
+        { "id": "b", "label": "Escolhe o caminho que prova seu valor", "labelEn": "Pick the path that proves your worth", "weights": { "rival": 2 } },
+        { "id": "c", "label": "Calcula risco e sai silencioso", "labelEn": "Calculate the risk and move in silence", "weights": { "cyber": 2, "sage": 1 } },
+        { "id": "d", "label": "Pergunta pro chat / party e decide em grupo", "labelEn": "Ask the chat / party and decide together", "weights": { "gamer": 2, "idol": 1 } }
+      ]
+    },
+    {
+      "id": "q7",
+      "text": "Frase que mais parece com você:",
+      "textEn": "The line that sounds most like you:",
+      "options": [
+        { "id": "a", "label": "“Respira. A gente resolve.”", "labelEn": "“Breathe. We'll figure it out.”", "weights": { "sage": 2, "soft": 1 } },
+        { "id": "b", "label": "“Hmph. Não pense que eu me importo.”", "labelEn": "“Hmph. Don't think I care.”", "weights": { "rival": 2 } },
+        { "id": "c", "label": "“…Interessante.”", "labelEn": "“…Interesting.”", "weights": { "cyber": 2 } },
+        { "id": "d", "label": "“Bora! Eu puxo o mood.”", "labelEn": "“Let's go! I'll set the mood.”", "weights": { "idol": 2, "gamer": 1 } }
+      ]
+    },
+    {
+      "id": "q8",
+      "text": "No final do dia, o que te recarrega?",
+      "textEn": "At the end of the day, what recharges you?",
+      "options": [
+        { "id": "a", "label": "Conversa profunda com 1 pessoa", "labelEn": "A deep talk with one person", "weights": { "soft": 2, "sage": 1 } },
+        { "id": "b", "label": "Superar um recorde / meta", "labelEn": "Beating a record / hitting a goal", "weights": { "rival": 2, "gamer": 1 } },
+        { "id": "c", "label": "Silêncio + tela fraca / cidade de madrugada", "labelEn": "Silence + dim screen / the city at 3 a.m.", "weights": { "cyber": 2, "gamer": 1 } },
+        { "id": "d", "label": "Atenção, risada, feed engajado", "labelEn": "Attention, laughter, an engaged feed", "weights": { "idol": 2 } }
+      ]
+    }
+  ]
+}

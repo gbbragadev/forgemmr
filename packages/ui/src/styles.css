@@ -1,0 +1,135 @@
+/*
+  ARCANA — design system v2 (identidade vencedora, 11/jul/2026)
+  Retrô otaku Y2K/CRT: dark base + neon rosa/roxo + acentos ácidos (cyan/lime),
+  scanlines sutis, detalhes mono. Grid disciplinado por baixo do caos visual.
+
+  Tipografia (carregada via <link> no layout de cada app):
+    --af-display  Bebas Neue  — títulos/badges, condensed, SEM acentos
+    --af-font     Outfit      — corpo, acentos PT-BR perfeitos
+    --af-mono     IBM Plex Mono — timestamps, badges técnicos, REC
+*/
+
+:root {
+  /* paleta */
+  --af-bg: #0b0614;
+  --af-surface: #161022;
+  --af-surface-2: #1f1730;
+  --af-ink: #f5f0ff;
+  --af-muted: #a89bc0;
+  --af-primary: #ff4d9a;
+  --af-primary-2: #c44dff;
+  --af-cyan: #22d3ee;
+  --af-lime: #34d399;
+  --af-sakura: #ffb7d5;
+  --af-glow: rgba(255, 77, 154, 0.45);
+  --af-glow-cyan: rgba(34, 211, 238, 0.4);
+  --af-border: rgba(255, 255, 255, 0.08);
+  --af-scanline: rgba(255, 255, 255, 0.028);
+
+  /* tipografia */
+  --af-font: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --af-display: "Bebas Neue", "Outfit", system-ui, sans-serif;
+  --af-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+
+  /* escala tipográfica (mobile-first; h1 usa clamp no app) */
+  --af-text-h1: clamp(2.8rem, 10vw, 3.8rem);
+  --af-text-h2: clamp(1.9rem, 7vw, 2.6rem);
+  --af-text-h3: 1.35rem;
+  --af-text-lead: 1rem;
+  --af-text-body: 0.95rem;
+  --af-text-caption: 0.75rem;
+
+  /* espaçamento (escala 4px) e raios */
+  --af-s1: 4px;
+  --af-s2: 8px;
+  --af-s3: 12px;
+  --af-s4: 16px;
+  --af-s5: 24px;
+  --af-s6: 32px;
+  --af-s7: 48px;
+  --af-radius-sm: 5px;
+  --af-radius: 14px;
+  --af-radius-lg: 20px;
+
+  /* breakpoints (referência): phone 390 · tablet 768 · desktop 1024 */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--af-font);
+  background: radial-gradient(1200px 600px at 10% -10%, #3b1260 0%, transparent 50%),
+    radial-gradient(900px 500px at 100% 0%, #5a1040 0%, transparent 45%),
+    var(--af-bg);
+  color: var(--af-ink);
+  min-height: 100vh;
+}
+
+/* scanlines CRT globais — bem sutis, estáticas (não incomodam reduced-motion) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    var(--af-scanline) 2px 3px
+  );
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+/* ===== utilitários ARCANA ===== */
+
+/* badge técnico mono (timestamps, EP, REC) */
+.af-mono-badge {
+  font-family: var(--af-mono);
+  font-size: var(--af-text-caption);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* selo discreto "by @pagina" */
+.af-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--af-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--af-muted);
+  border: 1px solid var(--af-border);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+/* wordmark ARCANA (gradiente cyan→magenta) */
+.af-brandmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--af-display);
+  letter-spacing: 0.2em;
+  background: linear-gradient(90deg, var(--af-cyan), var(--af-primary-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* foco visível (a11y) */
+:focus-visible {
+  outline: 2px solid var(--af-cyan);
+  outline-offset: 2px;
+}

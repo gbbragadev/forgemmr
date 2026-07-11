@@ -1,0 +1,216 @@
+{
+  "version": "2.0",
+  "maestro": {
+    "id": "maestro",
+    "name": "Maestro",
+    "title": "Maestro da Anime Forge",
+    "tagline": "Eu conduzo o ensaio. Você decide a obra.",
+    "voice": "pt-BR, calmo, teatral, sem enrolação",
+    "avatar": "🎼",
+    "color": "#c44dff",
+    "role": "Orquestra coding agents. Não escreve código sozinho — despacha músicos (CLIs) com partitura fixa."
+  },
+  "policy": {
+    "coding": "subscription_cli_only",
+    "product_llm": "zai_glm",
+    "never": [
+      "API paga de coding como motor do agent",
+      "Pedir API key no chat",
+      "Auto-dispatch sem roster"
+    ]
+  },
+  "players": [
+    {
+      "id": "grok-solo",
+      "face": "⚡",
+      "name": "Grok Solo",
+      "cli": "grok",
+      "adapter": "grok",
+      "model": "default",
+      "effort": "high",
+      "jobs": ["E2E", "B1", "B2", "B4", "B5", "L1-any"],
+      "roles": ["backend", "frontend", "qa"],
+      "color": "#22d3ee",
+      "blurb": "Grok Build CLI headless — run completa solo (subscription xAI)."
+    },
+    {
+      "id": "claude-frontend",
+      "face": "🎨",
+      "name": "Claude Front",
+      "cli": "claude",
+      "adapter": "claude",
+      "model": "sonnet",
+      "effort": "high",
+      "jobs": ["B3", "L1-ui", "review-ui"],
+      "roles": ["frontend", "reviewer"],
+      "color": "#f59e0b",
+      "blurb": "UI polish, componentes, acessibilidade visual."
+    },
+    {
+      "id": "codex-backend",
+      "face": "⚙️",
+      "name": "Codex Engine",
+      "cli": "codex",
+      "adapter": "codex",
+      "model": "default",
+      "effort": "high",
+      "jobs": ["B1", "B4", "B5", "L1-api", "scaffold"],
+      "roles": ["backend", "devops"],
+      "color": "#38bdf8",
+      "blurb": "Scaffold, API, credits, build gates."
+    },
+    {
+      "id": "claude-qa",
+      "face": "🔎",
+      "name": "Claude QA",
+      "cli": "claude",
+      "adapter": "claude",
+      "model": "sonnet",
+      "effort": "medium",
+      "jobs": ["B5", "review", "ship-check"],
+      "roles": ["qa", "reviewer"],
+      "color": "#34d399",
+      "blurb": "Review, ship check, não expandir escopo."
+    },
+    {
+      "id": "gemini-copy",
+      "face": "✨",
+      "name": "Gemini Spark",
+      "cli": "gemini",
+      "adapter": "gemini",
+      "model": "default",
+      "effort": "medium",
+      "jobs": ["B2", "P0", "P1", "personas", "hooks"],
+      "roles": ["prompt-engineer", "analyst"],
+      "color": "#a78bfa",
+      "blurb": "Personas, hooks, scorecard. (CLI no PATH se instalada.)",
+      "optional": true
+    },
+    {
+      "id": "glm-front",
+      "face": "🖌️",
+      "name": "GLM Front",
+      "cli": "claude",
+      "env": "glm",
+      "adapter": "glm",
+      "model": "opus",
+      "effort": "max",
+      "jobs": ["B3", "L1-ui"],
+      "roles": ["frontend"],
+      "color": "#00b8a9",
+      "blurb": "GLM-5.2 headless (Claude Code + backend Z.ai) — UI polish B3 sem copiar prompt na mão."
+    },
+    {
+      "id": "claude-opus",
+      "face": "🧠",
+      "name": "Claude Opus",
+      "cli": "claude",
+      "adapter": "claude",
+      "model": "opus",
+      "effort": "high",
+      "jobs": ["B1", "B2", "B4", "B5", "P0", "P1", "L1-any"],
+      "roles": ["backend", "frontend", "architect"],
+      "color": "#f97316",
+      "blurb": "Executor de qualidade (Anthropic OAuth) para o preset quality."
+    },
+    {
+      "id": "codex-review",
+      "face": "🧐",
+      "name": "Codex Review",
+      "cli": "codex",
+      "adapter": "codex",
+      "model": "default",
+      "effort": "high",
+      "jobs": ["review"],
+      "roles": ["reviewer"],
+      "color": "#eab308",
+      "blurb": "GPT-5.5 revisando após jobs críticos (preset quality)."
+    },
+    {
+      "id": "fake-dry",
+      "face": "🎭",
+      "name": "Fake (dry-run)",
+      "cli": "fake",
+      "adapter": "fake",
+      "model": "default",
+      "effort": "low",
+      "jobs": ["*"],
+      "roles": ["test"],
+      "color": "#64748b",
+      "blurb": "Executor simulado para testar a pipeline sem gastar limite.",
+      "hidden": true
+    }
+  ],
+  "teams": {
+    "grok-solo": {
+      "label": "Só Grok",
+      "emoji": "⚡",
+      "dispatch": { "default": "grok-solo" },
+      "fallbacks": { "grok-solo": ["codex-backend", "claude-frontend"] }
+    },
+    "grok-glm-front": {
+      "label": "Grok + GLM no front",
+      "emoji": "🖌️",
+      "dispatch": { "L1/B3": "glm-front", "default": "grok-solo" },
+      "fallbacks": { "grok-solo": ["codex-backend"], "glm-front": ["claude-frontend"] }
+    },
+    "quality": {
+      "label": "Opus executa · Codex revisa · GLM front",
+      "emoji": "🧠",
+      "dispatch": { "L1/B3": "glm-front", "default": "claude-opus" },
+      "review": { "after": ["L1/B1", "L1/B4"], "player": "codex-review" },
+      "fallbacks": { "claude-opus": ["codex-backend", "grok-solo"], "glm-front": ["claude-frontend"] }
+    },
+    "dry-run": {
+      "label": "Dry-run (fake)",
+      "emoji": "🎭",
+      "dispatch": { "default": "fake-dry" },
+      "fallbacks": {}
+    }
+  },
+  "dispatch_map": {
+    "L0/P0": "gemini-copy",
+    "L0/P1": "gemini-copy",
+    "L1/B1": "codex-backend",
+    "L1/B2": "gemini-copy",
+    "L1/B3": "claude-frontend",
+    "L1/B4": "codex-backend",
+    "L1/B5": "claude-qa",
+    "E2E": "grok-solo",
+    "default": "grok-solo"
+  },
+  "presets": [
+    {
+      "id": "e2e-grok",
+      "label": "E2E teste · só Grok",
+      "emoji": "⚡",
+      "executor": "grok",
+      "playerId": "grok-solo",
+      "goal": "E2E TESTE MAESTRO (Grok solo) — execute do início ao fim:\n1) Crie o arquivo maestro/e2e-result.md com: data ISO, executor=grok, status=PASS ou FAIL, 3 bullets do que fez.\n2) Em workbench/HANDOFF.md, adicione seção ## E2E Maestro Grok com 2-3 linhas (resultado + próximo).\n3) Rode npm run build na raiz C:\\Dev\\anime-forge e registre o exit code no e2e-result.md.\n4) NÃO altere packages/, apps/waifu-chat/src, content/personas, .env.local.\n5) NÃO peça API keys. Sucesso = e2e-result.md existe + build documentado."
+    },
+    {
+      "id": "scaffold-app",
+      "label": "Scaffold app novo",
+      "emoji": "🧱",
+      "executor": "grok",
+      "playerId": "grok-solo",
+      "goal": "Siga docs/prompts/NOVO-APP.md. Crie app id=demo-spark name=DemoSpark one-liner='Chat anime demo da factory'. capability=chat. 4 personas OCs. NÃO mude waifu-chat além de copiar. npm run build deve passar. Atualize workbench/HANDOFF.md."
+    },
+    {
+      "id": "ship-check",
+      "label": "Ship check WaifuChat",
+      "emoji": "✅",
+      "executor": "grok",
+      "playerId": "grok-solo",
+      "goal": "Ship check WaifuChat: npm run build, confira que app.config usa provider zai e modelo glm flash. Documente PASS/FAIL em workbench/HANDOFF.md. Não refatore UI. Não leia/imprima secrets de .env.local."
+    },
+    {
+      "id": "personas-pack",
+      "label": "Pack personas +4",
+      "emoji": "🎭",
+      "executor": "grok",
+      "playerId": "grok-solo",
+      "goal": "Adicione 4 personas ORIGINAIS em content/personas/ (PT-BR). Wire no app.config do waifu-chat se necessário. npm run build. Não mexer em packages/ai."
+    }
+  ]
+}

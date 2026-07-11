@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- Post/capa de carrossel 1080×1350 — params: ?hook=&sub=&cta=&badge= -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0b0614;--ink:#f5f0ff;--muted:#a89bc0;--primary:#ff4d9a;--primary-2:#c44dff;--cyan:#22d3ee}
+  *{box-sizing:border-box;margin:0}
+  html,body{width:1080px;height:1350px;overflow:hidden}
+  body{
+    font-family:"Outfit",sans-serif;color:var(--ink);position:relative;
+    background:
+      radial-gradient(1400px 700px at 10% -10%, #3b1260 0%, transparent 55%),
+      radial-gradient(1100px 600px at 100% 0%, #5a1040 0%, transparent 50%),
+      var(--bg);
+    display:flex;flex-direction:column;justify-content:space-between;padding:72px 80px 64px;
+  }
+  body::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(to bottom,transparent 0 5px,rgba(255,255,255,.03) 5px 7px)}
+  .corner{position:absolute;width:44px;height:44px;border:5px solid var(--cyan);opacity:.9}
+  .tl{top:40px;left:40px;border-right:0;border-bottom:0}
+  .tr{top:40px;right:40px;border-left:0;border-bottom:0}
+  .bl{bottom:40px;left:40px;border-right:0;border-top:0}
+  .br{bottom:40px;right:40px;border-left:0;border-top:0}
+  .top{display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:16px;font-family:"Bebas Neue";font-size:44px;letter-spacing:.2em;
+    background:linear-gradient(90deg,var(--cyan),var(--primary-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand svg{width:30px;height:30px}
+  .rec{display:flex;align-items:center;gap:12px;font-family:"IBM Plex Mono";font-size:26px;letter-spacing:.1em;color:#ff5470}
+  .rec i{width:20px;height:20px;border-radius:50%;background:#ff5470;box-shadow:0 0 22px #ff5470}
+  .mid{margin:40px 0}
+  .badge{display:inline-block;font-family:"IBM Plex Mono";font-size:24px;letter-spacing:.16em;color:var(--cyan);
+    border:2px solid rgba(34,211,238,.5);border-radius:10px;padding:14px 28px;background:rgba(34,211,238,.09);margin-bottom:48px}
+  h1{font-family:"Bebas Neue";font-weight:400;font-size:150px;line-height:.95;letter-spacing:.01em;max-width:12ch;
+    background:linear-gradient(90deg,#fff,#ffb7d5 45%,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{margin-top:40px;font-size:40px;font-weight:500;line-height:1.4;color:var(--muted);max-width:24ch}
+  .bottom{display:flex;align-items:center;justify-content:space-between}
+  .cta{display:inline-flex;align-items:center;font-family:"Bebas Neue";font-size:52px;letter-spacing:.06em;color:#fff;
+    background:linear-gradient(90deg,var(--primary),var(--primary-2));border-radius:18px;padding:22px 44px 16px;
+    box-shadow:0 12px 50px rgba(255,77,154,.4)}
+  .seal{font-family:"IBM Plex Mono";font-size:24px;color:var(--muted);letter-spacing:.06em}
+</style>
+</head>
+<body>
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="top">
+    <span class="brand">
+      <svg viewBox="0 0 24 24"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#c44dff"/></linearGradient></defs>
+        <path d="M12 1 L23 12 L12 23 L1 12 Z" fill="url(#g)"/></svg>
+      ARCANA
+    </span>
+    <span class="rec"><i></i>REC</span>
+  </div>
+  <div class="mid">
+    <span class="badge" id="badge">EP. 01 · QUIZ DE ARQUÉTIPO</span>
+    <h1 id="hook">QUAL ARQUÉTIPO ANIME É O SEU?</h1>
+    <p class="sub" id="sub">8 cenas, respostas honestas — e um card pra printar no final.</p>
+  </div>
+  <div class="bottom">
+    <span class="cta" id="cta">LINK NA BIO ▸</span>
+    <span class="seal">by @otaku_sincero69</span>
+  </div>
+<script>
+  var q=new URLSearchParams(location.search);
+  ["hook","sub","cta","badge"].forEach(function(k){
+    if(q.get(k)) document.getElementById(k).textContent=q.get(k);
+  });
+</script>
+</body>
+</html>

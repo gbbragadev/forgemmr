@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Anime Forge — Como usar corretamente</title>
+  <style>
+    :root {
+      --bg: #0b0614;
+      --surface: #161022;
+      --surface2: #1f1730;
+      --ink: #f5f0ff;
+      --muted: #a89bc0;
+      --pink: #ff4d9a;
+      --purple: #c44dff;
+      --cyan: #38bdf8;
+      --green: #34d399;
+      --amber: #fbbf24;
+      --red: #fb7185;
+      --border: rgba(255,255,255,.08);
+      --glow: rgba(255,77,154,.35);
+      --font: "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background:
+        radial-gradient(900px 400px at 0% 0%, #3b126055, transparent 50%),
+        radial-gradient(700px 360px at 100% 10%, #5a104044, transparent 45%),
+        var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 28px 18px 72px; }
+    header {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 24px;
+      background: linear-gradient(145deg, #241834cc, #120c1ccc);
+      box-shadow: 0 0 40px var(--glow);
+      margin-bottom: 24px;
+    }
+    header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.55rem, 4vw, 2.15rem);
+      background: linear-gradient(90deg, #fff, #ffb7d5 45%, #c44dff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    header p { margin: 0; color: var(--muted); max-width: 62ch; }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .badge {
+      font-size: 12px; font-weight: 700;
+      padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .badge.ok { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.4); color: var(--green); }
+    .badge.no { background: rgba(251,113,133,.12); border-color: rgba(251,113,133,.45); color: var(--red); }
+    .badge.info { background: rgba(56,189,248,.1); border-color: rgba(56,189,248,.35); color: var(--cyan); }
+    .badge.warn { background: rgba(251,191,36,.1); border-color: rgba(251,191,36,.4); color: var(--amber); }
+
+    nav.toc {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 28px;
+    }
+    nav.toc a {
+      font-size: 12px; font-weight: 600;
+      padding: 8px 12px; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--muted); text-decoration: none;
+    }
+    nav.toc a:hover { color: var(--ink); border-color: var(--pink); }
+
+    h2 {
+      margin: 40px 0 14px;
+      font-size: 1.2rem;
+      display: flex; align-items: center; gap: 10px;
+      scroll-margin-top: 16px;
+    }
+    h2 .n {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      display: grid; place-items: center; font-size: 13px; font-weight: 800;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+    }
+    h3 { margin: 18px 0 10px; font-size: 1rem; color: #e9d5ff; }
+
+    .card {
+      background: rgba(22,16,34,.92);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 800px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    .yes { border-color: rgba(52,211,153,.35); background: linear-gradient(160deg, rgba(52,211,153,.08), transparent 55%), var(--surface); }
+    .no { border-color: rgba(251,113,133,.4); background: linear-gradient(160deg, rgba(251,113,133,.08), transparent 55%), var(--surface); }
+    .yes h3, .no h3 { margin-top: 0; }
+    .yes h3 { color: var(--green); }
+    .no h3 { color: var(--red); }
+
+    ul { margin: 8px 0 0; padding-left: 1.15rem; color: var(--muted); }
+    li { margin: 5px 0; }
+    li strong { color: var(--ink); }
+
+    .loop-box {
+      border-radius: 16px; border: 1px solid var(--border);
+      padding: 16px; margin: 8px 0;
+    }
+    .loop-box.l0 { border-color: rgba(255,77,154,.45); }
+    .loop-box.l1 { border-color: rgba(56,189,248,.45); }
+    .loop-box.l2 { border-color: rgba(251,191,36,.5); }
+    .loop-label {
+      font-size: 11px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; margin-bottom: 10px;
+    }
+    .l0 .loop-label { color: var(--pink); }
+    .l1 .loop-label { color: var(--cyan); }
+    .l2 .loop-label { color: var(--amber); }
+
+    .steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .step {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      min-width: 84px;
+      text-align: center;
+    }
+    .step small { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .arrow { color: var(--muted); font-weight: 700; }
+    .arrow-down { text-align: center; color: var(--muted); font-size: 20px; margin: 4px 0; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--surface2);
+      color: #e9d5ff;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    td { color: var(--muted); }
+    td strong { color: var(--ink); }
+
+    .callout {
+      border-left: 4px solid var(--pink);
+      background: rgba(255,77,154,.08);
+      padding: 14px 16px;
+      border-radius: 0 12px 12px 0;
+      margin: 14px 0;
+      color: var(--muted);
+    }
+    .callout strong { color: var(--ink); }
+    .callout.ok { border-left-color: var(--green); background: rgba(52,211,153,.08); }
+    .callout.warn { border-left-color: var(--amber); background: rgba(251,191,36,.08); }
+
+    pre.cmd {
+      background: #0a0610;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-size: 12.5px;
+      color: #e9d5ff;
+      margin: 10px 0 0;
+      white-space: pre-wrap;
+    }
+    code {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: .9em;
+      color: #fbcfe8;
+    }
+
+    .flow-day {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .flow-day .step {
+      text-align: left;
+      min-width: 0;
+    }
+
+    .num-path {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 12px;
+      margin: 12px 0;
+      align-items: start;
+    }
+    .num-path .dot {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      display: grid; place-items: center; font-weight: 800;
+    }
+    .num-path .body { padding-top: 2px; }
+    .num-path .body strong { display: block; margin-bottom: 4px; }
+
+    footer {
+      margin-top: 40px; padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+    }
+    a { color: #f9a8d4; }
+    .path { font-size: 12px; color: var(--muted); word-break: break-all; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Anime Forge — Como usar corretamente</h1>
+      <p>
+        Guia visual do monorepo de apps anime + IA.
+        Uma sessão = <strong style="color:#fff">uma iteração</strong>.
+        Coding agents = <strong style="color:#fff">subscription</strong>.
+        OpenRouter = <strong style="color:#fff">só produto</strong> (env do sistema).
+      </p>
+      <div class="badge-row">
+        <span class="badge ok">✓ Claude · Codex · Grok · Gemini (sub)</span>
+        <span class="badge info">Workbench = verdade multi-sub</span>
+        <span class="badge warn">Bernstein = L1 opcional</span>
+        <span class="badge no">✗ API paga de coding agent</span>
+      </div>
+      <p class="path">Repo: <code>C:\Dev\anime-forge</code> · este arquivo: <code>docs/GUIA-VISUAL.html</code></p>
+    </header>
+
+    <nav class="toc">
+      <a href="#outra-ideia">🔁 Outra ideia</a>
+      <a href="#novo-app">⭐ Novo app (1 prompt)</a>
+      <a href="#mapa">Mapa mental</a>
+      <a href="#sessao">Sessão correta</a>
+      <a href="#loops">Loops L0·L1·L2</a>
+      <a href="#subs">Qual sub usar</a>
+      <a href="#keys">Keys / env</a>
+      <a href="#bernstein">Bernstein / Maestro</a>
+      <a href="#app">Rodar o app</a>
+      <a href="#erros">Erros comuns</a>
+      <a href="#checklist">Checklist</a>
+    </nav>
+
+    <!-- OUTRA IDEIA -->
+    <h2 id="outra-ideia"><span class="n">↻</span> Como setar outra ideia</h2>
+    <div class="callout ok">
+      Quando o app atual <strong>terminou o build</strong> (ex. anime-quiz no Pages) e você quer a
+      <strong>próxima aposta</strong>: é um <strong>novo L0</strong>, não “continuar o quiz com outro tema”.
+      Canônico: <code>docs/PLAYBOOK.md</code> · prompt: <code>docs/prompts/L0-NOVA-IDEIA.md</code>
+    </div>
+    <div class="card">
+      <div class="num-path">
+        <div class="dot">1</div>
+        <div class="body">
+          <strong>Fecha o app anterior</strong>
+          <span style="color:var(--muted);font-size:14px">
+            Jobs de build → <strong>Done</strong> na QUEUE. Measure P4 (humano) pode ficar no Backlog à parte.
+            Claim limpo.
+          </span>
+        </div>
+      </div>
+      <div class="num-path">
+        <div class="dot">2</div>
+        <div class="body">
+          <strong>Enfileira P0 da ideia nova</strong>
+          <span style="color:var(--muted);font-size:14px">
+            <code>- [ ] **L0/P0** Scorecard: &lt;app-id&gt; — &lt;uma frase&gt;</code>
+          </span>
+        </div>
+      </div>
+      <div class="num-path">
+        <div class="dot">3</div>
+        <div class="body">
+          <strong>Atualiza HANDOFF</strong>
+          <span style="color:var(--muted);font-size:14px">
+            Loop ativo = ideia nova · Next = P0 → P1 → B1 (B1 só depois)
+          </span>
+        </div>
+      </div>
+      <div class="num-path">
+        <div class="dot">4</div>
+        <div class="body">
+          <strong>Roda scorecard (qualquer sub)</strong>
+          <span style="color:var(--muted);font-size:14px">
+            Cole <code>docs/prompts/L0-NOVA-IDEIA.md</code> ou <code>L0-P0-scorecard.md</code> + a ideia
+          </span>
+        </div>
+      </div>
+      <div class="num-path">
+        <div class="dot">5</div>
+        <div class="body">
+          <strong>Gate</strong>
+          <span style="color:var(--muted);font-size:14px">
+            NO-GO → para · GO → P1 hooks · só então B1 / <code>NOVO-APP.md</code>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--cyan)">Frase mágica (trocar de ideia)</h3>
+      <pre class="cmd">Repo: C:\Dev\anime-forge
+Leia AGENTS.md + workbench/HANDOFF.md + QUEUE.md + docs/PLAYBOOK.md (setar outra ideia).
+App anterior FECHADO em build (Done). Measure humano à parte se existir.
+Próximo: L0/P0 da ideia nova. Atualize HANDOFF + QUEUE.
+Não scaffold nesta rodada se só for scorecard.
+IDEIA NOVA: &lt;&lt;&lt; cole aqui &gt;&gt;&gt;</pre>
+    </div>
+
+    <!-- NOVO APP 1 PROMPT -->
+    <h2 id="novo-app"><span class="n">★</span> Novo app com 1 prompt</h2>
+    <div class="callout ok">
+      <strong>Fluxo oficial:</strong> abra <code>C:\Dev\anime-forge</code> no agent da <em>subscription</em>
+      → cole o prompt de <code>docs/prompts/NOVO-APP.md</code> (ou o bloco abaixo)
+      → preencha só os <code>&lt;&lt;&lt; &gt;&gt;&gt;</code>
+      → deixe o agent scaffoldar a partir de <code>apps/waifu-chat</code>.
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--pink)">Passo a passo (você)</h3>
+      <div class="num-path">
+        <div class="dot">1</div>
+        <div class="body">
+          <strong>Decida o app em 4 campos</strong>
+          <span style="color:var(--muted);font-size:14px">
+            <code>id</code> (slug) · <code>name</code> · one-liner PT-BR · capability = <code>chat</code> no v0
+          </span>
+        </div>
+      </div>
+      <div class="num-path">
+        <div class="dot">2</div>
+        <div class="body">
+          <strong>Abra o monorepo no agent</strong>
+          <span style="color:var(--muted);font-size:14px">
+            Codex (recomendado B1) · Claude · Grok · Gemini — com sub, não API paga de coding
+          </span>
+        </div>
+      </div>
+      <div class="num-path">
+        <div class="dot">3</div>
+        <div class="body">
+          <strong>Cole o prompt único</strong>
+          <span style="color:var(--muted);font-size:14px">
+            Arquivo: <code>docs/prompts/NOVO-APP.md</code> · preencha os campos entre <<< >>>
+          </span>
+        </div>
+      </div>
+      <div class="num-path">
+        <div class="dot">4</div>
+        <div class="body">
+          <strong>Confira Done when</strong>
+          <span style="color:var(--muted);font-size:14px">
+            pasta <code>apps/&lt;id&gt;</code> · <code>npm run build</code> · personas ≥ 4 · HANDOFF atualizado
+          </span>
+        </div>
+      </div>
+      <div class="num-path">
+        <div class="dot">5</div>
+        <div class="body">
+          <strong>Rode e valide</strong>
+          <span style="color:var(--muted);font-size:14px">
+            <code>npm run dev -w @anime-forge/&lt;id&gt;</code> · health se chat real · depois 2º prompt = content hooks
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--cyan)">O que o agent faz (por baixo)</h3>
+      <div class="steps">
+        <div class="step">Claim<small>QUEUE</small></div>
+        <span class="arrow">→</span>
+        <div class="step">Copia<small>waifu-chat</small></div>
+        <span class="arrow">→</span>
+        <div class="step">app.config<small>+ personas</small></div>
+        <span class="arrow">→</span>
+        <div class="step">build<small>npm</small></div>
+        <span class="arrow">→</span>
+        <div class="step">HANDOFF<small>fecha</small></div>
+      </div>
+      <p style="margin:12px 0 0;font-size:13px;color:var(--muted)">
+        Não implementa billing nem image no mesmo prompt. Isso é <strong style="color:var(--ink)">L1/B1 scaffold</strong> só.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--amber)">Prompt — copie e preencha</h3>
+      <pre class="cmd">Repo: C:\Dev\anime-forge
+Leia AGENTS.md + workbench/HANDOFF.md + workbench/QUEUE.md + docs/prompts/NOVO-APP.md.
+
+## Missão
+Criar um NOVO app da factory Anime Forge a partir de apps/waifu-chat.
+
+## Spec (preencher)
+- id: <<< slug, ex: anime-quiz >>>
+- name: <<< AnimeQuiz >>>
+- capability: chat
+- one-liner PT-BR: <<< o que faz em 1 frase >>>
+- freePerDay: 2
+- 4–6 personas ORIGINAIS (nome, tags, starter, system curto PT-BR)
+- SEO title + description PT-BR
+- 5 hooks em share.tiktokHookTemplates
+
+## Regras
+- Subscription only (não API paga de coding)
+- OPEN_ROUTER_API_KEY = ler env Windows (não pedir no chat)
+- YAGNI / surgical · NÃO mexer no waifu-chat além de copiar
+- NÃO billing Stripe · NÃO image gen neste prompt
+- Claim CLAIMS.md · UMA entrega
+
+## Passos
+1. Claim L1/B1
+2. Copiar apps/waifu-chat → apps/&lt;id&gt;
+3. package.json @anime-forge/&lt;id&gt;
+4. app.config.ts + personas (json em content/personas se preferir)
+5. Copy da landing
+6. npm run build (fix até 3× ou BLOCK no HANDOFF)
+7. HANDOFF + QUEUE Done + liberar claim
+8. Me diga o comando npm run dev -w @anime-forge/&lt;id&gt;
+
+Comece agora.</pre>
+    </div>
+
+    <div class="callout warn">
+      <strong>Antes do 1 prompt (opcional mas recomendado):</strong>
+      se a ideia for arriscada, rode 1 sessão só de scorecard
+      (<code>docs/prompts/L0-P0-scorecard.md</code>). Se <strong>NO-GO</strong>, não scaffolda.
+      Se já tem certeza, vá direto no NOVO-APP.
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table>
+        <tr>
+          <th>Depois do scaffold</th>
+          <th>Próximo 1-prompt</th>
+        </tr>
+        <tr>
+          <td>Content / viral</td>
+          <td><code>docs/prompts/L0-P1-content-hooks.md</code></td>
+        </tr>
+        <tr>
+          <td>Ship check</td>
+          <td><code>docs/prompts/L1-B5-ship-check.md</code></td>
+        </tr>
+        <tr>
+          <td>UI polish</td>
+          <td><code>docs/prompts/L1-B3-ui-polish.md</code></td>
+        </tr>
+        <tr>
+          <td>Código paralelo + progresso</td>
+          <td>Bernstein (<code>docs/BERNSTEIN-EXPLICADO.md</code>) — opcional</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Exemplo preenchido (referência)</h3>
+      <pre class="cmd">id: anime-quiz
+name: AnimeQuiz
+one-liner: Descubra qual personagem de anime você é em 1 minuto e compartilhe o card.
+capability: chat
+personas: 4 arquétipos (rival, soft, cyber, idol) — OCs, não IPs reais</pre>
+    </div>
+
+    <!-- 0 MAPA -->
+    <h2 id="mapa"><span class="n">0</span> Mapa mental (30 segundos)</h2>
+    <div class="card">
+      <pre class="cmd" style="margin:0">
+┌─────────────────────────────────────────────────────────────┐
+│  VOCÊ                                                       │
+│   │                                                         │
+│   ├─► L0 produto (ideia, content, kill)                     │
+│   │     tools: Grok / Gemini sub + workbench                │
+│   │                                                         │
+│   ├─► L1 código (scaffold, API, UI, build)                  │
+│   │     tools: Codex / Claude / (Bernstein opcional)        │
+│   │                                                         │
+│   └─► L2 limite estourou                                    │
+│         → HANDOFF.md → outra sub → MESMO job                │
+│                                                             │
+│  APP (usuário final)                                        │
+│   └─► OpenRouter via OPEN_ROUTER_API_KEY (Windows)          │
+│         chat de persona — NÃO é o coding agent              │
+└─────────────────────────────────────────────────────────────┘</pre>
+    </div>
+
+    <!-- 1 SESSAO -->
+    <h2 id="sessao"><span class="n">1</span> Toda sessão (protocolo fixo)</h2>
+    <div class="num-path">
+      <div class="dot">1</div>
+      <div class="body">
+        <strong>Abra o repo no agent da SUB</strong>
+        <span style="color:var(--muted);font-size:14px">Claude Code · Codex · Grok · Gemini app — nunca client só com API key paga de coding.</span>
+      </div>
+    </div>
+    <div class="num-path">
+      <div class="dot">2</div>
+      <div class="body">
+        <strong>Leia estado</strong>
+        <span style="color:var(--muted);font-size:14px"><code>AGENTS.md</code> → <code>workbench/HANDOFF.md</code> → <code>workbench/QUEUE.md</code></span>
+      </div>
+    </div>
+    <div class="num-path">
+      <div class="dot">3</div>
+      <div class="body">
+        <strong>Claim + 1 job</strong>
+        <span style="color:var(--muted);font-size:14px">Linha em <code>CLAIMS.md</code>. Uma iteração só (não “faz o monorepo inteiro”).</span>
+      </div>
+    </div>
+    <div class="num-path">
+      <div class="dot">4</div>
+      <div class="body">
+        <strong>Implement → verify</strong>
+        <span style="color:var(--muted);font-size:14px">Se tocou código: <code>npm run build</code>. Fail 3× → BLOCK no HANDOFF.</span>
+      </div>
+    </div>
+    <div class="num-path">
+      <div class="dot">5</div>
+      <div class="body">
+        <strong>Feche o loop</strong>
+        <span style="color:var(--muted);font-size:14px">QUEUE Doing→Done · HANDOFF atualizado · claim liberado.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--cyan)">Frase mágica (cola em qualquer sub)</h3>
+      <pre class="cmd">Repo: C:\Dev\anime-forge
+Leia AGENTS.md + workbench/HANDOFF.md + workbench/QUEUE.md.
+Claime em CLAIMS.md e rode UMA iteração do job livre (ou o estágio que eu indicar).
+Ao terminar: HANDOFF + QUEUE + liberar claim.
+Coding agent = só minha subscription. OPEN_ROUTER_API_KEY = ler env do sistema (não pedir no chat).</pre>
+    </div>
+
+    <!-- 2 LOOPS -->
+    <h2 id="loops"><span class="n">2</span> Os 3 loops</h2>
+    <div class="loop-box l0">
+      <div class="loop-label">L0 · Product — um app / uma ideia</div>
+      <div class="steps">
+        <div class="step">P0 Score<small>go / no-go</small></div>
+        <span class="arrow">→</span>
+        <div class="step">P1 Content<small>hooks Reels</small></div>
+        <span class="arrow">→</span>
+        <div class="step">P2 Build<small>entra L1</small></div>
+        <span class="arrow">→</span>
+        <div class="step">P3 Ship</div>
+        <span class="arrow">→</span>
+        <div class="step">P4 Measure</div>
+        <span class="arrow">→</span>
+        <div class="step">P5 Kill|Scale</div>
+      </div>
+    </div>
+    <div class="arrow-down">↓ dentro de P2</div>
+    <div class="loop-box l1">
+      <div class="loop-label">L1 · Build — claim → code → npm run build → handoff</div>
+      <div class="steps">
+        <div class="step">B1 Scaffold</div>
+        <span class="arrow">·</span>
+        <div class="step">B2 Personas</div>
+        <span class="arrow">·</span>
+        <div class="step">B3 UI</div>
+        <span class="arrow">·</span>
+        <div class="step">B4 API</div>
+        <span class="arrow">·</span>
+        <div class="step">B5 Ship check</div>
+      </div>
+    </div>
+    <div class="arrow-down">↓ rate limit da sub</div>
+    <div class="loop-box l2">
+      <div class="loop-label">L2 · Handoff — outro provedor, MESMO job</div>
+      <div class="steps">
+        <div class="step">Atualiza HANDOFF</div>
+        <span class="arrow">→</span>
+        <div class="step">Abre outra sub</div>
+        <span class="arrow">→</span>
+        <div class="step">Cola L2-handoff.md</div>
+        <span class="arrow">→</span>
+        <div class="step">Continua</div>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:13px">Prompts prontos: <code>docs/prompts/L0-*.md</code> · <code>L1-*.md</code> · <code>L2-handoff.md</code></p>
+
+    <!-- 3 SUBS -->
+    <h2 id="subs"><span class="n">3</span> Qual subscription para qual job</h2>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table>
+        <tr>
+          <th>Job</th>
+          <th>Loop</th>
+          <th>Sub preferida</th>
+          <th>Prompt</th>
+        </tr>
+        <tr>
+          <td><strong>P0 Scorecard</strong></td>
+          <td>L0</td>
+          <td>Grok ou Gemini</td>
+          <td><code>docs/prompts/L0-P0-scorecard.md</code></td>
+        </tr>
+        <tr>
+          <td><strong>P1 Content hooks</strong></td>
+          <td>L0</td>
+          <td>Grok ou Gemini</td>
+          <td><code>docs/prompts/L0-P1-content-hooks.md</code></td>
+        </tr>
+        <tr>
+          <td><strong>B1 Scaffold</strong></td>
+          <td>L1</td>
+          <td>Codex</td>
+          <td><code>docs/prompts/L1-B1-scaffold.md</code></td>
+        </tr>
+        <tr>
+          <td><strong>B2 Personas</strong></td>
+          <td>L1</td>
+          <td>Grok ou Gemini</td>
+          <td><code>docs/prompts/L1-B2-personas.md</code></td>
+        </tr>
+        <tr>
+          <td><strong>B3 UI polish</strong></td>
+          <td>L1</td>
+          <td>Claude (ou GLM se você delegar frontend)</td>
+          <td><code>docs/prompts/L1-B3-ui-polish.md</code></td>
+        </tr>
+        <tr>
+          <td><strong>B4 Wire API</strong></td>
+          <td>L1</td>
+          <td>Codex</td>
+          <td><code>docs/prompts/L1-B4-wire-api.md</code></td>
+        </tr>
+        <tr>
+          <td><strong>B5 Ship check</strong></td>
+          <td>L1</td>
+          <td>Qualquer sub</td>
+          <td><code>docs/prompts/L1-B5-ship-check.md</code></td>
+        </tr>
+        <tr>
+          <td><strong>L1 paralelo / progresso</strong></td>
+          <td>L1</td>
+          <td>Bernstein + CLIs logados</td>
+          <td><code>docs/BERNSTEIN-PILOT.md</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <strong>Rotina do dia (exemplo)</strong><br />
+      Manhã Grok/Gemini → P0/P1/B2 · Tarde Codex → B1/B4 · Se limitou → Claude B3 ou L2 handoff · Noite você → content + measure.
+    </div>
+
+    <!-- 4 KEYS -->
+    <h2 id="keys"><span class="n">4</span> Keys — o que ler, o que nunca pedir</h2>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table>
+        <tr>
+          <th>Key</th>
+          <th>Agent faz o quê?</th>
+          <th>Para quê</th>
+        </tr>
+        <tr>
+          <td><strong>OPEN_ROUTER_API_KEY</strong></td>
+          <td style="color:var(--green)"><strong>Lê da env do Windows — não pede no chat</strong></td>
+          <td>Chat do <em>app</em> (produto) — padrão smoke</td>
+        </tr>
+        <tr>
+          <td><strong>OPENROUTER_API_KEY</strong></td>
+          <td style="color:var(--green)">Lê se existir — não pede</td>
+          <td>Fallback <code>.env.local</code> do app</td>
+        </tr>
+        <tr>
+          <td><strong>ANTHROPIC / OPENAI / GEMINI_API_KEY</strong> pay-as-you-go</td>
+          <td style="color:var(--red)"><strong>Não</strong> (como motor do coding agent)</td>
+          <td>Use a <em>subscription</em> do CLI/app</td>
+        </tr>
+      </table>
+    </div>
+    <div class="callout ok">
+      Você seta <code>OPEN_ROUTER_API_KEY</code> <strong>uma vez</strong> no Windows.
+      O app resolve sozinho. Smoke: <code>GET /api/health</code>.
+      Se faltar: HANDOFF “setar no Windows” — <strong>sem colar o secret no chat</strong>.
+    </div>
+
+    <!-- 5 BERNSTEIN -->
+    <h2 id="bernstein"><span class="n">5</span> Bernstein — o que é de verdade</h2>
+    <div class="callout ok">
+      <strong>Bernstein não é um LLM.</strong>
+      É um <em>maestro em Python</em>: recebe um goal, parte em tarefas, dispara
+      <strong>Claude Code / Codex / Gemini CLI</strong> (suas subs) cada um em
+      <strong>git worktree</strong> isolado, mostra progresso, roda build/test e
+      só mergeia o que passou. Explicação longa: <code>docs/BERNSTEIN-EXPLICADO.md</code>
+    </div>
+
+    <div class="card">
+      <div class="loop-label" style="color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Pipeline interno</div>
+      <div class="steps">
+        <div class="step">1 Decompose<small>goal → tasks</small></div>
+        <span class="arrow">→</span>
+        <div class="step">2 Spawn<small>1 CLI / worktree</small></div>
+        <span class="arrow">→</span>
+        <div class="step">3 Verify<small>npm run build</small></div>
+        <span class="arrow">→</span>
+        <div class="step">4 Merge<small>só o que passou</small></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card yes">
+        <h3>É o maestro</h3>
+        <ul>
+          <li>Orquestra <strong>vários coding CLIs</strong></li>
+          <li>Progresso: <code>bernstein live</code> / dashboard</li>
+          <li>Audit log do que cada agent fez</li>
+          <li>Bom em L1 code-heavy (B1/B4)</li>
+        </ul>
+      </div>
+      <div class="card no">
+        <h3>Não é o kanban</h3>
+        <ul>
+          <li>Não substitui <code>QUEUE</code> / <code>HANDOFF</code></li>
+          <li>Não é Grok / L0 content</li>
+          <li>Não é OpenRouter do WaifuChat</li>
+          <li>Não é Langflow / CLI-Anything</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table>
+        <tr>
+          <th>Camada</th>
+          <th>Ferramenta</th>
+          <th>Papel</th>
+        </tr>
+        <tr>
+          <td><strong>Workbench</strong></td>
+          <td><code>QUEUE</code> · <code>HANDOFF</code> · <code>CLAIMS</code></td>
+          <td>Kanban + handoff entre <em>você</em> e várias subs (incl. Grok)</td>
+        </tr>
+        <tr>
+          <td><strong>Bernstein</strong></td>
+          <td><code>bernstein</code> + CLIs</td>
+          <td>Maestro que <em>dispara e monitora</em> coding agents em paralelo</td>
+        </tr>
+        <tr>
+          <td><strong>OpenRouter</strong></td>
+          <td><code>OPEN_ROUTER_API_KEY</code></td>
+          <td>Cérebro do <em>app</em> pro usuário final</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--cyan)">Como rodar (1ª vez com progresso)</h3>
+      <pre class="cmd">cd C:\Dev\anime-forge
+bernstein doctor              # claude/codex ok?
+
+# Terminal 1 — painel ao vivo
+bernstein live
+
+# Terminal 2 — executa o goal de bernstein.yaml
+bernstein
+# ou goal pontual:
+bernstein -g "goal curto e seguro — só docs, npm run build"</pre>
+      <div class="callout" style="margin-top:14px">
+        <strong>Maestro HQ (cara + sem digitar):</strong>
+        Duplo clique em <code>scripts\start-maestro.ps1</code> ou abra
+        <code>maestro/index.html</code>.
+        Roster de modelos em <code>maestro/roster.json</code>.
+        Doc: <code>docs/MAESTRO.md</code>
+      </div>
+      <p style="margin:12px 0 0;font-size:13px;color:var(--muted)">
+        Piloto: <code>docs/BERNSTEIN-PILOT.md</code> ·
+        Explicação: <code>docs/BERNSTEIN-EXPLICADO.md</code> ·
+        verdict: <strong style="color:var(--amber)">thin keep</strong>
+      </p>
+    </div>
+
+    <!-- 6 APP -->
+    <h2 id="app"><span class="n">6</span> Rodar o WaifuChat (produto)</h2>
+    <div class="card">
+      <pre class="cmd">cd C:\Dev\anime-forge
+npm install
+# OPEN_ROUTER_API_KEY já no Windows? → não precisa .env.local
+npm run dev
+# http://localhost:3000
+# http://localhost:3000/api/health   ← key configurada?
+
+npm run build   # VERIFY obrigatório após mudanças de código</pre>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <h3 style="margin-top:0;color:var(--pink)">AGENTS.md</h3>
+        <p style="margin:0;font-size:13px;color:var(--muted)">Contrato de todos os agents</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;color:var(--cyan)">workbench/</h3>
+        <p style="margin:0;font-size:13px;color:var(--muted)">QUEUE · HANDOFF · CLAIMS</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;color:var(--amber)">docs/prompts/</h3>
+        <p style="margin:0;font-size:13px;color:var(--muted)">1 arquivo = 1 iteração</p>
+      </div>
+    </div>
+
+    <!-- 7 ERROS -->
+    <h2 id="erros"><span class="n">7</span> Erros comuns</h2>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table>
+        <tr>
+          <th>Errado</th>
+          <th>Certo</th>
+        </tr>
+        <tr>
+          <td>Começar app novo sem scorecard</td>
+          <td>L0/P0 → go → só então L1</td>
+        </tr>
+        <tr>
+          <td>Uma sessão = 5 features</td>
+          <td>Uma sessão = 1 job da QUEUE</td>
+        </tr>
+        <tr>
+          <td>Pedir OPENROUTER key no chat</td>
+          <td>Ler <code>OPEN_ROUTER_API_KEY</code> do sistema</td>
+        </tr>
+        <tr>
+          <td>API Anthropic/OpenAI pro agent codar</td>
+          <td>Subscription Claude Code / Codex / etc.</td>
+        </tr>
+        <tr>
+          <td>Rate limit → recomeçar do zero</td>
+          <td>L2: HANDOFF → outra sub → mesmo job</td>
+        </tr>
+        <tr>
+          <td>Declarar pronto sem build</td>
+          <td><code>npm run build</code> + atualizar HANDOFF</td>
+        </tr>
+        <tr>
+          <td>Bernstein para tudo</td>
+          <td>Bernstein só L1 code; L0/Grok no workbench</td>
+        </tr>
+        <tr>
+          <td>Instalar Langflow/CLI-Anything/MALLM “pra ver progresso”</td>
+          <td>Progresso = workbench + opcional <code>bernstein live</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 8 CHECKLIST -->
+    <h2 id="checklist"><span class="n">8</span> Checklist antes de cada sessão</h2>
+    <div class="card">
+      <label style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:14px">
+        <input type="checkbox" style="margin-top:3px;accent-color:var(--pink)" /> App da <strong style="color:var(--ink)">subscription</strong> (não API paga de coding)
+      </label>
+      <label style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:14px">
+        <input type="checkbox" style="margin-top:3px;accent-color:var(--pink)" /> Li <code>HANDOFF.md</code> + <code>QUEUE.md</code>
+      </label>
+      <label style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:14px">
+        <input type="checkbox" style="margin-top:3px;accent-color:var(--pink)" /> Claim feito · <strong style="color:var(--ink)">1 job</strong> só
+      </label>
+      <label style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:14px">
+        <input type="checkbox" style="margin-top:3px;accent-color:var(--pink)" /> OpenRouter: agent lê env · <strong style="color:var(--ink)">não pede key</strong>
+      </label>
+      <label style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:14px">
+        <input type="checkbox" style="margin-top:3px;accent-color:var(--pink)" /> Código → <code>npm run build</code>
+      </label>
+      <label style="display:flex;gap:10px;padding:8px 0;color:var(--muted);font-size:14px">
+        <input type="checkbox" style="margin-top:3px;accent-color:var(--pink)" /> HANDOFF + QUEUE + claim limpos ao sair
+      </label>
+    </div>
+
+    <div class="callout ok">
+      <strong>Em uma frase:</strong>
+      Workbench orquestra humanos e subs; prompts fecham 1 job; OpenRouter roda o app via env;
+      Bernstein é opcional para ver progresso de L1 code — nunca misture carteira de coding com carteira de produto.
+    </div>
+
+    <footer>
+      Anime Forge · <code>docs/GUIA-VISUAL.html</code> ·
+      também: <code>AGENTS.md</code> · <code>docs/AGENT-PIPELINE.md</code> · <code>docs/BERNSTEIN-PILOT.md</code> · <code>docs/PLAYBOOK.md</code>
+    </footer>
+  </div>
+</body>
+</html>

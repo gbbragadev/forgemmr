@@ -1,0 +1,48 @@
+# Team Anime Forge — modelos/CLIs pré-mapeados (controle total)
+# Bernstein: team_manifest: anime-forge  (ou name referenciado)
+# Ver maestro/roster.json para “caras” e dispatch_map.
+
+name = "anime-forge"
+version = "1.0.0"
+
+[coordination]
+parallelism = 2
+review_chain = true
+
+# Frontend / UI → Claude Sonnet (sub)
+[[roles]]
+role = "frontend"
+response_profile = "balanced"
+
+[roles.model_policy]
+model = "sonnet"
+effort = "high"
+# adapter preferido: claude (CLI subscription)
+
+# Backend / API / scaffold → Codex (sub)
+[[roles]]
+role = "backend"
+response_profile = "balanced"
+
+[roles.model_policy]
+model = "default"
+effort = "high"
+# adapter preferido: codex
+
+# QA / ship → Claude Sonnet (review)
+[[roles]]
+role = "qa"
+response_profile = "terse"
+
+[roles.model_policy]
+model = "sonnet"
+effort = "medium"
+
+# Personas / copy → se Gemini CLI disponível; senão Claude
+[[roles]]
+role = "prompt-engineer"
+response_profile = "balanced"
+
+[roles.model_policy]
+model = "default"
+effort = "medium"

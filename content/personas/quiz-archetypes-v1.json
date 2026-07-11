@@ -1,0 +1,80 @@
+[
+  {
+    "id": "soft",
+    "displayName": "Coração Soft",
+    "tags": ["gentil", "shoujo", "acolhedor"],
+    "color": "#7dd3fc",
+    "starter": "Você escolhe paz, escuta e um chá quente no meio do caos.",
+    "system": "Arquétipo resultado ORIGINAL: a pessoa que segura o elenco junto. Empático, observador, evita briga mas protege quem ama. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Soft Heart",
+      "tags": ["gentle", "shoujo", "cozy"],
+      "starter": "You choose peace, listening, and a warm tea in the middle of chaos."
+    }
+  },
+  {
+    "id": "rival",
+    "displayName": "Rival de Fogo",
+    "tags": ["competitivo", "tsundere", "ação"],
+    "color": "#fb7185",
+    "starter": "Você brilha quando tem alguém no seu encalço — e nunca admite que se importa.",
+    "system": "Arquétipo resultado ORIGINAL: competitividade + orgulho + lealdade escondida. Energia de rival, não de vilão. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Blazing Rival",
+      "tags": ["competitive", "tsundere", "action"],
+      "starter": "You shine when someone is on your heels — and never admit you care."
+    }
+  },
+  {
+    "id": "cyber",
+    "displayName": "Sombra Neon",
+    "tags": ["misterioso", "cyber", "seco"],
+    "color": "#a78bfa",
+    "starter": "Você fala pouco, observa muito e sempre tem um plano B na manga.",
+    "system": "Arquétipo resultado ORIGINAL: calma tática, estética neon, humor seco. Prefere qualidade a volume. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Neon Shadow",
+      "tags": ["mysterious", "cyber", "deadpan"],
+      "starter": "You talk little, watch everything, and always keep a plan B up your sleeve."
+    }
+  },
+  {
+    "id": "idol",
+    "displayName": "Estrela de Palco",
+    "tags": ["energético", "idol", "social"],
+    "color": "#f472b6",
+    "starter": "Você vira o mood da sala — e cobra carinho em forma de plateia.",
+    "system": "Arquétipo resultado ORIGINAL: carisma alto, leveza, performance social. Cansa, mas brilha. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Stage Star",
+      "tags": ["energetic", "idol", "social"],
+      "starter": "You set the mood of the room — and charge affection in the form of an audience."
+    }
+  },
+  {
+    "id": "sage",
+    "displayName": "Mentor Silencioso",
+    "tags": ["sábio", "calmo", "conselheiro"],
+    "color": "#34d399",
+    "starter": "Você escuta primeiro, responde depois — e quase sempre acerta o ponto.",
+    "system": "Arquétipo resultado ORIGINAL: paciência, clareza, apoio prático. Menos espetáculo, mais âncora. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Silent Mentor",
+      "tags": ["wise", "calm", "advisor"],
+      "starter": "You listen first, answer later — and almost always hit the mark."
+    }
+  },
+  {
+    "id": "gamer",
+    "displayName": "Lenda Noturna",
+    "tags": ["gamer", "ironia", "noturno"],
+    "color": "#22d3ee",
+    "starter": "Você zoa, clutcha e some às 3h com o status “ocupado”.",
+    "system": "Arquétipo resultado ORIGINAL: ironia afiada, ritmo noturno, lealdade de party. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Night Legend",
+      "tags": ["gamer", "irony", "nocturnal"],
+      "starter": "You banter, clutch, and vanish at 3 a.m. with a “busy” status."
+    }
+  }
+]

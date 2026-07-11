@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- Capa de destaque 1080×1920 — o IG recorta um CÍRCULO do centro; tudo importante fica nele.
+     params: ?label=&icon= (icon: um caractere/emoji; default ◆) -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0}
+  html,body{width:1080px;height:1920px;overflow:hidden}
+  body{
+    position:relative;display:flex;align-items:center;justify-content:center;
+    background:
+      radial-gradient(900px 900px at 50% 50%, #241035 0%, #0b0614 70%),
+      #0b0614;
+  }
+  body::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(to bottom,transparent 0 5px,rgba(255,255,255,.03) 5px 7px)}
+  /* círculo seguro ~900px centrado */
+  .disc{
+    width:880px;height:880px;border-radius:50%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px;
+    border:3px solid rgba(34,211,238,.35);
+  }
+  .icon{
+    width:300px;height:300px;display:flex;align-items:center;justify-content:center;
+    font-size:190px;line-height:1;
+    background:linear-gradient(135deg,#22d3ee,#c44dff);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 60px rgba(196,77,255,.45));
+    font-family:"Bebas Neue";
+  }
+  .label{font-family:"IBM Plex Mono";font-size:52px;letter-spacing:.3em;color:#f5f0ff;text-transform:uppercase;padding-left:.3em}
+</style>
+</head>
+<body>
+  <div class="disc">
+    <div class="icon" id="icon">◆</div>
+    <div class="label" id="label">APPS</div>
+  </div>
+<script>
+  var q=new URLSearchParams(location.search);
+  if(q.get("icon")) document.getElementById("icon").textContent=q.get("icon");
+  if(q.get("label")) document.getElementById("label").textContent=q.get("label");
+</script>
+</body>
+</html>

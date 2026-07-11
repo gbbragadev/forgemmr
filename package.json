@@ -1,0 +1,25 @@
+{
+  "name": "anime-forge",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Factory de webapps nichados com IA (anime-first)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @anime-forge/waifu-chat",
+    "dev:quiz": "npm run dev -w @anime-forge/anime-quiz",
+    "build": "npm run build -w @anime-forge/waifu-chat",
+    "build:quiz": "npm run build -w @anime-forge/anime-quiz",
+    "build:all": "npm run build -w @anime-forge/waifu-chat ; npm run build -w @anime-forge/anime-quiz",
+    "lint": "npm run lint -w @anime-forge/waifu-chat",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "maestro": "node maestro/server.mjs",
+    "forge": "node maestro/forge.mjs",
+    "maestro:open": "powershell -ExecutionPolicy Bypass -File scripts/start-maestro.ps1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

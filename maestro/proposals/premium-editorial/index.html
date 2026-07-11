@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arco — Identidade Visual Premium Editorial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #d97706;
+      --primary-dark: #b45309;
+      --secondary: #7c3aed;
+      --accent: #ec4899;
+      --bg: #0a0408;
+      --surface: #1a1422;
+      --surface-2: #251d33;
+      --ink: #f8f6fc;
+      --muted: #a89bb8;
+      --border: rgba(255, 255, 255, 0.08);
+      --radius: 16px;
+      --display: "Playfair Display", serif;
+      --body: "Outfit", system-ui, sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: var(--body);
+      background: radial-gradient(1200px 600px at 10% -10%, #2a1145 0%, transparent 50%),
+                  radial-gradient(900px 500px at 100% 0%, #3a1a4a 0%, transparent 45%),
+                  var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      padding: 48px 32px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+    }
+
+    h1 {
+      font-family: var(--display);
+      font-size: 2.8rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--ink), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tagline {
+      color: var(--muted);
+      font-size: 1.1rem;
+      margin-bottom: 32px;
+    }
+
+    .brand-alts {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .brand-alts span {
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(217, 119, 6, 0.1);
+      border: 1px solid rgba(217, 119, 6, 0.3);
+    }
+
+    .badge-by {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+      background: rgba(217, 119, 6, 0.08);
+      color: var(--primary);
+    }
+
+    /* ===== MAIN CONTAINER ===== */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 32px 64px;
+    }
+
+    /* ===== SECTION: FOUNDATION ===== */
+    section {
+      margin-bottom: 64px;
+    }
+
+    section h2 {
+      font-family: var(--display);
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 32px;
+      letter-spacing: -0.01em;
+    }
+
+    /* Palette */
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+
+    .color-swatch {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .color-sample {
+      height: 120px;
+      width: 100%;
+    }
+
+    .color-info {
+      padding: 16px;
+      background: var(--surface);
+      text-align: center;
+    }
+
+    .color-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      color: var(--ink);
+    }
+
+    .color-hex {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    /* Typography */
+    .typography {
+      margin-bottom: 48px;
+    }
+
+    .typo-pair {
+      margin-bottom: 40px;
+      padding: 24px;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .typo-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .specimen-display {
+      font-family: var(--display);
+      font-size: 3rem;
+      font-weight: 600;
+      line-height: 1;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .specimen-body {
+      font-family: var(--body);
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .scale-table {
+      width: 100%;
+      margin-top: 24px;
+    }
+
+    .scale-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .scale-table td {
+      padding: 12px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .scale-table td:first-child {
+      width: 120px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .scale-label {
+      font-family: var(--display);
+      font-size: 1.2rem;
+      margin-right: 12px;
+    }
+
+    /* Spacing & Radius */
+    .foundation-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .foundation-box {
+      padding: 24px;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .foundation-box h4 {
+      font-family: var(--display);
+      font-size: 1.2rem;
+      margin-bottom: 16px;
+    }
+
+    .spacing-demo {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+
+    .spacing-block {
+      background: var(--primary);
+      border-radius: 4px;
+      opacity: 0.7;
+    }
+
+    .spacing-item {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    /* ===== SECTION: SCREENS ===== */
+    .screens-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .phone-frame {
+      position: relative;
+      width: 390px;
+      height: 844px;
+      margin: 0 auto;
+      background: var(--bg);
+      border-radius: 48px;
+      border: 8px solid #1a1422;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-notch {
+      width: 140px;
+      height: 24px;
+      background: #0a0408;
+      border-radius: 0 0 20px 20px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+
+    .phone-content {
+      flex: 1;
+      overflow: hidden;
+      padding-top: 44px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(1200px 600px at 10% -10%, #2a1145 0%, transparent 50%),
+                  radial-gradient(900px 500px at 100% 0%, #3a1a4a 0%, transparent 45%),
+                  var(--bg);
+      padding: 20px 16px;
+      overflow-y: auto;
+    }
+
+    /* Intro screen */
+    .screen.intro {
+      text-align: center;
+    }
+
+    .intro-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      padding: 5px 12px;
+      border: 1px solid rgba(217, 119, 6, 0.4);
+      border-radius: 4px;
+      background: rgba(217, 119, 6, 0.1);
+      color: var(--primary);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    .intro-badge::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .silhouette-container {
+      height: 140px;
+      margin: 12px 0 8px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .silhouette {
+      height: 100%;
+      width: auto;
+      filter: drop-shadow(0 0 16px rgba(217, 119, 6, 0.3));
+    }
+
+    .intro-title {
+      font-family: var(--display);
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin: 8px 0;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+    }
+
+    .intro-lead {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.4;
+      margin-bottom: 16px;
+    }
+
+    .archetypes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin: 16px 0 20px;
+    }
+
+    .archetype-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .archetype-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--display);
+      font-size: 14px;
+      color: #0a0408;
+      font-weight: 600;
+      box-shadow: 0 0 12px rgba(217, 119, 6, 0.4);
+    }
+
+    .archetype-name {
+      font-size: 7px;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1;
+    }
+
+    .btn-intro {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 0;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(217, 119, 6, 0.3);
+      transition: transform 140ms ease;
+      margin-bottom: 8px;
+    }
+
+    .btn-intro:hover {
+      transform: translateY(-2px);
+    }
+
+    .lang-toggle {
+      display: inline-flex;
+      gap: 6px;
+      font-size: 0.8rem;
+      margin-top: 10px;
+    }
+
+    .lang-toggle span {
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .lang-toggle span.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .intro-seal {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 12px;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+    }
+
+    /* Result screen */
+    .screen.result {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 20px;
+    }
+
+    .result-card {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      position: relative;
+      border-radius: 20px;
+      border: 1px solid var(--secondary);
+      background:
+        radial-gradient(600px 240px at 50% 0%, rgba(124, 58, 237, 0.25), transparent 70%),
+        var(--surface);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(124, 58, 237, 0.2);
+    }
+
+    .result-card::before {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .result-monogram {
+      position: relative;
+      z-index: 2;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--display);
+      font-size: 2.4rem;
+      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 0 0 3px var(--bg), 0 0 32px rgba(124, 58, 237, 0.5);
+      margin-bottom: 12px;
+    }
+
+    .result-label {
+      position: relative;
+      z-index: 2;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    .result-name {
+      position: relative;
+      z-index: 2;
+      font-family: var(--display);
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1.1;
+    }
+
+    .result-blurb {
+      position: relative;
+      z-index: 2;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .result-tags {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(124, 58, 237, 0.4);
+      color: var(--secondary);
+      background: rgba(124, 58, 237, 0.1);
+      font-weight: 500;
+    }
+
+    .result-watermark {
+      position: relative;
+      z-index: 2;
+      margin-top: auto;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      opacity: 0.8;
+    }
+
+    .result-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      margin-top: 16px;
+      font-size: 0.8rem;
+    }
+
+    .btn-result {
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(217, 119, 6, 0.1);
+      color: var(--primary);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 140ms ease;
+    }
+
+    .btn-result:hover {
+      background: rgba(217, 119, 6, 0.2);
+      border-color: var(--primary);
+    }
+
+    /* ===== SECTION: RATIONALE ===== */
+    .rationale {
+      margin-top: 64px;
+      padding: 40px;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .rationale h3 {
+      font-family: var(--display);
+      font-size: 1.5rem;
+      margin-bottom: 24px;
+    }
+
+    .rationale-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .rationale-item {
+      padding: 16px;
+      border-left: 3px solid var(--primary);
+      background: rgba(217, 119, 6, 0.05);
+      border-radius: 4px;
+    }
+
+    .rationale-item strong {
+      color: var(--primary);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .rationale-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1000px) {
+      .screens-container {
+        grid-template-columns: 1fr;
+      }
+
+      .phone-frame {
+        width: 100%;
+        max-width: 390px;
+      }
+
+      .foundation-grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      section h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #faf8f5;
+        --surface: #f0ebe5;
+        --surface-2: #e8dfd5;
+        --ink: #1a1410;
+        --muted: #7a6f63;
+        --border: rgba(0, 0, 0, 0.08);
+      }
+
+      body {
+        background: linear-gradient(135deg, #f5f0e6 0%, #faf8f5 100%);
+      }
+
+      .phone-frame {
+        border-color: #e8dfd5;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+      }
+
+      .specimen-body,
+      .rationale-item p {
+        color: var(--muted);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#d97706;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <!-- Arco (arc shape) -->
+        <circle cx="32" cy="32" r="28" fill="none" stroke="url(#logoGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="86 30" stroke-dashoffset="-5" />
+        <!-- Center dot -->
+        <circle cx="32" cy="32" r="3" fill="url(#logoGrad)" />
+      </svg>
+      <h1>Arco</h1>
+    </div>
+    <p class="tagline">Qual é seu arco?</p>
+    <div class="brand-alts">
+      <span>Recomendado: <strong>Arco</strong></span>
+      <span>Alternativas: Cena • Nexo</span>
+    </div>
+    <div class="badge-by">by @otaku_sincero69</div>
+  </header>
+
+  <main>
+    <!-- FUNDAÇÃO -->
+    <section>
+      <h2>Fundação Visual</h2>
+
+      <!-- Paleta -->
+      <div style="margin-bottom: 48px;">
+        <h3 style="font-family: var(--display); font-size: 1.3rem; margin-bottom: 20px;">Paleta de Cores</h3>
+        <div class="palette">
+          <div class="color-swatch">
+            <div class="color-sample" style="background: #d97706;"></div>
+            <div class="color-info">
+              <div class="color-name">Primary</div>
+              <div class="color-hex">#d97706</div>
+            </div>
+          </div>
+          <div class="color-swatch">
+            <div class="color-sample" style="background: #7c3aed;"></div>
+            <div class="color-info">
+              <div class="color-name">Secondary</div>
+              <div class="color-hex">#7c3aed</div>
+            </div>
+          </div>
+          <div class="color-swatch">
+            <div class="color-sample" style="background: #0a0408;"></div>
+            <div class="color-info">
+              <div class="color-name">Background</div>
+              <div class="color-hex">#0a0408</div>
+            </div>
+          </div>
+          <div class="color-swatch">
+            <div class="color-sample" style="background: #1a1422;"></div>
+            <div class="color-info">
+              <div class="color-name">Surface</div>
+              <div class="color-hex">#1a1422</div>
+            </div>
+          </div>
+          <div class="color-swatch">
+            <div class="color-sample" style="background: #f8f6fc;"></div>
+            <div class="color-info">
+              <div class="color-name">Text</div>
+              <div class="color-hex">#f8f6fc</div>
+            </div>
+          </div>
+          <div class="color-swatch">
+            <div class="color-sample" style="background: #a89bb8;"></div>
+            <div class="color-info">
+              <div class="color-name">Muted</div>
+              <div class="color-hex">#a89bb8</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tipografia -->
+      <div class="typography">
+        <h3 style="font-family: var(--display); font-size: 1.3rem; margin-bottom: 20px;">Tipografia</h3>
+
+        <div class="typo-pair">
+          <span class="typo-label">Display — Playfair Display (serifada editorial)</span>
+          <div class="specimen-display">Descobrir</div>
+          <table class="scale-table">
+            <tr>
+              <td><span class="scale-label">H1</span></td>
+              <td>Playfair Display • 2.8rem • 600</td>
+            </tr>
+            <tr>
+              <td><span class="scale-label">H2</span></td>
+              <td>Playfair Display • 2rem • 600</td>
+            </tr>
+            <tr>
+              <td><span class="scale-label">H3</span></td>
+              <td>Playfair Display • 1.6rem • 600</td>
+            </tr>
+            <tr>
+              <td><span class="scale-label">Kicker</span></td>
+              <td>12px • uppercase • +0.1em spacing</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="typo-pair">
+          <span class="typo-label">Body — Outfit (sans-serif legível, acentos PT-BR)</span>
+          <div class="specimen-body">
+            O arquétipo resume quem você é quando o anime te convida a dançar. Respostas honestas, resultado na hora.
+          </div>
+          <table class="scale-table">
+            <tr>
+              <td><span class="scale-label">Lead</span></td>
+              <td>Outfit • 1rem • 400 • 1.6 line-height</td>
+            </tr>
+            <tr>
+              <td><span class="scale-label">Body</span></td>
+              <td>Outfit • 0.95rem • 400 • 1.6 line-height</td>
+            </tr>
+            <tr>
+              <td><span class="scale-label">Caption</span></td>
+              <td>Outfit • 0.85rem • 400 • +0.05em spacing</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Spacing & Radius -->
+      <div class="foundation-grid">
+        <div class="foundation-box">
+          <h4>Spacing</h4>
+          <div class="spacing-demo">
+            <div class="spacing-item">
+              <div class="spacing-block" style="width: 20px; height: 60px;"></div>
+              <span>4px</span>
+            </div>
+            <div class="spacing-item">
+              <div class="spacing-block" style="width: 20px; height: 100px;"></div>
+              <span>8px</span>
+            </div>
+            <div class="spacing-item">
+              <div class="spacing-block" style="width: 20px; height: 140px;"></div>
+              <span>12px</span>
+            </div>
+            <div class="spacing-item">
+              <div class="spacing-block" style="width: 20px; height: 180px;"></div>
+              <span>16px</span>
+            </div>
+          </div>
+          <p style="color: var(--muted); font-size: 0.9rem; margin: 16px 0 0;">Escala harmônica 4px. Margens/gaps seguem múltiplos: 16px, 20px, 24px, 32px, 48px, 64px.</p>
+        </div>
+
+        <div class="foundation-box">
+          <h4>Border Radius</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 4px;"></div>
+            <span style="display: flex; align-items: center; color: var(--muted); font-size: 0.9rem;">Inputs/badges: 4px</span>
+            <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 12px;"></div>
+            <span style="display: flex; align-items: center; color: var(--muted); font-size: 0.9rem;">Buttons: 12px</span>
+            <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 20px;"></div>
+            <span style="display: flex; align-items: center; color: var(--muted); font-size: 0.9rem;">Chips: 20px</span>
+          </div>
+          <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">Cards/panels: 16px–20px. Sem cantos perfeitamente quadrados.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TELAS -->
+    <section>
+      <h2>Telas Exemplares</h2>
+      <div class="screens-container">
+        <!-- INTRO -->
+        <div>
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-content">
+              <div class="screen intro">
+                <div class="intro-badge">
+                  EP. 01 · QUIZ DE ARQUÉTIPO
+                </div>
+
+                <div class="silhouette-container">
+                  <svg class="silhouette" viewBox="0 0 140 180">
+                    <defs>
+                      <linearGradient id="sil" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#d97706" />
+                        <stop offset="0.5" stop-color="#ec4899" />
+                        <stop offset="1" stop-color="#7c3aed" />
+                      </linearGradient>
+                    </defs>
+                    <g fill="url(#sil)">
+                      <ellipse cx="70" cy="50" rx="30" ry="33" />
+                      <path d="M40 54 L46 30 L52 49 L58 24 L64 47 L70 18 L76 47 L82 24 L88 49 L94 30 L100 54 C100 66 90 72 70 72 C50 72 40 66 40 54 Z" />
+                      <path d="M52 76 L88 76 L88 88 C104 92 116 108 118 130 L124 180 L16 180 L22 130 C24 108 36 92 52 88 Z" />
+                    </g>
+                  </svg>
+                </div>
+
+                <div class="intro-title">Qual seu arco?</div>
+                <p class="intro-lead">
+                  Respostas honestas, resultado na hora. No fim sai um card pra printar e compartilhar.
+                </p>
+
+                <div class="archetypes-grid">
+                  <div class="archetype-chip">
+                    <div class="archetype-dot" style="background: #7dd3fc;">S</div>
+                    <div class="archetype-name">Soft</div>
+                  </div>
+                  <div class="archetype-chip">
+                    <div class="archetype-dot" style="background: #fb7185;">R</div>
+                    <div class="archetype-name">Rival</div>
+                  </div>
+                  <div class="archetype-chip">
+                    <div class="archetype-dot" style="background: #a78bfa;">C</div>
+                    <div class="archetype-name">Cyber</div>
+                  </div>
+                  <div class="archetype-chip">
+                    <div class="archetype-dot" style="background: #f472b6;">I</div>
+                    <div class="archetype-name">Idol</div>
+                  </div>
+                  <div class="archetype-chip">
+                    <div class="archetype-dot" style="background: #34d399;">M</div>
+                    <div class="archetype-name">Mentor</div>
+                  </div>
+                  <div class="archetype-chip">
+                    <div class="archetype-dot" style="background: #22d3ee;">L</div>
+                    <div class="archetype-name">Lenda</div>
+                  </div>
+                </div>
+
+                <button class="btn-intro">Começar o arco</button>
+
+                <div class="lang-toggle">
+                  <span class="active">PT</span>
+                  <span>EN</span>
+                </div>
+
+                <div class="intro-seal">by @otaku_sincero69</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESULTADO -->
+        <div>
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-content">
+              <div class="screen result">
+                <div class="result-card">
+                  <div class="result-monogram">M</div>
+                  <div class="result-label">Seu arquétipo</div>
+                  <h3 class="result-name">Mentor Silencioso</h3>
+                  <p class="result-blurb">Você escuta primeiro, responde depois — e quase sempre acerta o ponto.</p>
+                  <div class="result-tags">
+                    <span class="tag">sábio</span>
+                    <span class="tag">calmo</span>
+                    <span class="tag">conselheiro</span>
+                  </div>
+                  <p class="result-watermark">ARCO · ARQUÉTIPOS ORIGINAIS</p>
+                </div>
+
+                <div class="result-actions">
+                  <button class="btn-result">⬆ Compartilhar card</button>
+                  <button class="btn-result">Refazer o arco</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RACIONAL -->
+    <div class="rationale">
+      <h3>Por que essa direção converte</h3>
+      <div class="rationale-list">
+        <div class="rationale-item">
+          <strong>Sofisticação ganha confiança</strong>
+          <p>Amber editorial + roxo complementar (vs. neon duplo rosa/roxo) lê como produto premium, não genérico. A audiência @otaku_sincero69 (29k, dark meme BR otaku) consome conteúdo sofisticado — memes editados, referências profundas. Apps que parecem "sérios" e bem feitos convertam melhor.</p>
+        </div>
+        <div class="rationale-item">
+          <strong>Tipografia serifada = anime respeitado</strong>
+          <p>Playfair Display (serifada editorial, estilo A24) diz "este é um projeto de amor", não "fiz em template". A comunidade anime BR valoriza autoria e cuidado estético. Outfit em corpo garante legibilidade perfeita com acentos PT-BR — zero compromisso.</p>
+        </div>
+        <div class="rationale-item">
+          <strong>Branding claro + selo discreto</strong>
+          <p>Marca-mãe "Arco" (único, domínio-amigável) + selo "by @otaku_sincero69" reconstrói autoridade da página em cada app. Cada persona é resultado original — o design sinaliza cuidado, não copya. Hashtags #anime #quiz funcionam porque a estética é coherente e profissional.</p>
+        </div>
+        <div class="rationale-item">
+          <strong>Hierarquia limpa = compartilhamento viral</strong>
+          <p>Result card 9:16 (vertical, mobile-first) + monograma + tags + copy curto = pronto pra screenshot + Stories/TikTok. Cada elemento respira (espaçamento generoso), cores não competem. Gente compartilha porque o card é bonito de ver — não apesar, além de funcional.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Dark mode toggle demo (opcional)
+    document.querySelectorAll('.lang-toggle span').forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.lang-toggle span').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
