@@ -15,6 +15,7 @@ import path from "node:path";
 import { spawn, execFileSync, execSync } from "node:child_process";
 import { buildSpawn, createStreamSanitizer, detectRateLimit, makeRedactor } from "./adapters.mjs";
 import * as workbench from "./workbench.mjs";
+import { loadBlueprint, interpolate } from "./blueprint-loader.mjs";
 
 // porta do Maestro HQ (server.mjs) — usada nos prompts de gate visual (preview)
 const HQ_PORT = Number(process.env.MAESTRO_PORT || 8799);
@@ -32,7 +33,7 @@ const JOB_TEMPLATES = {
   ITERATE: "FEEDBACK-ITERATE.md",
 };
 
-const JOBS_BY_CAPABILITY = {
+export const JOBS_BY_CAPABILITY = {
   static: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
   quiz: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
   chat: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "P3"],
@@ -77,6 +78,37 @@ const GATES_AFTER = {
     choices: ["go", "retry", "kill"],
   }),
 };
+
+/**
+ * Resolve a lista de jobs + jobSpecs para uma pipeline. generic = defaults
+ * internos (jobSpecs null → engine usa JOB_TEMPLATES/GATES_AFTER/switch).
+ * Externo = jobs/jobSpecs do blueprint, com verify.path/gate interpolados p/ o appId.
+ */
+export function resolvePlan({ root, blueprint, capability, appId }) {
+  const bp = loadBlueprint(blueprint, { root });
+  if (!bp.external) {
+    if (!JOBS_BY_CAPABILITY[capability]) throw new Error(`capability "${capability}" inválida (static|quiz|chat)`);
+    return { blueprint: "generic", jobs: JOBS_BY_CAPABILITY[capability], jobSpecs: null };
+  }
+  // interpola paths dependentes do appId/slug uma vez, na resolução
+  const ctx = { appId, slug: appId, port: HQ_PORT };
+  const jobSpecs = {};
+  for (const [job, spec] of Object.entries(bp.jobSpecs)) {
+    jobSpecs[job] = {
+      ...spec,
+      inputs: (spec.inputs || []).map((i) => interpolate(i, ctx)),
+      verify: { ...spec.verify, path: interpolate(spec.verify.path, ctx) },
+      gate: spec.gate
+        ? {
+            ...spec.gate,
+            prompt: interpolate(spec.gate.prompt, ctx),
+            payload: interpolate(spec.gate.payload, ctx),
+          }
+        : null,
+    };
+  }
+  return { blueprint: bp.name, jobs: bp.jobs.slice(), jobSpecs };
+}
 
 const MAX_ATTEMPTS_PER_PLAYER = 3;
 const COOLDOWN_MS = 60 * 60 * 1000;
@@ -323,7 +355,8 @@ export function createEngine({ root, emitLog, emitPipeline }) {
 
   function buildPrompt(job, player, attempt, extraFeedback) {
     const p = pipeline;
-    const template = JOB_TEMPLATES[job];
+    const spec = p.jobSpecs && p.jobSpecs[job];
+    const template = spec ? spec.templateRef : JOB_TEMPLATES[job];
     const lines = [
       `Job: ${job}`,
       `App: ${p.appId}`,
@@ -334,7 +367,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       `Você é o executor "${player.name}" do job ${job} na pipeline autônoma Forge (Maestro / ${profile.name}).`,
       `Projeto (nicho): ${profile.niche}. Namespace: ${profile.namespace}.`,
       template
-        ? `Siga EXATAMENTE o template docs/prompts/${template} — preencha os campos <<< >>> com: App id=${p.appId}, Capability=${p.capability}, IDEIA=${p.idea}.`
+        ? `Siga EXATAMENTE o template ${spec ? template : `docs/prompts/${template}`} — preencha os campos <<< >>> com: App id=${p.appId}, IDEIA=${p.idea}.`
         : "",
       job === "L1/B3"
         ? `Você é um coding agent com acesso aos arquivos: aplique você mesmo o brief denso de docs/prompts/L1-B3-TEMPLATE.md (não gere prompt para terceiros — VOCÊ é quem implementa a UI).`
@@ -402,6 +435,15 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       );
     }
     if (extraFeedback) lines.push("", `Feedback do usuário (gate): ${extraFeedback}`);
+    // inputs declarados pelo jobSpec (artefatos anteriores desta campanha)
+    if (spec && spec.inputs) {
+      for (const rel of spec.inputs) {
+        const f = path.join(root, rel);
+        if (fs.existsSync(f)) {
+          lines.push("", "---", `CONTEXTO (${rel} — fonte da verdade, siga à risca):`, fs.readFileSync(f, "utf8"));
+        }
+      }
+    }
     return lines.filter((l) => l !== "").join("\n");
   }
 
@@ -430,6 +472,18 @@ export function createEngine({ root, emitLog, emitPipeline }) {
 
   function verify(job) {
     const p = pipeline;
+    // caminho declarativo (blueprints externos): verify por arquivo + seções
+    const spec = p.jobSpecs && p.jobSpecs[job];
+    if (spec && spec.verify && spec.verify.type === "file") {
+      const f = path.join(root, spec.verify.path);
+      if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${spec.verify.path}` };
+      if (spec.verify.sections && spec.verify.sections.length) {
+        const txt = fs.readFileSync(f, "utf8");
+        const missing = spec.verify.sections.filter((s) => !new RegExp(`##\\s*${s}`, "i").test(txt));
+        if (missing.length) return { pass: false, detail: `seções faltando: ${missing.join(", ")}` };
+      }
+      return { pass: true, detail: `${spec.verify.path} ok` };
+    }
     if (job === "L0/P0") {
       const f = path.join(root, "docs", `scorecard-${p.appId}.md`);
       if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${path.relative(root, f)}` };
@@ -727,9 +781,11 @@ export function createEngine({ root, emitLog, emitPipeline }) {
           if (job !== "P3") checkpoint(job); // P3 já terminou em master via merge — sem commit extra
           pipeline.jobIndex++;
           pipeline.currentJob = pipeline.jobs[pipeline.jobIndex] || null;
+          const specGate = pipeline.jobSpecs && pipeline.jobSpecs[job] && pipeline.jobSpecs[job].gate;
           const gateFactory = GATES_AFTER[job];
-          if (gateFactory) {
-            const gate = { ...gateFactory(pipeline), afterJob: job, createdAt: new Date().toISOString(), decision: null };
+          const base = specGate ? { ...specGate } : gateFactory ? gateFactory(pipeline) : null;
+          if (base) {
+            const gate = { ...base, afterJob: job, createdAt: new Date().toISOString(), decision: null };
             pipeline.gates.push(gate);
             pipeline.status = "paused_gate";
             log(`⏸ GATE ${gate.id}: ${gate.prompt}`);
@@ -833,9 +889,11 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     }
     const dryRun = !!params.dryRun || team === "dry-run";
     const capability = params.capability || "static";
-    if (!JOBS_BY_CAPABILITY[capability]) throw new Error(`capability "${capability}" inválida (static|quiz|chat)`);
-    const appId = slugify(params.appId || idea);
-    if (!appId) throw new Error("não consegui derivar app-id da ideia — passe --app-id");
+    const blueprint = params.blueprint || "generic";
+    const appId = slugify(params.appId || params.slug || idea);
+    if (!appId) throw new Error("não consegui derivar app-id — passe --app-id ou --slug");
+
+    const plan = resolvePlan({ root, blueprint, capability, appId });
 
     ensureCleanTree();
     const baseRef = git(["rev-parse", "HEAD"]);
@@ -844,9 +902,9 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     if (existing) throw new Error(`branch ${branch} já existe — apague ou use outro --app-id`);
     git(["checkout", "-b", branch]);
 
-    // DS gerado por projeto: pula DS-GEN se este app já tem design system (re-run do mesmo app)
-    let jobs = JOBS_BY_CAPABILITY[capability];
-    if (fs.existsSync(path.join(root, "docs", `design-system-${appId}.md`))) {
+    // DS gerado por projeto: pula DS-GEN se este app já tem design system (só generic)
+    let jobs = plan.jobs;
+    if (plan.jobSpecs === null && fs.existsSync(path.join(root, "docs", `design-system-${appId}.md`))) {
       jobs = jobs.filter((j) => j !== "DS-GEN");
       log(`· DS-GEN pulado — docs/design-system-${appId}.md já existe`);
     }
@@ -863,6 +921,10 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       jobs,
       jobIndex: 0,
       currentJob: null,
+      blueprint,
+      slug: appId,
+      projectDir: plan.jobSpecs ? path.join(root, ".forge", "projects", appId) : null,
+      jobSpecs: plan.jobSpecs,
       git: { branch, baseRef, checkpoints: [], lastCheckpoint: baseRef },
       gates: [],
       history: [],
