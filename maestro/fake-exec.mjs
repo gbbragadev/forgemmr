@@ -30,7 +30,15 @@ if (job === "L0/P0") {
   const p = path.join(ROOT, "docs", `scorecard-${appId}.md`);
   fs.writeFileSync(
     p,
-    `# Scorecard — ${appId} (dry-run)\n\n**GO**\n\n| critério | nota |\n|---|---|\n| hook shareable | 4 |\n| custo API | 5 |\n| fit anime | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
+    `# Scorecard — ${appId} (dry-run)\n\n**GO**\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
+    "utf8"
+  );
+  console.log(`✓ escreveu ${path.relative(ROOT, p)}`);
+} else if (job === "FOUNDATION") {
+  const p = path.join(ROOT, "docs", `system-design-${appId}.md`);
+  fs.writeFileSync(
+    p,
+    `# System Design — ${appId} (dry-run)\n\n## Arquitetura\nFrontend estático → estado local → sem backend (dry-run).\n\n## Dados\nlocalStorage; entidades mínimas.\n\n## Decisões\n(A) localStorage (B) DB — escolho A porque v0 single-device.\n\n## Design patterns\nComponentes puros + hook de estado.\n\n## Riscos\nEscopo v0; sem conta/backend.\n`,
     "utf8"
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);

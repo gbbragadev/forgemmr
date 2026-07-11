@@ -18,6 +18,7 @@ import * as workbench from "./workbench.mjs";
 
 const JOB_TEMPLATES = {
   "L0/P0": "L0-P0-scorecard.md",
+  FOUNDATION: "FOUNDATION.md",
   "L0/P1": "L0-P1-content-hooks.md",
   "L1/B1": "L1-B1-scaffold.md",
   "L1/B2": "L1-B2-personas.md",
@@ -28,9 +29,9 @@ const JOB_TEMPLATES = {
 };
 
 const JOBS_BY_CAPABILITY = {
-  static: ["L0/P0", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
-  quiz: ["L0/P0", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
-  chat: ["L0/P0", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "P3"],
+  static: ["L0/P0", "FOUNDATION", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
+  quiz: ["L0/P0", "FOUNDATION", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
+  chat: ["L0/P0", "FOUNDATION", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "P3"],
 };
 
 // gate criado DEPOIS do job passar; pipeline pausa até forge decide
@@ -40,6 +41,12 @@ const GATES_AFTER = {
     prompt: `Scorecard pronto (docs/scorecard-${p.appId}.md). GO ou KILL?`,
     payload: `docs/scorecard-${p.appId}.md`,
     choices: ["go", "kill"],
+  }),
+  FOUNDATION: (p) => ({
+    id: "foundation-review",
+    prompt: `System design pronto (docs/system-design-${p.appId}.md) — é o contrato de arquitetura que os builds vão seguir. Aprova, refaz ou mata?`,
+    payload: `docs/system-design-${p.appId}.md`,
+    choices: ["go", "retry", "kill"],
   }),
   "L1/B3": (p) => ({
     id: "b3-visual",
@@ -229,9 +236,9 @@ export function createEngine({ root, emitLog, emitPipeline }) {
         profile.narrative
       );
     }
-    // Ground-truth da fase FOUNDATION (Fase C grava este arquivo): jobs L1 seguem o design aprovado.
+    // Ground-truth da FOUNDATION: todo job DEPOIS dela (P1 + builds) segue o design aprovado.
     const sysDesign = path.join(root, "docs", `system-design-${p.appId}.md`);
-    if (job.startsWith("L1/") && fs.existsSync(sysDesign)) {
+    if (job !== "L0/P0" && job !== "FOUNDATION" && fs.existsSync(sysDesign)) {
       lines.push("", "---", "DESIGN APROVADO (system design da FOUNDATION — siga à risca):", fs.readFileSync(sysDesign, "utf8"));
     }
     if (p.mode === "feedback" && job === "ITERATE") {
@@ -272,6 +279,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
 
   function verifyDescription(job) {
     if (job === "L0/P0") return `docs/scorecard-${pipeline.appId}.md existe com GO/NO-GO`;
+    if (job === "FOUNDATION") return `docs/system-design-${pipeline.appId}.md existe com Arquitetura/Dados/Decisões/Padrões/Riscos`;
     if (job === "L0/P1") return `docs/content-hooks-${pipeline.appId}.md existe`;
     return `npm run build -w ${profile.namespace}/${pipeline.appId} sai com exit 0`;
   }
@@ -292,6 +300,15 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       return fs.existsSync(f)
         ? { pass: true, detail: "hooks ok" }
         : { pass: false, detail: `faltou ${path.relative(root, f)}` };
+    }
+    if (job === "FOUNDATION") {
+      const f = path.join(root, "docs", `system-design-${p.appId}.md`);
+      if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${path.relative(root, f)}` };
+      const txt = fs.readFileSync(f, "utf8");
+      const hasSections = /##\s*(Arquitetura|Architecture)/i.test(txt) && /##\s*(Decis|Decision)/i.test(txt);
+      return hasSections
+        ? { pass: true, detail: "system design com seções ok" }
+        : { pass: false, detail: "system design sem as seções esperadas (Arquitetura/Decisões)" };
     }
     if (p.dryRun) return { pass: true, detail: "dry-run: verify de build pulado" };
     // appId nasce do slugify(), mas revalida aqui: é interpolado em shell (npm.cmd exige shell no Windows)
