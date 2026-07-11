@@ -10,7 +10,7 @@ Tarefa:
 Avalie a ideia com o scorecard do PLAYBOOK
 (hook shareable, capability existe?, custo API, fit anime, legal, tempo MVP).
 
-Responda e SALVE em docs/scorecard-<app-id>.md:
+Responda e SALVE em apps/<app-id>/docs/scorecard.md:
 - GO ou NO-GO (condicionado se preciso: content-first)
 - Tabela critérios 1–5
 - 3 bullets de porquê

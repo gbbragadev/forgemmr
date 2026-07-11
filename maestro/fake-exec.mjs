@@ -9,8 +9,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runDocRel } from "./engine.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/** docs do run vivem no repo do app — garante o dir e devolve o path absoluto */
+function docPath(appId, kind) {
+  const p = path.join(ROOT, runDocRel(appId, kind));
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  return p;
+}
 const goal = process.argv[2] || "";
 
 const job = (goal.match(/^Job:\s*(\S+)/m) || [])[1] || "?";
@@ -41,7 +49,7 @@ if (outFile) {
 }
 
 if (job === "L0/P0") {
-  const p = path.join(ROOT, "docs", `scorecard-${appId}.md`);
+  const p = docPath(appId, "scorecard");
   fs.writeFileSync(
     p,
     `# Scorecard — ${appId} (dry-run)\n\n**GO**\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
@@ -49,7 +57,7 @@ if (job === "L0/P0") {
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);
 } else if (job === "FOUNDATION") {
-  const p = path.join(ROOT, "docs", `system-design-${appId}.md`);
+  const p = docPath(appId, "system-design");
   fs.writeFileSync(
     p,
     `# System Design — ${appId} (dry-run)\n\n## Arquitetura\nFrontend estático → estado local → sem backend (dry-run).\n\n## Dados\nlocalStorage; entidades mínimas.\n\n## Decisões\n(A) localStorage (B) DB — escolho A porque v0 single-device.\n\n## Design patterns\nComponentes puros + hook de estado.\n\n## Riscos\nEscopo v0; sem conta/backend.\n`,
@@ -74,7 +82,7 @@ if (job === "L0/P0") {
       "utf8"
     );
   }
-  const md = path.join(ROOT, "docs", `design-system-${appId}.md`);
+  const md = docPath(appId, "design-system");
   fs.writeFileSync(
     md,
     `# Design System — ${appId} (dry-run)\n\n` +
@@ -88,7 +96,7 @@ if (job === "L0/P0") {
   );
   console.log(`✓ escreveu 3 propostas + ${path.relative(ROOT, md)}`);
 } else if (job === "L0/P1") {
-  const p = path.join(ROOT, "docs", `content-hooks-${appId}.md`);
+  const p = docPath(appId, "content-hooks");
   fs.writeFileSync(
     p,
     `# Content hooks — ${appId} (dry-run)\n\n1. hook fake 1\n2. hook fake 2\n`,

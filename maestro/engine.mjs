@@ -47,14 +47,14 @@ export const JOBS_BY_CAPABILITY = {
 const GATES_AFTER = {
   "L0/P0": (p) => ({
     id: "p0-go",
-    prompt: `Scorecard pronto (docs/scorecard-${p.appId}.md). GO ou KILL?`,
-    payload: `docs/scorecard-${p.appId}.md`,
+    prompt: `Scorecard pronto (${runDocRel(p.appId, "scorecard")}). GO ou KILL?`,
+    payload: runDocRel(p.appId, "scorecard"),
     choices: ["go", "kill"],
   }),
   FOUNDATION: (p) => ({
     id: "foundation-review",
-    prompt: `System design pronto (docs/system-design-${p.appId}.md) — é o contrato de arquitetura que os builds vão seguir. Aprova, refaz ou mata?`,
-    payload: `docs/system-design-${p.appId}.md`,
+    prompt: `System design pronto (${runDocRel(p.appId, "system-design")}) — é o contrato de arquitetura que os builds vão seguir. Aprova, refaz ou mata?`,
+    payload: runDocRel(p.appId, "system-design"),
     choices: ["go", "retry", "kill"],
   }),
   "DS-GEN": (p) => ({
@@ -87,6 +87,11 @@ const GATES_AFTER = {
  * Converte uma string em slug: minúsculo, remove diacríticos, espaços → hífens, máx 3 partes.
  * @example slugify("Acme Lançamento 2024") → "acme-lancamento-2024"
  */
+/** Docs gerados pelo run vivem no REPO DO APP (repo-por-app): apps/<appId>/docs/<kind>.md */
+export function runDocRel(appId, kind) {
+  return `apps/${appId}/docs/${kind}.md`;
+}
+
 export function slugify(s) {
   return String(s)
     .toLowerCase()
@@ -417,6 +422,33 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     return execFileSync("git", args, { cwd: root, encoding: "utf8", ...opts }).trim();
   }
 
+  // ---------- git do APP (repo-por-app: todo git de run roda no repo do app, nunca na fábrica) ----------
+
+  const appDir = (appId) => path.join(root, "apps", appId);
+
+  function gitApp(appId, args, opts = {}) {
+    return execFileSync("git", args, { cwd: appDir(appId), encoding: "utf8", ...opts }).trim();
+  }
+
+  /** Garante repo próprio do app (git init + commit inicial) e working tree limpo. */
+  function ensureAppRepo(appId) {
+    const dir = appDir(appId);
+    fs.mkdirSync(path.join(dir, "docs"), { recursive: true });
+    if (!fs.existsSync(path.join(dir, ".git"))) {
+      gitApp(appId, ["init", "-b", profile.git.targetBranch]);
+      const gi = path.join(dir, ".gitignore");
+      if (!fs.existsSync(gi)) fs.writeFileSync(gi, "node_modules/\nout/\n.next/\ndist/\n.turbo/\n", "utf8");
+      gitApp(appId, ["add", "-A"]);
+      gitApp(appId, ["commit", "--allow-empty", "-m", `${profile.git.commitPrefix}(${appId}): init app repo`]);
+      log(`✓ repo do app criado: apps/${appId}/.git`);
+    } else {
+      const dirty = gitApp(appId, ["status", "--porcelain"]);
+      if (dirty) {
+        throw new Error(`working tree sujo em apps/${appId} — commit/stash antes de iniciar a pipeline:\n` + dirty);
+      }
+    }
+  }
+
   function readRoster() {
     return JSON.parse(fs.readFileSync(path.join(root, "maestro", "roster.json"), "utf8"));
   }
@@ -486,14 +518,14 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       );
     }
     // Ground-truth da FOUNDATION: todo job DEPOIS dela (P1 + builds) segue o design aprovado.
-    const sysDesign = path.join(root, "docs", `system-design-${p.appId}.md`);
+    const sysDesign = path.join(root, runDocRel(p.appId, "system-design"));
     if (job !== "L0/P0" && job !== "FOUNDATION" && job !== "DS-GEN" && fs.existsSync(sysDesign)) {
       lines.push("", "---", "DESIGN APROVADO (system design da FOUNDATION — siga à risca):", fs.readFileSync(sysDesign, "utf8"));
     }
-    // Design system aprovado → todo build de UI segue os tokens. O docs/design-system-<app>.md é o
+    // Design system aprovado → todo build de UI segue os tokens. O design-system.md do app é o
     // artefato DURÁVEL (sobrevive a re-run que pula DS-GEN, quando dsChoice não existe); a proposta
     // escolhida (dsChoice) só refina o apontamento quando o HTML dela ainda está em disco.
-    const dsMd = path.join(root, "docs", `design-system-${p.appId}.md`);
+    const dsMd = path.join(root, runDocRel(p.appId, "design-system"));
     if (job.startsWith("L1/") && fs.existsSync(dsMd)) {
       const prop = p.dsChoice ? path.join(root, "maestro", "proposals", p.appId, `proposal-${p.dsChoice}.html`) : null;
       const pick =
@@ -553,10 +585,10 @@ export function createEngine({ root, emitLog, emitPipeline }) {
   }
 
   function verifyDescription(job) {
-    if (job === "L0/P0") return `docs/scorecard-${pipeline.appId}.md existe com GO/NO-GO`;
-    if (job === "FOUNDATION") return `docs/system-design-${pipeline.appId}.md existe com Arquitetura/Dados/Decisões/Padrões/Riscos`;
-    if (job === "DS-GEN") return `3 propostas em maestro/proposals/${pipeline.appId}/proposal-{1,2,3}.html + docs/design-system-${pipeline.appId}.md`;
-    if (job === "L0/P1") return `docs/content-hooks-${pipeline.appId}.md existe`;
+    if (job === "L0/P0") return `${runDocRel(pipeline.appId, "scorecard")} existe com GO/NO-GO`;
+    if (job === "FOUNDATION") return `${runDocRel(pipeline.appId, "system-design")} existe com Arquitetura/Dados/Decisões/Padrões/Riscos`;
+    if (job === "DS-GEN") return `3 propostas em maestro/proposals/${pipeline.appId}/proposal-{1,2,3}.html + ${runDocRel(pipeline.appId, "design-system")}`;
+    if (job === "L0/P1") return `${runDocRel(pipeline.appId, "content-hooks")} existe`;
     return `npm run build -w ${profile.namespace}/${pipeline.appId} sai com exit 0`;
   }
 
@@ -577,20 +609,20 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       return { pass: true, detail: `${spec.verify.path} ok` };
     }
     if (job === "L0/P0") {
-      const f = path.join(root, "docs", `scorecard-${p.appId}.md`);
+      const f = path.join(root, runDocRel(p.appId, "scorecard"));
       if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${path.relative(root, f)}` };
       const txt = fs.readFileSync(f, "utf8");
       const go = /\bGO\b/.test(txt) && !/\bNO-?GO\b/.test(txt.split("\n").slice(0, 10).join("\n"));
       return { pass: true, detail: go ? "scorecard: GO" : "scorecard: revisar GO/NO-GO no gate" };
     }
     if (job === "L0/P1") {
-      const f = path.join(root, "docs", `content-hooks-${p.appId}.md`);
+      const f = path.join(root, runDocRel(p.appId, "content-hooks"));
       return fs.existsSync(f)
         ? { pass: true, detail: "hooks ok" }
         : { pass: false, detail: `faltou ${path.relative(root, f)}` };
     }
     if (job === "FOUNDATION") {
-      const f = path.join(root, "docs", `system-design-${p.appId}.md`);
+      const f = path.join(root, runDocRel(p.appId, "system-design"));
       if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${path.relative(root, f)}` };
       const txt = fs.readFileSync(f, "utf8");
       const hasSections = /##\s*(Arquitetura|Architecture)/i.test(txt) && /##\s*(Decis|Decision)/i.test(txt);
@@ -600,7 +632,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     }
     if (job === "DS-GEN") {
       const propDir = path.join(root, "maestro", "proposals", p.appId);
-      const md = path.join(root, "docs", `design-system-${p.appId}.md`);
+      const md = path.join(root, runDocRel(p.appId, "design-system"));
       const missing = [1, 2, 3].filter((n) => !fs.existsSync(path.join(propDir, `proposal-${n}.html`)));
       if (missing.length) return { pass: false, detail: `faltam propostas: ${missing.map((n) => `proposal-${n}.html`).join(", ")}` };
       if (!fs.existsSync(md)) return { pass: false, detail: `faltou ${path.relative(root, md)}` };
@@ -791,22 +823,11 @@ export function createEngine({ root, emitLog, emitPipeline }) {
 
   // ---------- git ----------
 
-  function ensureCleanTree() {
-    const dirty = git(["status", "--porcelain"]);
-    if (dirty) {
-      throw new Error(
-        "working tree suja — commit/stash antes de iniciar a pipeline:\n" +
-          dirty +
-          "\n(dica: arquivos de ideia vivem em ideas/ — pasta gitignored, não suja a árvore)"
-      );
-    }
-  }
-
   function checkpoint(job) {
     try {
-      git(["add", "-A"]);
-      git(["commit", "--allow-empty", "-m", `${profile.git.commitPrefix}(${pipeline.appId}): ${job} PASS`]);
-      const ref = git(["rev-parse", "HEAD"]);
+      gitApp(pipeline.appId, ["add", "-A"]);
+      gitApp(pipeline.appId, ["commit", "--allow-empty", "-m", `${profile.git.commitPrefix}(${pipeline.appId}): ${job} PASS`]);
+      const ref = gitApp(pipeline.appId, ["rev-parse", "HEAD"]);
       pipeline.git.checkpoints.push({ ref, job, at: new Date().toISOString() });
       pipeline.git.lastCheckpoint = ref;
       log(`✓ checkpoint ${ref.slice(0, 7)} · ${job}`);
@@ -820,8 +841,8 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     const ref = pipeline.git.lastCheckpoint || pipeline.git.baseRef;
     if (!ref) return;
     try {
-      git(["reset", "--hard", ref]);
-      git(["clean", "-fd", "--", `apps/${pipeline.appId}`]);
+      gitApp(pipeline.appId, ["reset", "--hard", ref]);
+      gitApp(pipeline.appId, ["clean", "-fd"]);
       log(`↶ rollback → ${ref.slice(0, 7)} (${why})`);
     } catch (e) {
       log(`✗ rollback falhou: ${String(e).slice(0, 200)}`);
@@ -840,13 +861,18 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       return { pass: true, detail: "dry-run: ship simulado" };
     }
     try {
-      git(["checkout", branch]);
-      git(["merge", "--no-ff", p.git.branch, "-m", `${profile.git.commitPrefix}(${p.appId}): merge pipeline (ship)`]);
-      git(["push", "origin", branch]);
-      log("✓ merge + push master");
+      gitApp(p.appId, ["checkout", branch]);
+      gitApp(p.appId, ["merge", "--no-ff", p.git.branch, "-m", `${profile.git.commitPrefix}(${p.appId}): merge pipeline (ship)`]);
+      // push só se o app tiver remote (dar remote é opt-in do dono — fábrica e apps nascem local-only)
+      if (gitApp(p.appId, ["remote"])) {
+        gitApp(p.appId, ["push", "origin", branch]);
+        log(`✓ merge + push ${branch}`);
+      } else {
+        log(`✓ merge ${branch} (app sem remote — push pulado)`);
+      }
     } catch (e) {
       try {
-        git(["checkout", p.git.branch]);
+        gitApp(p.appId, ["checkout", p.git.branch]);
       } catch {}
       return { pass: false, detail: `merge/push falhou: ${String(e).slice(0, 400)}` };
     }
@@ -873,7 +899,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       `Ideia do app: ${p.idea}`,
       "",
       `Você é o REVISOR "${player.name}" na pipeline autônoma Forge. Outro agente acabou de implementar o job ${job}.`,
-      "Revise ADVERSARIALMENTE o que foi feito (veja o diff recente: `git show HEAD` ou `git diff HEAD~1`).",
+      `Revise ADVERSARIALMENTE o que foi feito (o app tem repo próprio — veja o diff recente: \`git -C apps/${p.appId} show HEAD\` ou \`git -C apps/${p.appId} diff HEAD~1\`).`,
       "Procure problemas REAIS: bugs, casos de borda quebrados, segurança, regras do projeto violadas, promessa que a UI faz e o código não cumpre.",
       "CONSERTE só o que for problema real, de causa raiz e cirúrgico — NÃO reescreva, NÃO expanda escopo, NÃO troque de abordagem.",
       "Se não achar problema real, NÃO mude NADA e responda apenas 'sem achados'.",
@@ -881,7 +907,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       pipelineFooter(),
     ];
     if (profile.narrative) lines.push("", "---", "CONTEXTO DO PROJETO:", profile.narrative);
-    const sysDesign = path.join(root, "docs", `system-design-${p.appId}.md`);
+    const sysDesign = path.join(root, runDocRel(p.appId, "system-design"));
     if (fs.existsSync(sysDesign)) lines.push("", "---", "DESIGN APROVADO (o build deve seguir isto):", fs.readFileSync(sysDesign, "utf8"));
     return lines.join("\n");
   }
@@ -920,7 +946,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     }
     let changed = false;
     try {
-      changed = !!git(["status", "--porcelain"]);
+      changed = !!gitApp(pipeline.appId, ["status", "--porcelain"]);
     } catch {}
     if (!changed) {
       log(`✓ review de ${job}: sem achados (nada alterado)`);
@@ -1013,7 +1039,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       workbench.handoffUpdate(
         paths,
         pipeline,
-        `DONE. Próximo: P4 measure (humano, 5–7d) — postar hooks de docs/content-hooks-${pipeline.appId}.md`
+        `DONE. Próximo: P4 measure (humano, 5–7d) — postar hooks de ${runDocRel(pipeline.appId, "content-hooks")}`
       );
       try {
         const p = path.join(root, "workbench", "QUEUE.md");
@@ -1034,19 +1060,20 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       fs.mkdirSync(RUNS_DIR, { recursive: true });
       fs.copyFileSync(PIPELINE_PATH, path.join(RUNS_DIR, `pipeline-${pipeline.runId}.json`));
     } catch {}
-    // workbench atualizado após o último checkpoint — commita p/ deixar a árvore limpa
+    // workbench atualizado após o run — commita NA FÁBRICA p/ deixá-la tidy (única escrita git
+    // da fábrica no ciclo; execFileSync é sync → serializado mesmo com N pipelines)
     try {
-      git(["add", "workbench", "docs"]);
+      git(["add", "workbench"]);
       git(["commit", "-m", `forge(${pipeline.appId}): workbench final (${status})`]);
     } catch {
       /* nada a commitar = ok */
     }
-    // done real = branch já mergeada em master → deleta (-d falha se não mergeada).
+    // done real = branch já mergeada no targetBranch DO APP → deleta (-d falha se não mergeada).
     // killed/dry-run: branch fica p/ inspeção — apagar é decisão do humano.
     if (status === "done" && !pipeline.dryRun) {
       try {
-        git(["branch", "-d", pipeline.git.branch]);
-        log(`✓ branch ${pipeline.git.branch} removida (merged em master)`);
+        gitApp(pipeline.appId, ["branch", "-d", pipeline.git.branch]);
+        log(`✓ branch ${pipeline.git.branch} removida (merged no repo do app)`);
       } catch {
         log(`· branch ${pipeline.git.branch} mantida (não mergeada?)`);
       }
@@ -1075,18 +1102,19 @@ export function createEngine({ root, emitLog, emitPipeline }) {
 
     const plan = resolvePlan({ root, blueprint, capability, appId });
 
-    ensureCleanTree();
-    const baseRef = git(["rev-parse", "HEAD"]);
+    // repo-por-app: cria/valida o repo do app e roda a branch do run DENTRO dele (fábrica intocada)
+    ensureAppRepo(appId);
+    const baseRef = gitApp(appId, ["rev-parse", "HEAD"]);
     const branch = `pipeline/${appId}`;
-    const existing = git(["branch", "--list", branch]);
-    if (existing) throw new Error(`branch ${branch} já existe — apague ou use outro --app-id`);
-    git(["checkout", "-b", branch]);
+    const existing = gitApp(appId, ["branch", "--list", branch]);
+    if (existing) throw new Error(`branch ${branch} já existe em apps/${appId} — apague ou use outro --app-id`);
+    gitApp(appId, ["checkout", "-b", branch]);
 
     // DS gerado por projeto: pula DS-GEN se este app já tem design system (só generic)
     let jobs = plan.jobs;
-    if (plan.jobSpecs === null && fs.existsSync(path.join(root, "docs", `design-system-${appId}.md`))) {
+    if (plan.jobSpecs === null && fs.existsSync(path.join(root, runDocRel(appId, "design-system")))) {
       jobs = jobs.filter((j) => j !== "DS-GEN");
-      log(`· DS-GEN pulado — docs/design-system-${appId}.md já existe`);
+      log(`· DS-GEN pulado — ${runDocRel(appId, "design-system")} já existe`);
     }
 
     pipeline = {
@@ -1173,12 +1201,12 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     }
     const dryRun = !!params.dryRun || team === "dry-run";
 
-    ensureCleanTree();
-    const baseRef = git(["rev-parse", "HEAD"]);
+    ensureAppRepo(appId);
+    const baseRef = gitApp(appId, ["rev-parse", "HEAD"]);
     let n = 1;
-    while (git(["branch", "--list", `pipeline/${appId}-fb${n}`])) n++;
+    while (gitApp(appId, ["branch", "--list", `pipeline/${appId}-fb${n}`])) n++;
     const branch = `pipeline/${appId}-fb${n}`;
-    git(["checkout", "-b", branch]);
+    gitApp(appId, ["checkout", "-b", branch]);
 
     const capability = detectCapability(appId);
     const prevDeploy = lastDeployFor(appId);

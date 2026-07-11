@@ -11,7 +11,7 @@ Ideia: <<< IDEIA >>>
 
 Você é arquiteto(a) de software sênior. Leia a IDEIA e o CONTEXTO DO PROJETO (profile, injetado
 acima nesta mensagem: nicho, stack, i18n, guardrails). Produza um documento de system design de
-~500–900 palavras e SALVE em: docs/system-design-<<< app-id >>>.md
+~500–900 palavras e SALVE em: apps/<<< app-id >>>/docs/system-design.md
 
 O documento DEVE conter estas seções (no idioma padrão do profile; se o profile for bilíngue,
 escreva os títulos nos dois idiomas ou marque [PT|EN]):
@@ -41,5 +41,5 @@ Regras:
 - Concreto e executável — este documento é o CONTRATO que os builds vão seguir.
 - NÃO escreva código de app aqui; só o design. NÃO rode git commit/push.
 
-Sucesso (verificado pelo orquestrador): docs/system-design-<<< app-id >>>.md existe com as seções.
+Sucesso (verificado pelo orquestrador): apps/<<< app-id >>>/docs/system-design.md existe com as seções.
 ```

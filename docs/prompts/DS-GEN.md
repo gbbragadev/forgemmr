@@ -31,7 +31,7 @@ guide navegável, mostrando a linguagem visual:
 - os design tokens visíveis (radius, spacing, sombra) aplicados de verdade nos componentes.
 Responsivo (max-width, sem scroll horizontal). Cada proposta com paleta e personalidade próprias.
 
-4) docs/design-system-<<< app-id >>>.md — documenta as 3 propostas para a escolha ser aplicável em
+4) apps/<<< app-id >>>/docs/design-system.md — documenta as 3 propostas para a escolha ser aplicável em
 código. Para CADA proposta: nome da direção + tabela de tokens (cores HEX, font stack, radius,
 spacing base, sombra) + 1 linha de "quando escolher esta". Assim, seja qual for a escolhida (1/2/3),
 o build de UI tem os tokens exatos para aplicar.
@@ -41,5 +41,5 @@ Regras:
 - Self-contained de verdade: nada de recurso externo (o preview roda no Maestro HQ, offline).
 - NÃO mexa em apps/ nem em packages/ aqui — só nos 4 arquivos acima. NÃO rode git commit/push.
 
-Sucesso (verificado pelo orquestrador): os 3 proposal-N.html + docs/design-system-<<< app-id >>>.md existem.
+Sucesso (verificado pelo orquestrador): os 3 proposal-N.html + apps/<<< app-id >>>/docs/design-system.md existem.
 ```

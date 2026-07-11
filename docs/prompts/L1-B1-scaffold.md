@@ -7,7 +7,7 @@ Loop: L1 Build · Job: B1 Scaffold
 Claim exclusivo no app novo.
 
 Pré-condição:
-- P0 GO documentado (docs/scorecard-<id>.md)
+- P0 GO documentado (apps/<id>/docs/scorecard.md)
 - Preferir P1 hooks já feitos; se só P0: user deve ter dito “pode decidir e seguir”
 
 Tarefa:

@@ -10,7 +10,7 @@ Tarefa:
 Gere 15 hooks curtos PT-BR para Reels/TikTok/IG do nicho anime
 promovendo o app (default: waifu-chat).
 Cada hook: 1 linha + hashtags leves + CTA “link na bio”.
-Salve em docs/content-hooks-<app>.md
+Salve em apps/<app>/docs/content-hooks.md
 Não altere código de packages/apps salvo se faltar a pasta docs/.
 
 Done when: arquivo com 15 hooks + HANDOFF/QUEUE atualizados.

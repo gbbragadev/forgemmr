@@ -19,7 +19,7 @@ Tarefa (1 iteração — NÃO scaffold ainda):
    - Loop ativo = L0 nova ideia <app-id>
    - Next = P0 → (GO) P1 → B1 só depois
 5. Rode o scorecard P0 da IDEIA abaixo (critérios PLAYBOOK).
-   Salve docs/scorecard-<app-id>.md
+   Salve apps/<app-id>/docs/scorecard.md
 6. Se GO: enfileire L0/P1 na QUEUE; diga o próximo prompt (L0-P1).
    Se NO-GO: explique e deixe Backlog limpo / outra ideia.
 7. NÃO altere apps/ do produto anterior salvo o user pedir bugfix.

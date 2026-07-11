@@ -734,6 +734,20 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Docs de run do app (repo-por-app): /apps/<app>/docs/<file>.md|.html — read-only p/ os gates
+  if (/^\/apps\/[a-z0-9-]+\/docs\//.test(url.pathname)) {
+    const appsDir = path.join(ROOT, "apps");
+    const f = path.resolve(ROOT, "." + url.pathname);
+    if (insideDir(appsDir, f) && /\.(md|html)$/i.test(f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
+      res.writeHead(200, { "Content-Type": contentType(f) });
+      fs.createReadStream(f).pipe(res);
+      return;
+    }
+    res.writeHead(404);
+    res.end("doc do app não encontrado");
+    return;
+  }
+
   // Propostas do DS-GEN (gate ds-pick): /proposals/<app>/proposal-N.html — vivem sob maestro/, não ROOT
   if (url.pathname.startsWith("/proposals/")) {
     const propDir = path.join(__dirname, "proposals");

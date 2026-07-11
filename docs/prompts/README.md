@@ -6,7 +6,7 @@ Cole o bloco do arquivo no Codex / Claude / Grok / Gemini / GLM.
 |---------|------|-----|
 | **`L0-NOVA-IDEIA.md`** | L0 | Trocar de produto (app anterior Done) |
 | **`NOVO-APP.md`** | L1 | B1 scaffold (ainda exige P0 na prática) |
-| `L0-P0-scorecard.md` | L0 | P0 → `docs/scorecard-*.md` |
+| `L0-P0-scorecard.md` | L0 | P0 → `apps/<app>/docs/scorecard.md` |
 | `L0-P1-content-hooks.md` | L0 | P1 hooks |
 | `L0-P4-measure-kill.md` | L0 | P4–P5 |
 | `L1-B1-scaffold.md` | L1 | B1 funcional (visual seco OK) |
