@@ -52,3 +52,23 @@ claude (Fable) | 2026-07-10
 - Repo: https://github.com/gbbragadev/anime-forge
 - Pipeline: `docs/AGENT-PIPELINE.md`
 - Trocar ideia: `docs/PLAYBOOK.md` + `docs/prompts/L0-NOVA-IDEIA.md`
+
+<!-- forge:begin:e2e-alfa -->
+## Forge autopilot — e2e-alfa
+- **Ideia:** app alfa do teste E2E final
+- **Team:** dry-run · **Status:** paused_gate
+- **Job atual:** L0/P1 (4/9)
+- **Branch:** pipeline/e2e-alfa · checkpoints: 3
+- **⏸ GATE pendente:** `ds-pick` — 3 propostas de design system em http://127.0.0.1:8799/proposals/e2e-alfa/proposal-1.html (…-2, …-3). Escolha 1/2/3 (a UI segue a escolhida), refaz ou mata. → `forge decide ds-pick go|kill`
+_Atualizado 2026-07-11T22:12:19.633Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/e2e-alfa.json_
+<!-- forge:end:e2e-alfa -->
+
+<!-- forge:begin:e2e-beta -->
+## Forge autopilot — e2e-beta
+- **Ideia:** app beta do teste E2E final
+- **Team:** dry-run · **Status:** killed
+- **Job atual:** — (2/9)
+- **Branch:** pipeline/e2e-beta · checkpoints: 1
+- pipeline encerrada: killed
+_Atualizado 2026-07-11T22:12:20.244Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/e2e-beta.json_
+<!-- forge:end:e2e-beta -->
