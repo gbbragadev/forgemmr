@@ -772,6 +772,20 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Propostas do DS-GEN (gate ds-pick): /proposals/<app>/proposal-N.html — vivem sob maestro/, não ROOT
+  if (url.pathname.startsWith("/proposals/")) {
+    const propDir = path.join(__dirname, "proposals");
+    const f = path.resolve(propDir, "." + url.pathname.slice("/proposals".length));
+    if (insideDir(propDir, f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
+      res.writeHead(200, { "Content-Type": contentType(f) });
+      fs.createReadStream(f).pipe(res);
+      return;
+    }
+    res.writeHead(404);
+    res.end("proposta não encontrada");
+    return;
+  }
+
   // Preview estático do app buildado (gate visual pós-B3): /preview/<appId>/...
   if (url.pathname.startsWith("/preview/")) {
     const parts = url.pathname.split("/").filter(Boolean);
