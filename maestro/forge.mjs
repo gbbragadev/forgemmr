@@ -253,6 +253,7 @@ async function attachTUI() {
     }
     if (key.name === "g") await decideKey("go");
     if (key.name === "r") await decideKey("retry");
+    if (["1", "2", "3"].includes(str) && gate()?.choices.includes(str)) await decideKey(str);
     if (key.name === "f" && gate()?.choices.includes("retry")) state.input = { buffer: "" };
     if (key.name === "k") {
       if (Date.now() - state.pendingKill < 3000) await decideKey("kill");
@@ -337,6 +338,7 @@ async function attachTUI() {
           out.push(row(fg(CYAN, `feedback: ${state.input.buffer}▌`) + dim("  (Enter envia · Esc cancela)")));
         } else {
           const opts = [];
+          for (const n of ["1", "2", "3"]) if (g.choices.includes(n)) opts.push(`${bold("[" + n + "]")} escolher ${n}`);
           if (g.choices.includes("go")) opts.push(`${bold("[g]")} go`);
           if (g.choices.includes("retry")) opts.push(`${bold("[r]")} retry`, `${bold("[f]")} retry+feedback`);
           if (g.choices.includes("kill")) opts.push(`${bold("[k]")} kill (2x)`);
