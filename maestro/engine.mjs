@@ -150,17 +150,20 @@ export function buildProfileMd(data) {
     context = "",
     capabilities = ["static", "quiz", "chat"],
   } = data || {};
+  // sanitiza knobs de 1 linha (o wizard já filtra, mas buildProfileMd é exportada — defesa p/ chamada
+  // programática): sem \n nem ` que quebrariam o H1 ou o fence forge-config.
+  const oneline = (v) => String(v).replace(/[\r\n`]+/g, " ").trim();
   const knobs = {
-    name,
-    namespace,
-    niche,
+    name: oneline(name),
+    namespace: oneline(namespace),
+    niche: oneline(niche),
     i18n: { defaultLocale: "pt-BR", locales, rule: i18nRule },
-    deploy: { baseUrl, staticHost: "cf-pages", serverHost: "vercel" },
+    deploy: { baseUrl: oneline(baseUrl), staticHost: "cf-pages", serverHost: "vercel" },
     git: { targetBranch: "master", commitPrefix: "forge" },
     capabilities,
   };
   return [
-    `# ${name} — ProjectProfile`,
+    `# ${knobs.name} — ProjectProfile`,
     "> setado por `forge profile init` · edite à vontade; o bloco forge-config abaixo é lido pela engine.",
     "",
     "```forge-config",
@@ -206,6 +209,7 @@ export function composeTeam(name, musicians, emoji = "🎼") {
   const roleJobs = Object.fromEntries(TEAM_ROLES.map((r) => [r.id, r.jobs]));
   const players = [];
   const dispatch = {};
+  const fallbacks = {};
   let defaultId = null;
   let reviewPlayer = null;
   musicians.forEach((mu, i) => {
@@ -225,14 +229,20 @@ export function composeTeam(name, musicians, emoji = "🎼") {
       generated: true,
     });
     for (const role of mu.roles) {
-      for (const job of roleJobs[role] || []) dispatch[job] = id;
+      for (const job of roleJobs[role] || []) {
+        const prev = dispatch[job];
+        // 2 músicos no mesmo job: o deslocado vira fallback (reachable no rate-limit, não some)
+        if (prev && prev !== id) (fallbacks[id] = fallbacks[id] || []).push(prev);
+        dispatch[job] = id;
+      }
       if (role === "Engenheiro" && !defaultId) defaultId = id;
       if (role === "Revisor") reviewPlayer = id;
     }
   });
+  for (const k of Object.keys(fallbacks)) fallbacks[k] = [...new Set(fallbacks[k])];
   if (!defaultId) defaultId = players[0] ? players[0].id : null;
   dispatch.default = defaultId;
-  const team = { label: name, emoji, dispatch, fallbacks: {} };
+  const team = { label: name, emoji, dispatch, fallbacks };
   if (reviewPlayer) team.review = { after: ["L1/B1", "L1/B4"], player: reviewPlayer };
   return { teamId, team, players };
 }
@@ -353,18 +363,22 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     if (job !== "L0/P0" && job !== "FOUNDATION" && job !== "DS-GEN" && fs.existsSync(sysDesign)) {
       lines.push("", "---", "DESIGN APROVADO (system design da FOUNDATION — siga à risca):", fs.readFileSync(sysDesign, "utf8"));
     }
-    // Design system escolhido no gate ds-pick → todo build de UI segue a proposta aprovada.
-    if (p.dsChoice && job.startsWith("L1/")) {
-      const prop = path.join(root, "maestro", "proposals", p.appId, `proposal-${p.dsChoice}.html`);
-      if (fs.existsSync(prop)) {
-        lines.push(
-          "",
-          "---",
-          `DESIGN SYSTEM APROVADO: proposta ${p.dsChoice} (o dono escolheu no gate ds-pick). Aplique essa linguagem visual à risca:`,
-          `- abra maestro/proposals/${p.appId}/proposal-${p.dsChoice}.html — HTML self-contained com paleta, tipografia e componentes de referência;`,
-          `- e docs/design-system-${p.appId}.md — tokens/decisões. Use esses tokens em TODO o UI (não invente outro visual).`
-        );
-      }
+    // Design system aprovado → todo build de UI segue os tokens. O docs/design-system-<app>.md é o
+    // artefato DURÁVEL (sobrevive a re-run que pula DS-GEN, quando dsChoice não existe); a proposta
+    // escolhida (dsChoice) só refina o apontamento quando o HTML dela ainda está em disco.
+    const dsMd = path.join(root, "docs", `design-system-${p.appId}.md`);
+    if (job.startsWith("L1/") && fs.existsSync(dsMd)) {
+      const prop = p.dsChoice ? path.join(root, "maestro", "proposals", p.appId, `proposal-${p.dsChoice}.html`) : null;
+      const pick =
+        prop && fs.existsSync(prop)
+          ? ` O dono escolheu a PROPOSTA ${p.dsChoice} (maestro/proposals/${p.appId}/proposal-${p.dsChoice}.html) — siga essa direção.`
+          : "";
+      lines.push(
+        "",
+        "---",
+        `DESIGN SYSTEM APROVADO (use os tokens à risca em TODO o UI — não invente outro visual):${pick}`,
+        fs.readFileSync(dsMd, "utf8")
+      );
     }
     if (p.mode === "feedback" && job === "ITERATE") {
       lines.push(

@@ -130,6 +130,16 @@ function enableKeys() {
   if (process.stdin.isTTY) process.stdin.setRawMode(true);
 }
 
+/** desfaz enableKeys() p/ o processo SAIR após um wizard que COMPLETA (vs attachTUI, que fica vivo).
+ *  sem isso, stdin fica em raw mode e o terminal trava esperando input. */
+function releaseStdin() {
+  try {
+    if (process.stdin.isTTY) process.stdin.setRawMode(false);
+  } catch {}
+  keysEnabled = false;
+  process.stdin.pause();
+}
+
 function elapsed(fromIso, toIso) {
   if (!fromIso) return "—";
   const ms = (toIso ? new Date(toIso) : new Date()) - new Date(fromIso);
@@ -651,6 +661,7 @@ async function profileWizard() {
   console.log(fg(GREEN, `✓ profile gravado: .forge/profile.md`) + dim(`  (nicho: ${data.niche} · namespace: ${data.namespace})`));
   console.log(dim("  edite as seções Stack/Guardrails à vontade — a engine lê o bloco forge-config + o narrativo."));
   console.log(dim("  próximo: forge new \"<sua ideia>\"  → P0 → FOUNDATION (system design) → build → ship"));
+  releaseStdin();
 }
 
 // ---------- team builder wizard (forge team — Provedor→Modelo→Effort→Funções) ----------
@@ -863,6 +874,7 @@ async function teamWizard() {
   writeTeamToRoster(teamId, team, players);
   console.log(fg(GREEN, `✓ time "${teamId}" gravado no roster.json`) + dim(`  (${players.length} músico(s))`));
   console.log(dim(`  usar: forge new "<ideia>" --team ${teamId}   ·   ver: forge roster`));
+  releaseStdin();
 }
 
 // ---------- comandos ----------

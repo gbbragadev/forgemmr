@@ -179,7 +179,7 @@ export function buildSpawn(cli, goal, opts) {
       args: [
         "-p",
         goal,
-        ...(model ? ["--model", model] : []),
+        ...(model && model !== "default" ? ["--model", model] : []),
         "--permission-mode",
         "bypassPermissions",
         "--max-turns",
@@ -207,7 +207,7 @@ export function buildSpawn(cli, goal, opts) {
         "-p",
         goal,
         "--model",
-        model || "opus",
+        model && model !== "default" ? model : "opus",
         "--dangerously-skip-permissions",
         "--max-turns",
         String(maxTurns),
@@ -242,8 +242,9 @@ export function buildSpawn(cli, goal, opts) {
     //   sem evidência disso hoje; player é opcional e não está em nenhum team default.
     const agy = resolveBin("agy");
     if (agy === "agy") {
+      const local = process.env.LOCALAPPDATA || path.join(HOME, "AppData", "Local");
       throw new Error(
-        "agy.exe não encontrado em %LOCALAPPDATA%\\agy\\bin — instale o Antigravity CLI; player gemini indisponível"
+        `agy.exe não encontrado em ${path.join(local, "agy", "bin")} — instale o Antigravity CLI; player gemini indisponível`
       );
     }
     return {
