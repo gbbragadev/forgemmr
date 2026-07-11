@@ -40,3 +40,6 @@ maestro/proposals/
 # estado ativo do profile — a fonte tracked é profiles/<slug>/profile.md
 .forge/profile.md
 .forge/active.txt
+
+# apps têm repo git próprio (repo-por-app) — a fábrica não rastreia o conteúdo de apps/
+apps/
