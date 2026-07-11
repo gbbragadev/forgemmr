@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { scaffoldProject } from "../forge.mjs";
+import { scaffoldProject, writeBriefArtifacts } from "../forge.mjs";
 import { recordDecision, writeApproval } from "../decisions.mjs";
 
 test("scaffoldProject cria project.json com blueprint e slug", () => {
@@ -31,4 +31,18 @@ test("writeApproval não sobrescreve approval existente", () => {
   writeApproval({ projectDir: pdir, payload: { approvedConcept: "c", version: 2 } }); // deve ser no-op
   const j = JSON.parse(fs.readFileSync(path.join(pdir, "approval.json"), "utf8"));
   assert.equal(j.approvedConcept, "b"); // primeiro venceu
+});
+
+test("writeBriefArtifacts escreve intake.json, brief.json e brief.md", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "forge-"));
+  fs.mkdirSync(path.join(tmp, ".forge", "projects", "acme"), { recursive: true });
+  const { briefMd } = writeBriefArtifacts({
+    root: tmp, slug: "acme",
+    intake: { company: "Acme", brand: "Acme", product: "X", campaign: "lançar" },
+    brief: { problem: "baixa consideração", behavior: "experimentar", audience: "jovens" },
+  });
+  assert.ok(fs.existsSync(path.join(tmp, ".forge", "projects", "acme", "brief.json")));
+  const md = fs.readFileSync(path.join(tmp, "docs", "acme", "brief.md"), "utf8");
+  assert.match(md, /Acme/);
+  assert.match(md, /baixa consideração/);
 });

@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import readline from "node:readline";
 import { buildProfileMd, composeTeam, TEAM_ROLES, slugify } from "./engine.mjs";
 import { loadBlueprint } from "./blueprint-loader.mjs";
+import { recordDecision } from "./decisions.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -888,6 +889,158 @@ export function scaffoldProject({ root, blueprint, slug, name, idea }) {
   return dir;
 }
 
+// ---------- onboarding wizard (forge onboard — INTAKE + DISCOVERY → brief) ----------
+export function writeBriefArtifacts({ root, slug, intake, brief }) {
+  const pdir = path.join(root, ".forge", "projects", slug);
+  const ddir = path.join(root, "docs", slug);
+  fs.mkdirSync(ddir, { recursive: true });
+  fs.writeFileSync(path.join(pdir, "intake.json"), JSON.stringify(intake, null, 2), "utf8");
+  fs.writeFileSync(path.join(pdir, "brief.json"), JSON.stringify(brief, null, 2), "utf8");
+  const kv = (o) => Object.entries(o).map(([k, v]) => `- **${k}:** ${Array.isArray(v) ? v.join(", ") : v}`).join("\n");
+  const md = [
+    `# Brief — ${intake.brand || slug}`, "",
+    "## Intake", kv(intake), "",
+    "## Discovery", kv(brief), "",
+  ].join("\n");
+  const briefMd = path.join(ddir, "brief.md");
+  fs.writeFileSync(briefMd, md, "utf8");
+  return { briefMd };
+}
+
+async function onboardWizard(slug) {
+  const projectDir = path.join(ROOT, ".forge", "projects", slug);
+  let project;
+  try {
+    project = JSON.parse(fs.readFileSync(path.join(projectDir, "project.json"), "utf8"));
+  } catch {
+    throw new Error(`projeto não encontrado: .forge/projects/${slug}`);
+  }
+
+  const intakeQuestions = JSON.parse(fs.readFileSync(path.join(ROOT, "blueprints", "gameads", "questions", "intake.json"), "utf8")).questions;
+  const discoveryQuestions = JSON.parse(fs.readFileSync(path.join(ROOT, "blueprints", "gameads", "questions", "discovery.json"), "utf8")).questions;
+  const allQuestions = [...intakeQuestions, ...discoveryQuestions];
+
+  process.stdout.write(`${ESC}?1049h${ESC}?25l`);
+  const restore = () => process.stdout.write(`${ESC}?25h${ESC}?1049l`);
+  enableKeys();
+
+  const st = { qIdx: 0, answers: {}, err: "" };
+
+  function render() {
+    const cols = Math.max(64, Math.min(process.stdout.columns || 100, 100));
+    const W = cols - 2;
+    const out = [];
+    const row = (s) => fg(PURPLE, "│") + padTo(" " + truncTo(s, W - 2), W) + fg(PURPLE, "│");
+    const blank = () => row("");
+    out.push(fg(PURPLE, "┌─ ") + bold(fg(PURPLE, "🎬 GAMEADS ONBOARD")) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - 27)) + "┐"));
+    out.push(row(`${st.qIdx + 1}/${allQuestions.length} · ${slug}`));
+    out.push(blank());
+
+    const q = allQuestions[st.qIdx];
+    out.push(row(bold(q.label)));
+    out.push(blank());
+    const ans = st.answers[q.key] || "";
+    out.push(row(fg(CYAN, `  ${ans}▌`)));
+    out.push(blank());
+    if (q.default) out.push(row(dim(`  padrão: ${q.default}`)));
+    if (!q.required) out.push(row(dim("  (opcional)")));
+
+    out.push(blank());
+    if (st.err) out.push(row(fg(RED, st.err)));
+    out.push(fg(PURPLE, "└─ ") + dim("Enter continua · ← volta · Esc sai") + fg(PURPLE, " " + "─".repeat(Math.max(0, W - visibleLen("Enter continua · ← volta · Esc sai") - 3)) + "┘"));
+
+    let frame = `${ESC}H`;
+    for (const line of out) frame += line + `${ESC}K\n`;
+    frame += `${ESC}J`;
+    process.stdout.write(frame);
+  }
+
+  const answers = await new Promise((resolve) => {
+    const bootAt = Date.now();
+    const onKey = (str, key) => {
+      if (Date.now() - bootAt < 350) return;
+      st.err = "";
+      if ((key.ctrl && key.name === "c") || key.name === "escape") return finish(null);
+
+      const q = allQuestions[st.qIdx];
+      if (key.name === "return") {
+        let val = st.answers[q.key] || "";
+        if (q.type === "list" && val) val = val.split(",").map(s => s.trim());
+        if (q.type === "number" && val) val = parseInt(val, 10);
+
+        if (q.required && !val) {
+          st.err = "resposta obrigatória";
+        } else {
+          if (!val && q.default) val = q.default;
+          st.answers[q.key] = val;
+          st.qIdx++;
+          if (st.qIdx >= allQuestions.length) {
+            return finish(st.answers);
+          }
+        }
+      } else if (key.name === "backspace") {
+        st.answers[q.key] = (st.answers[q.key] || "").slice(0, -1);
+      } else if (key.name === "left") {
+        st.qIdx = Math.max(0, st.qIdx - 1);
+      } else if (str && !key.ctrl && str >= " ") {
+        st.answers[q.key] = (st.answers[q.key] || "") + str;
+      }
+      render();
+    };
+    const finish = (v) => {
+      process.stdin.removeListener("keypress", onKey);
+      resolve(v);
+    };
+    process.stdin.on("keypress", onKey);
+    render();
+  });
+
+  restore();
+  if (!answers) {
+    console.log(dim("onboarding cancelado"));
+    process.exit(0);
+  }
+
+  // separar intake e brief
+  const intake = {};
+  const brief = {};
+  intakeQuestions.forEach(q => { if (q.key in answers) intake[q.key] = answers[q.key]; });
+  discoveryQuestions.forEach(q => { if (q.key in answers) brief[q.key] = answers[q.key]; });
+
+  const { briefMd } = writeBriefArtifacts({ root: ROOT, slug, intake, brief });
+  console.log(fg(GREEN, `✓ brief gravado: ${path.relative(ROOT, briefMd)}`));
+
+  // aprovar o brief
+  const approved = await new Promise((resolve) => {
+    const onKey = (str, key) => {
+      if (key.name === "escape" || (key.ctrl && key.name === "c")) return finish(null);
+      if (str === "g") return finish(true);
+      if (str === "k") return finish(false);
+    };
+    const finish = (v) => {
+      process.stdin.removeListener("keypress", onKey);
+      resolve(v);
+    };
+    enableKeys();
+    process.stdin.on("keypress", onKey);
+    process.stdout.write(fg(CYAN, "Aprovar o brief? [g]o / [k]ill: "));
+  });
+
+  releaseStdin();
+  if (approved === true) {
+    recordDecision({ projectDir, gateId: "brief-review", choice: "go" });
+    project.status = "brief-approved";
+    fs.writeFileSync(path.join(projectDir, "project.json"), JSON.stringify(project, null, 2), "utf8");
+    console.log(fg(GREEN, `✓ brief aprovado`));
+  } else if (approved === false) {
+    project.status = "brief-rejected";
+    fs.writeFileSync(path.join(projectDir, "project.json"), JSON.stringify(project, null, 2), "utf8");
+    console.log(fg(YELLOW, `⊘ brief rejeitado`));
+  } else {
+    console.log(dim("aprovação cancelada"));
+  }
+}
+
 // ---------- comandos ----------
 function printStatus(p) {
   if (!p || !p.appId) {
@@ -920,6 +1073,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge new --idea-file")} ideia.md   ideia GRANDE/estruturada (markdown multi-linha —
             vai inteira pro prompt de todos os jobs; mais contexto = app melhor)
   ${bold("forge new --blueprint gameads")} "<campanha>" [--slug X]   scaffold de projeto por blueprint
+  ${bold("forge onboard")} <slug>       wizard INTAKE + DISCOVERY → brief + gate brief-review
   ${bold("forge feedback")} <app> "<feedback geral>" [--team X] [--dry-run]
             loop de melhoria: aplica seu feedback no app pronto e redeploya
   ${bold("forge attach")}    TUI ao vivo da pipeline
@@ -997,6 +1151,12 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
   }
 
   if (cmd === "team") return teamWizard();
+
+  if (cmd === "onboard") {
+    const slug = rest[0];
+    if (!slug) throw new Error("uso: forge onboard <slug>");
+    return onboardWizard(slug);
+  }
 
   if (cmd === "attach") return attachTUI();
 
