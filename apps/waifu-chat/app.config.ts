@@ -1,4 +1,4 @@
-import { defineApp, type Persona } from "@anime-forge/config";
+import { defineApp, type Persona } from "@forge/config";
 import packV1 from "../../content/personas/waifu-pack-v1.json";
 import packV2 from "../../content/personas/waifu-pack-v2.json";
 

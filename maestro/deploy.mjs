@@ -117,12 +117,12 @@ async function deployToCloudflarePages(pipeline, { root, log }) {
   // 1. Valida output do build
   if (!fs.existsSync(outDir)) {
     log(`▶ build ${appId} (falta out/)`);
-    const buildRes = run(`npm run build -w @anime-forge/${appId}`, {}, 10 * 60 * 1000, root);
+    const buildRes = run(`npm run build -w @forge/${appId}`, {}, 10 * 60 * 1000, root);
     if (!buildRes.ok) {
       return {
         ok: false,
         error: "build falhou",
-        fallbackSteps: [`1. Verifique \`npm run build -w @anime-forge/${appId}\` localmente`],
+        fallbackSteps: [`1. Verifique \`npm run build -w @forge/${appId}\` localmente`],
       };
     }
     if (!fs.existsSync(outDir)) {

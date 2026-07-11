@@ -1,19 +1,19 @@
 {
-  "name": "anime-forge",
+  "name": "forge",
   "private": true,
   "version": "0.1.0",
-  "description": "Factory de webapps nichados com IA (anime-first)",
+  "description": "Starter genérico: ideia → app no ar por pipeline autônoma (profile-driven)",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @anime-forge/waifu-chat",
-    "dev:quiz": "npm run dev -w @anime-forge/anime-quiz",
-    "build": "npm run build -w @anime-forge/waifu-chat",
-    "build:quiz": "npm run build -w @anime-forge/anime-quiz",
-    "build:all": "npm run build -w @anime-forge/waifu-chat ; npm run build -w @anime-forge/anime-quiz",
-    "lint": "npm run lint -w @anime-forge/waifu-chat",
+    "dev": "npm run dev -w @forge/waifu-chat",
+    "dev:quiz": "npm run dev -w @forge/anime-quiz",
+    "build": "npm run build -w @forge/waifu-chat",
+    "build:quiz": "npm run build -w @forge/anime-quiz",
+    "build:all": "npm run build -w @forge/waifu-chat ; npm run build -w @forge/anime-quiz",
+    "lint": "npm run lint -w @forge/waifu-chat",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "maestro": "node maestro/server.mjs",
     "forge": "node maestro/forge.mjs",

@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import type { Persona } from "@anime-forge/config";
+import type { Persona } from "@forge/config";
 
 type Props = {
   open: boolean;

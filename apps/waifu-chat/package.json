@@ -1,5 +1,5 @@
 {
-  "name": "@anime-forge/waifu-chat",
+  "name": "@forge/waifu-chat",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,10 +10,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@anime-forge/ai": "*",
-    "@anime-forge/config": "*",
-    "@anime-forge/credits": "*",
-    "@anime-forge/ui": "*",
+    "@forge/ai": "*",
+    "@forge/config": "*",
+    "@forge/credits": "*",
+    "@forge/ui": "*",
     "ai": "^4.3.16",
     "next": "^15.2.4",
     "react": "^19.0.0",

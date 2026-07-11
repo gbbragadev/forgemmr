@@ -1,5 +1,5 @@
 {
-  "name": "@anime-forge/anime-quiz",
+  "name": "@forge/anime-quiz",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@anime-forge/config": "*",
-    "@anime-forge/ui": "*",
+    "@forge/config": "*",
+    "@forge/ui": "*",
     "next": "^15.2.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

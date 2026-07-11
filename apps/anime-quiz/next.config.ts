@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   output: "export",
   basePath: pagesBase || undefined,
   assetPrefix: pagesBase || undefined,
-  transpilePackages: ["@anime-forge/config", "@anime-forge/ui"],
+  transpilePackages: ["@forge/config", "@forge/ui"],
   experimental: {
     externalDir: true,
   },

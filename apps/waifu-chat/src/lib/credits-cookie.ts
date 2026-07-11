@@ -4,7 +4,7 @@ import {
   createInitialState,
   normalizeDay,
   type CreditState,
-} from "@anime-forge/credits";
+} from "@forge/credits";
 import { appConfig } from "../../app.config";
 
 export const CREDITS_COOKIE = "af_credits";

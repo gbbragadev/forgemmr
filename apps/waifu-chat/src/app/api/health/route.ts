@@ -3,7 +3,7 @@ import {
   getProductApiKey,
   getProductBaseUrl,
   getProductModel,
-} from "@anime-forge/ai";
+} from "@forge/ai";
 
 /** Smoke: confere provider/key do produto (sem vazar o valor). */
 export async function GET() {

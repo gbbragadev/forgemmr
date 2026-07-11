@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { freeRemaining } from "@anime-forge/credits";
+import { freeRemaining } from "@forge/credits";
 import { appConfig } from "../../../../app.config";
 import {
   CREDITS_COOKIE,

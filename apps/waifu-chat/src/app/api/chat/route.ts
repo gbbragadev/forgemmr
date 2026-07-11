@@ -4,7 +4,7 @@ import {
   productKeyHint,
   streamProductChat,
   type ChatMessage,
-} from "@anime-forge/ai";
+} from "@forge/ai";
 import { cookies } from "next/headers";
 import { appConfig } from "../../../../app.config";
 import {

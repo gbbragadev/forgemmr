@@ -1,4 +1,4 @@
-import { defineApp, type Persona } from "@anime-forge/config";
+import { defineApp, type Persona } from "@forge/config";
 import archetypes from "../../content/personas/quiz-archetypes-v1.json";
 
 const personas = archetypes as Persona[];

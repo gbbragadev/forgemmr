@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLocale, setLocale as persistLocale, t, type Dict, type Locale } from "@anime-forge/config";
+import { getLocale, setLocale as persistLocale, t, type Dict, type Locale } from "@forge/config";
 
 /** strings de UI do quiz — PT default, EN alternate */
 export const STRINGS = {

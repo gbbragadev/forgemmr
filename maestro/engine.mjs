@@ -200,7 +200,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
   function verifyDescription(job) {
     if (job === "L0/P0") return `docs/scorecard-${pipeline.appId}.md existe com GO/NO-GO`;
     if (job === "L0/P1") return `docs/content-hooks-${pipeline.appId}.md existe`;
-    return `npm run build -w @anime-forge/${pipeline.appId} sai com exit 0`;
+    return `npm run build -w @forge/${pipeline.appId} sai com exit 0`;
   }
 
   // ---------- verify ----------
@@ -224,7 +224,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     // appId nasce do slugify(), mas revalida aqui: é interpolado em shell (npm.cmd exige shell no Windows)
     if (!/^[a-z0-9-]+$/.test(p.appId)) return { pass: false, detail: `appId inválido: ${p.appId}` };
     try {
-      execSync(`npm run build -w @anime-forge/${p.appId}`, {
+      execSync(`npm run build -w @forge/${p.appId}`, {
         cwd: root,
         stdio: "pipe",
         timeout: 10 * 60 * 1000,

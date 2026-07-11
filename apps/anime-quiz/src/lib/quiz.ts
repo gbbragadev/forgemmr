@@ -1,4 +1,4 @@
-import type { Persona } from "@anime-forge/config";
+import type { Persona } from "@forge/config";
 
 export type QuizOption = {
   id: string;

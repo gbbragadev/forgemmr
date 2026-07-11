@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Persona } from "@anime-forge/config";
+import type { Persona } from "@forge/config";
 import {
   applyWeights,
   emptyScores,

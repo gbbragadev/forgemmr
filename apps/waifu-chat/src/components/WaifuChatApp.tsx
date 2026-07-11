@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "ai/react";
-import type { Persona } from "@anime-forge/config";
+import type { Persona } from "@forge/config";
 import {
   CharacterCard,
   ChatBubble,
   CreditBadge,
   PaywallModal,
-} from "@anime-forge/ui";
+} from "@forge/ui";
 import { ShareCard } from "./ShareCard";
 
 type Props = {
