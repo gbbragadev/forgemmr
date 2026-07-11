@@ -3,8 +3,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { scaffoldProject, writeBriefArtifacts } from "../forge.mjs";
 import { recordDecision, writeApproval } from "../decisions.mjs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const FAKE_EXEC = path.join(__dirname, "..", "fake-exec.mjs");
 
 test("scaffoldProject cria project.json com blueprint e slug", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "forge-"));
@@ -48,4 +53,27 @@ test("writeBriefArtifacts escreve intake.json, brief.json e brief.md", () => {
   assert.equal(intakeBack.company, "Acme");
   const briefBack = JSON.parse(fs.readFileSync(path.join(tmp, ".forge", "projects", "acme", "brief.json"), "utf8"));
   assert.equal(briefBack.problem, "baixa consideração");
+});
+
+test("fake-exec cria artefato declarativo quando FORGE_FAKE_OUTFILE é set", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "forge-fakeexec-"));
+  const outFile = path.join(tmpDir, "campaign-strategy.md");
+  const goal = "Job: STRATEGY\nApp: demo\nRepo: /fake";
+  const env = {
+    ...process.env,
+    FORGE_FAKE_OUTFILE: outFile,
+    FORGE_FAKE_SECTIONS: "Objetivo|Métricas",
+  };
+  try {
+    execFileSync(process.execPath, [FAKE_EXEC, goal], { env, cwd: __dirname });
+    assert.ok(fs.existsSync(outFile), `arquivo não foi criado: ${outFile}`);
+    const content = fs.readFileSync(outFile, "utf8");
+    assert.match(content, /## Objetivo/i, "faltou seção Objetivo");
+    assert.match(content, /## Métricas/i, "faltou seção Métricas");
+    assert.match(content, /STRATEGY/i, "faltou o job no título");
+  } finally {
+    try {
+      fs.rmSync(tmpDir, { recursive: true });
+    } catch {}
+  }
 });

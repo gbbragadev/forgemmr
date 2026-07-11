@@ -26,6 +26,20 @@ if (/FORGE_FAKE_FAIL/.test(goal)) {
   process.exit(1);
 }
 
+// Escreve artefato declarativo quando FORGE_FAKE_OUTFILE é set (dry-run de gameads etc.)
+const outFile = process.env.FORGE_FAKE_OUTFILE;
+if (outFile) {
+  const target = path.isAbsolute(outFile) ? outFile : path.join(ROOT, outFile);
+  const sections = (process.env.FORGE_FAKE_SECTIONS || "").split("|").filter(Boolean);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  const lines = [`# ${job} — ${appId} (dry-run)`];
+  for (const section of sections) {
+    lines.push(`\n## ${section}`, "Conteúdo do ${section} (placeholder dry-run).");
+  }
+  fs.writeFileSync(target, lines.join("\n"), "utf8");
+  console.log(`✓ escreveu ${path.relative(ROOT, target)}`);
+}
+
 if (job === "L0/P0") {
   const p = path.join(ROOT, "docs", `scorecard-${appId}.md`);
   fs.writeFileSync(

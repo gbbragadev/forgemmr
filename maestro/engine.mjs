@@ -556,6 +556,14 @@ export function createEngine({ root, emitLog, emitPipeline }) {
         return;
       }
 
+      // Inject fake-exec env para dry-run com jobSpecs declarativos (gameads etc.)
+      if (pipeline.dryRun) {
+        const vs = pipeline.jobSpecs && pipeline.jobSpecs[job] && pipeline.jobSpecs[job].verify;
+        if (vs && vs.type === "file") {
+          spec.env = { ...spec.env, FORGE_FAKE_OUTFILE: vs.path, FORGE_FAKE_SECTIONS: (vs.sections || []).join("|") };
+        }
+      }
+
       const runDir = path.join(RUNS_DIR, pipeline.runId);
       fs.mkdirSync(runDir, { recursive: true });
       const rawPath = path.join(runDir, `${job.replace("/", "-")}-${Date.now()}.raw.log`);

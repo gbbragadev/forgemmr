@@ -1159,6 +1159,21 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     return onboardWizard(slug);
   }
 
+  if (cmd === "run") {
+    const slug = rest[0];
+    if (!slug) throw new Error("uso: forge run <slug>");
+    const pdir = path.join(ROOT, ".forge", "projects", slug);
+    if (!fs.existsSync(path.join(pdir, "decisions", "001-brief-review.json"))) {
+      throw new Error(`brief não aprovado — rode: forge onboard ${slug}`);
+    }
+    const project = JSON.parse(fs.readFileSync(path.join(pdir, "project.json"), "utf8"));
+    await ensureServer();
+    const r = await api("/api/pipeline/start", { idea: project.idea || slug, appId: slug, slug, blueprint: project.blueprint, team: flags.team });
+    console.log(fg(GREEN, `✓ pipeline gameads iniciada: ${r.pipeline.slug}`));
+    await attachTUI();
+    return;
+  }
+
   if (cmd === "attach") return attachTUI();
 
   if (cmd === "status") {
@@ -1212,8 +1227,11 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
   throw new Error(`comando desconhecido: ${cmd} — forge help`);
 }
 
-main().catch((e) => {
-  console.error(fg(RED, `✗ ${e.message || e}`));
-  process.exitCode = 1; // não usar process.exit(): mata handles do stdin no meio (assertion do libuv)
-  if (process.stdin.isTTY) process.stdin.pause();
-});
+// Apenas executa CLI quando invocado diretamente (não quando importado em testes)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((e) => {
+    console.error(fg(RED, `✗ ${e.message || e}`));
+    process.exitCode = 1; // não usar process.exit(): mata handles do stdin no meio (assertion do libuv)
+    if (process.stdin.isTTY) process.stdin.pause();
+  });
+}
