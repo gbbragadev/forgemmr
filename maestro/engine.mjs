@@ -189,7 +189,9 @@ export const TEAM_ROLES = [
   { id: "Engenheiro", jobs: ["L1/B1", "L1/B4"], desc: "scaffold · API/wire" },
   { id: "Designer", jobs: ["L1/B3", "ITERATE", "DS-GEN"], desc: "UI polish · iteração · design system" },
   { id: "QA", jobs: ["L1/B5"], desc: "ship check" },
-  { id: "Revisor", jobs: [], desc: "overlay: revisa após B1/B4 (opcional)" },
+  // ⚠ overlay de revisão pós-B1/B4 NÃO é executado pela engine (advanceLoop ignora team.review).
+  // Papel mantido p/ compatibilidade do roster; selecionar hoje = no-op. Implementar antes de anunciar.
+  { id: "Revisor", jobs: [], desc: "revisão pós-B1/B4 — ⚠ NÃO wirado na engine ainda (sem efeito hoje)" },
 ];
 
 function teamSlug(s) {
