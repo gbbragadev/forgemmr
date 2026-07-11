@@ -238,9 +238,9 @@ export const TEAM_ROLES = [
   { id: "Engenheiro", jobs: ["L1/B1", "L1/B4"], desc: "scaffold · API/wire" },
   { id: "Designer", jobs: ["L1/B3", "ITERATE", "DS-GEN"], desc: "UI polish · iteração · design system" },
   { id: "QA", jobs: ["L1/B5"], desc: "ship check" },
-  // ⚠ overlay de revisão pós-B1/B4 NÃO é executado pela engine (advanceLoop ignora team.review).
-  // Papel mantido p/ compatibilidade do roster; selecionar hoje = no-op. Implementar antes de anunciar.
-  { id: "Revisor", jobs: [], desc: "revisão pós-B1/B4 — ⚠ NÃO wirado na engine ainda (sem efeito hoje)" },
+  // Papel Revisor não possui jobs de dispatch próprios — atua como OVERLAY via team.review:
+  // a engine (maybeReview no advanceLoop) roda uma passada de revisão adversarial após B1/B4.
+  { id: "Revisor", jobs: [], desc: "revisão adversarial pós-B1/B4 (conserta bug real; reverte se quebrar o build)" },
 ];
 
 function teamSlug(s) {
@@ -774,6 +774,82 @@ export function createEngine({ root, emitLog, emitPipeline }) {
     }
   }
 
+  // ---------- review overlay (papel Revisor: team.review após B1/B4) ----------
+
+  function buildReviewPrompt(job, player) {
+    const p = pipeline;
+    const lines = [
+      `Job: REVIEW de ${job}`,
+      `App: ${p.appId}`,
+      `Repo: ${root}`,
+      `Ideia do app: ${p.idea}`,
+      "",
+      `Você é o REVISOR "${player.name}" na pipeline autônoma Forge. Outro agente acabou de implementar o job ${job}.`,
+      "Revise ADVERSARIALMENTE o que foi feito (veja o diff recente: `git show HEAD` ou `git diff HEAD~1`).",
+      "Procure problemas REAIS: bugs, casos de borda quebrados, segurança, regras do projeto violadas, promessa que a UI faz e o código não cumpre.",
+      "CONSERTE só o que for problema real, de causa raiz e cirúrgico — NÃO reescreva, NÃO expanda escopo, NÃO troque de abordagem.",
+      "Se não achar problema real, NÃO mude NADA e responda apenas 'sem achados'.",
+      "NÃO rode git commit/push (o orquestrador cuida). O build NÃO pode quebrar.",
+      pipelineFooter(),
+    ];
+    if (profile.narrative) lines.push("", "---", "CONTEXTO DO PROJETO:", profile.narrative);
+    const sysDesign = path.join(root, "docs", `system-design-${p.appId}.md`);
+    if (fs.existsSync(sysDesign)) lines.push("", "---", "DESIGN APROVADO (o build deve seguir isto):", fs.readFileSync(sysDesign, "utf8"));
+    return lines.join("\n");
+  }
+
+  /**
+   * Overlay de revisão: se o team tem Revisor (team.review) e o job está em review.after,
+   * roda UMA passada de revisão adversarial pelo player revisor. Advisory-safe: se o revisor
+   * quebrar o verify, desfaz as mudanças dele e mantém a versão do job. Sem Revisor no team =
+   * no-op (team.review undefined → zero impacto nos times grok-solo/grok-glm-front/etc).
+   * Só dispara no caminho genérico (after = ["L1/B1","L1/B4"]); blueprints externos não casam.
+   */
+  async function maybeReview(job) {
+    let rev, player;
+    try {
+      const roster = readRoster();
+      rev = roster.teams?.[pipeline.team]?.review;
+      if (!rev || !Array.isArray(rev.after) || !rev.after.includes(job)) return;
+      player = roster.players.find((pl) => pl.id === rev.player);
+    } catch {
+      return;
+    }
+    if (!player) {
+      log(`· review: player "${rev.player}" não existe no roster — pulando`);
+      return;
+    }
+    log(`🔎 review de ${job} → ${player.name}${player.modelLabel ? " · " + player.modelLabel : ""}`);
+    pipeline.currentPlayer = player.id;
+    save();
+    const res = await runExecutor(player, buildReviewPrompt(job, player), `review-${job}`);
+    if (!pipeline || pipeline.status !== "running") return; // stop/kill durante a review
+    pipeline.currentPlayer = null;
+    if (detectRateLimit(res.tail)) {
+      log(`⏳ review: rate-limit em ${player.id} — pulando revisão (advisory, não bloqueia)`);
+      save();
+      return;
+    }
+    let changed = false;
+    try {
+      changed = !!git(["status", "--porcelain"]);
+    } catch {}
+    if (!changed) {
+      log(`✓ review de ${job}: sem achados (nada alterado)`);
+      save();
+      return;
+    }
+    const v = verify(job);
+    if (v.pass) {
+      checkpoint(`review-${job}`);
+      log(`✓ review de ${job} aplicado (${v.detail})`);
+    } else {
+      rollback(`review de ${job} quebrou o verify`);
+      log(`↶ review de ${job} revertido — build falhou, mantém a versão do job`);
+    }
+    save();
+  }
+
   // ---------- loop ----------
 
   async function advanceLoop() {
@@ -792,6 +868,8 @@ export function createEngine({ root, emitLog, emitPipeline }) {
 
         if (result.pass) {
           if (job !== "P3") checkpoint(job); // P3 já terminou em master via merge — sem commit extra
+          if (job !== "P3") await maybeReview(job); // overlay do papel Revisor (no-op se o team não tem review)
+          if (!pipeline || pipeline.status !== "running") break; // review pode ter sido parada/morta
           pipeline.jobIndex++;
           pipeline.currentJob = pipeline.jobs[pipeline.jobIndex] || null;
           const specGate = pipeline.jobSpecs && pipeline.jobSpecs[job] && pipeline.jobSpecs[job].gate;
