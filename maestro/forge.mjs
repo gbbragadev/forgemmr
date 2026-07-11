@@ -332,6 +332,7 @@ async function attachTUI() {
       if (g) {
         out.push(hr("gate"));
         out.push(row(bold(fg(YELLOW, `⏸ ${g.id}`)) + "  " + truncTo(g.prompt || "", W - 16)));
+        out.push(row(fg(CYAN, `🔍 revise no navegador: ${API}`) + dim("  · doc/preview renderizado + botões")));
         if (state.input) {
           out.push(row(fg(CYAN, `feedback: ${state.input.buffer}▌`) + dim("  (Enter envia · Esc cancela)")));
         } else {
