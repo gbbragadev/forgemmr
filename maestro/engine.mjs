@@ -343,6 +343,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
           root,
           maxTurns: JOB_MAX_TURNS[job] || JOB_MAX_TURNS.default,
           model: player.model !== "default" ? player.model : undefined,
+          effort: player.effort,
         });
       } catch (e) {
         resolve({ exitCode: 1, tail: String(e), spawnError: true });

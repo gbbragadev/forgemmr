@@ -144,10 +144,13 @@ const EMPTY_MCP = path.join(HOME, ".claude", "empty-mcp.json");
  * Monta { cmd, args, env } para um executor headless.
  * @param {string} cli grok | claude | glm | codex | gemini | bernstein | fake
  * @param {string} goal prompt completo do job
- * @param {{ root: string, maxTurns?: number, model?: string }} opts
+ * @param {{ root: string, maxTurns?: number, model?: string, effort?: string }} opts
  */
 export function buildSpawn(cli, goal, opts) {
-  const { root, maxTurns = 30, model } = opts;
+  const { root, maxTurns = 30, model, effort } = opts;
+  // effort só é honrado onde o CLI expõe de fato (codex via -c model_reasoning_effort);
+  // em claude/glm (-p sem flag de effort) e grok fica como etiqueta. Sanitiza p/ argv.
+  const safeEffort = effort && /^[a-z]+$/.test(effort) && effort !== "default" ? effort : null;
   const base = {
     ...process.env,
     FORCE_COLOR: "0",
@@ -215,7 +218,20 @@ export function buildSpawn(cli, goal, opts) {
   }
 
   if (cli === "codex") {
-    return { cmd: "codex", args: ["exec", "--full-auto", goal.replace(/\r?\n/g, " ")], env: base };
+    // Codex CLI (OpenAI, subscription/OAuth). Modelo + effort são REAIS aqui:
+    // -m escolhe o tier (gpt-5.6-sol/terra/luna); model_reasoning_effort vai via -c.
+    // Default do projeto = gpt-5.6-sol · medium (setado no roster.json).
+    return {
+      cmd: "codex",
+      args: [
+        "exec",
+        "--full-auto",
+        ...(model && model !== "default" ? ["-m", model] : []),
+        ...(safeEffort ? ["-c", `model_reasoning_effort=${safeEffort}`] : []),
+        goal.replace(/\r?\n/g, " "),
+      ],
+      env: base,
+    };
   }
 
   if (cli === "gemini") {
