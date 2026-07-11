@@ -886,7 +886,7 @@ async function main() {
 
   if (cmd === "help" || cmd === "--help") {
     console.log(`
-${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (anime-forge)
+${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · profile-driven)
 
   ${bold("forge")}           tela de setup interativa (ideia → time → tipo → RUN)
   ${bold("forge profile init")}   wizard que autora .forge/profile.md (nicho, stack, contexto, idiomas)
