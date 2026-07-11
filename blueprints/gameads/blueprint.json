@@ -1,0 +1,39 @@
+{
+  "name": "gameads",
+  "title": "GameAds — Experiências publicitárias gamificadas",
+  "jobs": ["STRATEGY", "CONCEPTS", "EXPERIENCE-PLAN"],
+  "jobSpecs": {
+    "STRATEGY": {
+      "template": "STRATEGY.md",
+      "inputs": ["docs/${appId}/brief.md"],
+      "verify": { "type": "file", "path": "docs/${appId}/campaign-strategy.md",
+        "sections": ["Objetivo", "Comportamento esperado", "Papel da gamificação", "Métricas"] },
+      "gate": null
+    },
+    "CONCEPTS": {
+      "template": "CONCEPTS.md",
+      "inputs": ["docs/${appId}/brief.md", "docs/${appId}/campaign-strategy.md"],
+      "verify": { "type": "file", "path": "docs/${appId}/concepts.md",
+        "sections": ["Conceito A", "Conceito B", "Conceito C"] },
+      "gate": {
+        "id": "concept-review",
+        "prompt": "3 conceitos prontos (docs/${appId}/concepts.md). Escolha A/B/C (o experience-plan segue o escolhido), refaz ou mata.",
+        "payload": "docs/${appId}/concepts.md",
+        "choices": ["a", "b", "c", "retry", "kill"],
+        "storePick": "conceptChoice"
+      }
+    },
+    "EXPERIENCE-PLAN": {
+      "template": "EXPERIENCE-PLAN.md",
+      "inputs": ["docs/${appId}/brief.md", "docs/${appId}/campaign-strategy.md", "docs/${appId}/concepts.md"],
+      "verify": { "type": "file", "path": "docs/${appId}/experience-plan.md",
+        "sections": ["Jornada", "Mecânicas", "CTA", "Escopo incluído", "Escopo excluído", "Plano de produção"] },
+      "gate": {
+        "id": "experience-plan-review",
+        "prompt": "Experience-plan pronto (docs/${appId}/experience-plan.md) — o artefato aprovável antes da produção. Aprova, refaz ou mata?",
+        "payload": "docs/${appId}/experience-plan.md",
+        "choices": ["go", "retry", "kill"]
+      }
+    }
+  }
+}

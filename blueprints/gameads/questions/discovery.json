@@ -1,0 +1,26 @@
+{
+  "title": "DISCOVERY — Brief detalhado",
+  "outFile": ".forge/projects/${slug}/brief.json",
+  "questions": [
+    { "key": "problem", "label": "Qual é o problema que a campanha resolve?", "type": "textarea", "required": true },
+    { "key": "expectedBehavior", "label": "Qual comportamento você espera do público?", "type": "textarea", "required": true },
+    { "key": "audience", "label": "Descreva o público-alvo (demografia, psicografia, hábitos)?", "type": "textarea", "required": true },
+    { "key": "whereFound", "label": "Onde este público passa tempo (online/offline)?", "type": "list", "required": false },
+    { "key": "attentionSpan", "label": "Quanto tempo o público dá de atenção (em minutos)?", "type": "number", "required": false },
+    { "key": "sentiment", "label": "Tom desejado (divertido, educativo, inspirador, dramático, etc.)?", "type": "text", "required": false },
+    { "key": "mainMessage", "label": "Mensagem principal a comunicar?", "type": "textarea", "required": false },
+    { "key": "cta", "label": "Call-to-action esperado (compra, cadastro, compartilhamento)?", "type": "text", "required": false },
+    { "key": "collectableData", "label": "Que dados sobre o usuário você precisa coletar?", "type": "list", "required": false },
+    { "key": "rewardType", "label": "Tipo de recompensa (desconto, brinde, acesso, reconhecimento)?", "type": "text", "required": false },
+    { "key": "brandRestrictions", "label": "Restrições ou guardrails da marca (tom, estética, valores)?", "type": "textarea", "required": false },
+    { "key": "legalRestrictions", "label": "Restrições legais (idade mínima, regiões, compliance)?", "type": "textarea", "required": false },
+    { "key": "relativeBudget", "label": "Orçamento relativo (baixo/médio/alto)?", "type": "text", "required": false },
+    { "key": "timeline", "label": "Prazo desejado (em semanas)?", "type": "number", "required": false },
+    { "key": "referencesLike", "label": "Campanhas/experiências que você gostaria de emular (links ou descrição)?", "type": "list", "required": false },
+    { "key": "referencesDislike", "label": "Campanhas/experiências que você quer evitar?", "type": "list", "required": false },
+    { "key": "acceptableTechs", "label": "Tecnologias aceitáveis (React, Unity, WebGL, etc.)?", "type": "list", "required": false },
+    { "key": "devices", "label": "Devices alvo (mobile, desktop, tablet, console)?", "type": "list", "required": false },
+    { "key": "accessibility", "label": "Requisitos de acessibilidade (WCAG, legendas, contraste)?", "type": "textarea", "required": false },
+    { "key": "integrations", "label": "Integrações necessárias (payment, analytics, CRM)?", "type": "list", "required": false }
+  ]
+}

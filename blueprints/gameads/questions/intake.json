@@ -1,0 +1,15 @@
+{
+  "title": "INTAKE — contexto mínimo",
+  "outFile": ".forge/projects/${slug}/intake.json",
+  "questions": [
+    { "key": "company", "label": "Qual é a empresa?", "required": true },
+    { "key": "brand", "label": "Qual é a marca?", "required": true },
+    { "key": "product", "label": "Qual é o produto?", "required": true },
+    { "key": "campaign", "label": "Qual é a campanha (objetivo em 1 linha)?", "required": true },
+    { "key": "contactName", "label": "Responsável (nome)?", "required": false },
+    { "key": "contactEmail", "label": "E-mail do responsável?", "required": false },
+    { "key": "channels", "label": "Canais (separados por vírgula)?", "type": "list", "required": false },
+    { "key": "assets", "label": "Assets já existentes (vírgula)?", "type": "list", "required": false },
+    { "key": "locale", "label": "Idioma (default pt-BR)?", "required": false, "default": "pt-BR" }
+  ]
+}
