@@ -36,3 +36,7 @@ maestro/proposals/
 
 # scratch da skill ground-first
 .ground-first/
+
+# estado ativo do profile — a fonte tracked é profiles/<slug>/profile.md
+.forge/profile.md
+.forge/active.txt

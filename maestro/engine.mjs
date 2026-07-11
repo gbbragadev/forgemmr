@@ -232,6 +232,78 @@ export function buildProfileMd(data) {
   ].join("\n");
 }
 
+// ---------- biblioteca de profiles (profiles/<slug>/profile.md; ativo = cópia em .forge/) ----------
+
+/** Extrai name/niche do fence forge-config de um profile.md (sem aplicar defaults). */
+function readProfileMeta(file) {
+  try {
+    const raw = fs.readFileSync(file, "utf8");
+    const m = raw.match(/^```forge-config[ \t]*\r?\n([\s\S]*?)\r?\n```/m);
+    const knobs = m ? JSON.parse(m[1]) : {};
+    return { name: knobs.name || "(sem nome)", niche: knobs.niche || "generic" };
+  } catch {
+    return { name: "(profile inválido)", niche: "?" };
+  }
+}
+
+/** Lista a biblioteca profiles/<slug>/profile.md; marca o ativo via .forge/active.txt. */
+export function listProfiles(root) {
+  const dir = path.join(root, "profiles");
+  if (!fs.existsSync(dir)) return [];
+  let active = "";
+  try {
+    active = fs.readFileSync(path.join(root, ".forge", "active.txt"), "utf8").trim();
+  } catch {}
+  const out = [];
+  for (const slug of fs.readdirSync(dir).sort()) {
+    const file = path.join(dir, slug, "profile.md");
+    if (!fs.existsSync(file)) continue;
+    out.push({ slug, ...readProfileMeta(file), active: slug === active });
+  }
+  return out;
+}
+
+/** Ativa um profile da biblioteca: copia para .forge/profile.md + grava .forge/active.txt. */
+export function activateProfile(root, slug) {
+  const src = path.join(root, "profiles", slug, "profile.md");
+  if (!fs.existsSync(src)) throw new Error(`profile "${slug}" não existe em profiles/ — forge profile init para criar`);
+  const forgeDir = path.join(root, ".forge");
+  fs.mkdirSync(forgeDir, { recursive: true });
+  fs.copyFileSync(src, path.join(forgeDir, "profile.md"));
+  fs.writeFileSync(path.join(forgeDir, "active.txt"), slug, "utf8");
+  return slug;
+}
+
+/**
+ * Seed/migração: se .forge/profile.md existe sem correspondente em profiles/ (por slugify(name)),
+ * importa para a biblioteca. Sempre garante active.txt apontando pro slug. Devolve o slug ou null.
+ */
+export function importActiveProfile(root) {
+  const activeFile = path.join(root, ".forge", "profile.md");
+  if (!fs.existsSync(activeFile)) return null;
+  const norm = (s) => s.replace(/\r\n/g, "\n");
+  const activeRaw = norm(fs.readFileSync(activeFile, "utf8"));
+  // dedup por conteúdo: cópia ativa idêntica a um profile da biblioteca (slug manual) → só aponta
+  const dir = path.join(root, "profiles");
+  if (fs.existsSync(dir)) {
+    for (const s of fs.readdirSync(dir).sort()) {
+      const f = path.join(dir, s, "profile.md");
+      if (fs.existsSync(f) && norm(fs.readFileSync(f, "utf8")) === activeRaw) {
+        fs.writeFileSync(path.join(root, ".forge", "active.txt"), s, "utf8");
+        return s;
+      }
+    }
+  }
+  const slug = slugify(readProfileMeta(activeFile).name) || "default";
+  const libFile = path.join(root, "profiles", slug, "profile.md");
+  if (!fs.existsSync(libFile)) {
+    fs.mkdirSync(path.dirname(libFile), { recursive: true });
+    fs.copyFileSync(activeFile, libFile);
+  }
+  fs.writeFileSync(path.join(root, ".forge", "active.txt"), slug, "utf8");
+  return slug;
+}
+
 // Papéis do team builder → jobs que cada papel cobre no dispatch da pipeline.
 export const TEAM_ROLES = [
   { id: "Estrategista", jobs: ["L0/P0", "FOUNDATION", "L0/P1", "L1/B2"], desc: "scorecard · fundação · hooks · personas" },
@@ -1011,6 +1083,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       capability,
       dryRun,
       status: "running",
+      profileName: profile.name,
       jobs,
       jobIndex: 0,
       currentJob: null,
@@ -1105,6 +1178,7 @@ export function createEngine({ root, emitLog, emitPipeline }) {
       capability,
       dryRun,
       status: "running",
+      profileName: profile.name,
       jobs: ["ITERATE", "L1/B5", "P3"],
       jobIndex: 0,
       currentJob: null,

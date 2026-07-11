@@ -15,7 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import readline from "node:readline";
-import { buildProfileMd, composeTeam, TEAM_ROLES, slugify } from "./engine.mjs";
+import { buildProfileMd, composeTeam, TEAM_ROLES, slugify, listProfiles, activateProfile, importActiveProfile } from "./engine.mjs";
 import { loadBlueprint } from "./blueprint-loader.mjs";
 import { recordDecision } from "./decisions.mjs";
 
@@ -282,7 +282,7 @@ async function attachTUI() {
     } else {
       out.push(
         row(
-          `${bold(p.appId)} ${dim("·")} team ${fg(CYAN, p.team)} ${dim("·")} ${statusBadge(p.status)}${p.dryRun ? dim(" · DRY-RUN") : ""}`
+          `${bold(p.appId)} ${dim("·")} team ${fg(CYAN, p.team)}${p.profileName ? ` ${dim("·")} profile ${fg(CYAN, p.profileName)}` : ""} ${dim("·")} ${statusBadge(p.status)}${p.dryRun ? dim(" · DRY-RUN") : ""}`
         )
       );
       out.push(
@@ -374,7 +374,30 @@ async function attachTUI() {
   render();
 }
 
-// ---------- setup wizard (forge sem args — estilo tela inicial de harness) ----------
+// ---------- setup wizard (forge sem args — onboarding unificado: profile → ideia → nome → time → tipo) ----------
+
+// dados de profile compartilhados (passo inline do onboarding + forge profile init)
+const PROFILE_I18N_OPTS = [
+  ["single", "só pt-BR", ["pt-BR"]],
+  ["bilingual", "pt-BR + inglês (toggle no app)", ["pt-BR", "en"]],
+];
+const PROFILE_FIELDS = [
+  { key: "name", title: "Nome do projeto", ex: "Anime Forge · Fitplan · FinTrack", min: 2, max: 60 },
+  { key: "niche", title: "Nicho / vertical", ex: "anime · fitness · finanças pessoais", min: 2, max: 40 },
+  { key: "namespace", title: "Namespace dos apps (npm workspaces)", ex: "@forge  → apps viram @forge/<app>", min: 2, max: 40 },
+  { key: "baseUrl", title: "Domínio de deploy", ex: "gbbragadev.com  → <app>.gbbragadev.com", min: 3, max: 60 },
+];
+
+/** Grava um profile novo na biblioteca (profiles/<slug>/profile.md) e o ativa. */
+function saveProfileToLibrary(data) {
+  const slug = slugify(data.name) || "default";
+  const dir = path.join(ROOT, "profiles", slug);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "profile.md"), buildProfileMd(data), "utf8");
+  activateProfile(ROOT, slug);
+  return slug;
+}
+
 async function wizard() {
   await ensureServer();
   let roster = null;
@@ -388,13 +411,41 @@ async function wizard() {
     ["quiz", "quiz estático shareable"],
     ["chat", "app com API/chat (server → Vercel)"],
   ];
-  const st = { step: 0, idea: "", teamIdx: 0, capIdx: 0, dry: false, err: "" };
+
+  importActiveProfile(ROOT); // migra .forge/profile.md órfão pra biblioteca (idempotente)
+  let profiles = listProfiles(ROOT);
+
+  const freshTm = () => ({
+    teamName: "", musicians: [], provIdx: 0, modelIdx: 0, effortIdx: 0,
+    roleSel: TEAM_ROLES.map(() => false), roleCursor: 0, moreIdx: 0,
+  });
+  const st = {
+    phase: "profile",
+    profIdx: Math.max(0, profiles.findIndex((p) => p.active)),
+    pf: { step: 0, name: "", niche: "", namespace: "@forge", baseUrl: "gbbragadev.com", context: "", i18nIdx: 0 },
+    idea: "",
+    appName: "",
+    nameEdited: false,
+    teamIdx: 0,
+    tm: freshTm(),
+    capIdx: 0,
+    dry: false,
+    err: "",
+  };
+  const activeProfile = () => profiles.find((p) => p.active) || null;
+  const curProv = () => PROVIDERS[st.tm.provIdx];
 
   process.stdout.write(`${ESC}?1049h${ESC}?25l`);
   const restore = () => process.stdout.write(`${ESC}?25h${ESC}?1049l`);
   enableKeys();
 
-  const stepNames = ["ideia", "time", "tipo", "confirmar"];
+  const stepNames = ["profile", "ideia", "nome", "time", "tipo", "confirmar"];
+  const stepOf = {
+    profile: 0, "pf-field": 0, "pf-context": 0, "pf-i18n": 0,
+    idea: 1, name: 2,
+    team: 3, "tm-name": 3, "tm-provider": 3, "tm-model": 3, "tm-effort": 3, "tm-roles": 3, "tm-more": 3, "tm-confirm": 3,
+    cap: 4, confirm: 5,
+  };
 
   function render() {
     const cols = Math.max(64, Math.min(process.stdout.columns || 100, 100));
@@ -402,11 +453,57 @@ async function wizard() {
     const out = [];
     const row = (s) => fg(PURPLE, "│") + padTo(" " + truncTo(s, W - 2), W) + fg(PURPLE, "│");
     const blank = () => row("");
-    out.push(fg(PURPLE, "┌─ ") + bold(fg(PURPLE, "🎼 MAESTRO · NOVO APP")) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - 25)) + "┐"));
-    out.push(row(stepNames.map((n, i) => (i === st.step ? bold(fg(CYAN, `● ${n}`)) : i < st.step ? fg(GREEN, `✓ ${n}`) : dim(`○ ${n}`))).join(dim("  ─  "))));
+    const ap = activeProfile();
+    const title = `🎼 MAESTRO · NOVO APP · Profile: ${ap ? ap.name : "(nenhum)"}`;
+    out.push(fg(PURPLE, "┌─ ") + bold(fg(PURPLE, title)) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - visibleLen(title) - 5)) + "┐"));
+    const cur = stepOf[st.phase] ?? 0;
+    out.push(row(stepNames.map((n, i) => (i === cur ? bold(fg(CYAN, `● ${n}`)) : i < cur ? fg(GREEN, `✓ ${n}`) : dim(`○ ${n}`))).join(dim(" ─ "))));
     out.push(blank());
 
-    if (st.step === 0) {
+    if (st.phase === "profile") {
+      out.push(row(bold("Qual profile (vertical) rege este app?")));
+      out.push(blank());
+      profiles.forEach((pr, i) => {
+        const sel = i === st.profIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(pr.name) : pr.name}  ${dim(`nicho: ${pr.niche} · ${pr.slug}`)}${pr.active ? fg(GREEN, "  ● ativo") : ""}`));
+      });
+      const selNew = st.profIdx === profiles.length;
+      out.push(row(`${selNew ? bold(fg(CYAN, "▸ ")) : "  "}${selNew ? bold("➕ criar novo profile") : "➕ criar novo profile"}`));
+      if (!profiles.length) {
+        out.push(blank());
+        out.push(row(dim("  biblioteca vazia (profiles/) — crie o primeiro profile")));
+      }
+    } else if (st.phase === "pf-field") {
+      const f = PROFILE_FIELDS[st.pf.step];
+      out.push(row(bold(`Novo profile · ${f.title}?`)));
+      out.push(blank());
+      out.push(row(fg(CYAN, `  ${st.pf[f.key]}▌`)));
+      out.push(blank());
+      out.push(row(dim(`  ex.: ${f.ex}`)));
+    } else if (st.phase === "pf-context") {
+      out.push(row(bold("Novo profile · contexto & temas")));
+      out.push(blank());
+      out.push(row(dim("  descreva o projeto: temas, público, tom — vira fonte da verdade nos prompts")));
+      out.push(blank());
+      const words = st.pf.context.split(" ");
+      let line = "  ";
+      const lines = [];
+      for (const w of words) {
+        if (visibleLen(line + w) > W - 6) { lines.push(line); line = "  "; }
+        line += w + " ";
+      }
+      lines.push(line + "▌");
+      for (const l of lines.slice(-6)) out.push(row(fg(CYAN, l)));
+      out.push(blank());
+      out.push(row(dim(`  ${st.pf.context.length}/800 · Enter = continuar`)));
+    } else if (st.phase === "pf-i18n") {
+      out.push(row(bold("Novo profile · idiomas do conteúdo user-facing?")));
+      out.push(blank());
+      PROFILE_I18N_OPTS.forEach(([id, label], i) => {
+        const sel = i === st.pf.i18nIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(id) : id}  ${dim(label)}`));
+      });
+    } else if (st.phase === "idea") {
       out.push(row(bold("Qual é a ideia do app?")));
       out.push(blank());
       out.push(row(fg(CYAN, `  ${st.idea}▌`)));
@@ -415,8 +512,14 @@ async function wizard() {
       out.push(blank());
       out.push(row(dim("  ideia grande/detalhada? escreva um .md em ideas/ (pasta gitignored) e rode:")));
       out.push(row(dim("  forge new --idea-file ideas/minha-ideia.md   (mais contexto = app melhor)")));
-    } else if (st.step === 1) {
-      out.push(row(bold("Quem toca? (setup de agentes)")));
+    } else if (st.phase === "name") {
+      out.push(row(bold("Nome do app? (default veio da ideia — edite à vontade)")));
+      out.push(blank());
+      out.push(row(fg(CYAN, `  ${st.appName}▌`)));
+      out.push(blank());
+      out.push(row(dim(`  vira: apps/${slugify(st.appName) || "?"} · branch pipeline/${slugify(st.appName) || "?"}`)));
+    } else if (st.phase === "team") {
+      out.push(row(bold("Quem toca? (preset do roster ou monte um time)")));
       out.push(blank());
       teams.forEach(([id, t], i) => {
         const sel = i === st.teamIdx;
@@ -424,7 +527,70 @@ async function wizard() {
         out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${t.emoji || "·"} ${sel ? bold(id) : id}  ${dim(t.label || "")}`));
         if (sel) out.push(row(dim(`      ${disp}`)));
       });
-    } else if (st.step === 2) {
+      const selNew = st.teamIdx === teams.length;
+      out.push(row(`${selNew ? bold(fg(CYAN, "▸ ")) : "  "}${selNew ? bold("➕ montar time custom") : "➕ montar time custom"}`));
+    } else if (st.phase === "tm-name") {
+      out.push(row(bold("Time custom · nome?")));
+      out.push(blank());
+      out.push(row(fg(CYAN, `  ${st.tm.teamName}▌`)));
+      out.push(blank());
+      out.push(row(dim("  ex.: Sol solo · Grok+GLM · Opus backend + Sonnet front")));
+    } else if (st.phase === "tm-provider") {
+      out.push(row(bold(`Músico ${st.tm.musicians.length + 1} · provedor?`)));
+      out.push(blank());
+      PROVIDERS.forEach((p, i) => {
+        const sel = i === st.tm.provIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${p.face} ${sel ? bold(p.id) : p.id}  ${dim(`${p.cli}${p.env ? "/" + p.env : ""} · effort ${p.real ? "real" : "etiqueta"}`)}`));
+      });
+    } else if (st.phase === "tm-model") {
+      const p = curProv();
+      out.push(row(bold(`${p.face} ${p.id} · modelo?`)));
+      out.push(blank());
+      p.models.forEach((m, i) => {
+        const sel = i === st.tm.modelIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(m.label) : m.label}  ${dim(m.id)}`));
+      });
+    } else if (st.phase === "tm-effort") {
+      const p = curProv();
+      out.push(row(bold(`${p.face} ${p.models[st.tm.modelIdx].label} · effort?`)));
+      out.push(blank());
+      p.efforts.forEach((e, i) => {
+        const sel = i === st.tm.effortIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(e.toUpperCase()) : e.toUpperCase()}`));
+      });
+      out.push(blank());
+      out.push(row(dim(p.real ? "  effort REAL neste provedor (muda o raciocínio)" : "  etiqueta: este CLI não expõe effort — informativo")));
+    } else if (st.phase === "tm-roles") {
+      out.push(row(bold(`${curProv().models[st.tm.modelIdx].label} · funções? (espaço marca · a = todas)`)));
+      out.push(blank());
+      TEAM_ROLES.forEach((r, i) => {
+        const on = st.tm.roleSel[i];
+        const cursor = i === st.tm.roleCursor;
+        out.push(row(`${cursor ? bold(fg(CYAN, "▸ ")) : "  "}${on ? fg(GREEN, "[x]") : "[ ]"} ${cursor ? bold(r.id) : r.id}  ${dim(r.desc)}`));
+      });
+    } else if (st.phase === "tm-more") {
+      out.push(row(bold("Time montado até aqui:")));
+      out.push(blank());
+      st.tm.musicians.forEach((m) => out.push(row(`  ${m.face} ${fg(CYAN, m.modelLabel)} ${m.effort.toUpperCase()} ${dim("→ " + m.roles.join(" · "))}`)));
+      out.push(blank());
+      [["+ adicionar outro músico"], ["finalizar e gravar"]].forEach(([label], i) => {
+        const sel = i === st.tm.moreIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(label) : label}`));
+      });
+    } else if (st.phase === "tm-confirm") {
+      const { team, players } = composeTeam(st.tm.teamName.trim() || "time", st.tm.musicians);
+      const covered = new Set(Object.keys(team.dispatch).filter((k) => k !== "default"));
+      const coreRoles = ["Estrategista", "Engenheiro", "Designer", "QA"];
+      const missing = coreRoles.filter((r) => !st.tm.musicians.some((m) => m.roles.includes(r)));
+      out.push(row(bold(`Gravar time "${st.tm.teamName.trim()}" (${players.length} músico(s))`)));
+      out.push(blank());
+      st.tm.musicians.forEach((m) => out.push(row(`  ${m.face} ${fg(CYAN, m.modelLabel)} ${m.effort.toUpperCase()} ${dim("→ " + m.roles.join("/"))}`)));
+      out.push(blank());
+      out.push(row(dim(`  cobre ${covered.size} jobs · default = ${team.dispatch.default || "—"}`)));
+      if (missing.length) out.push(row(fg(YELLOW, `  ⚠ sem papel: ${missing.join(", ")} → cai no default nesses jobs`)));
+      out.push(blank());
+      out.push(row(bold(fg(GREEN, "  Enter = gravar e usar este time ▶"))));
+    } else if (st.phase === "cap") {
       out.push(row(bold("Que tipo de app?")));
       out.push(blank());
       caps.forEach(([id, label], i) => {
@@ -435,7 +601,9 @@ async function wizard() {
       const [teamId, team] = teams[st.teamIdx];
       out.push(row(bold("Partitura pronta:")));
       out.push(blank());
+      out.push(row(`  profile ${fg(CYAN, ap ? ap.name : "?")} ${dim(ap ? `(nicho: ${ap.niche})` : "")}`));
       out.push(row(`  ideia   ${fg(CYAN, truncTo(st.idea, W - 14))}`));
+      out.push(row(`  app     ${fg(CYAN, slugify(st.appName))}`));
       out.push(row(`  time    ${team.emoji || "·"} ${fg(CYAN, teamId)} ${dim(team.label || "")}`));
       out.push(row(`  tipo    ${fg(CYAN, caps[st.capIdx][0])}`));
       out.push(row(`  dry-run ${st.dry ? fg(YELLOW, "SIM (não gasta limite)") : dim("não")}   ${dim("← tecla [d] alterna")}`));
@@ -445,12 +613,15 @@ async function wizard() {
 
     out.push(blank());
     if (st.err) out.push(row(fg(RED, st.err)));
+    const typing = ["pf-field", "pf-context", "idea", "name", "tm-name"].includes(st.phase);
     const hints =
-      st.step === 0
-        ? "Enter continua · Esc sai"
-        : st.step === 3
-          ? "Enter inicia · d dry-run · ← volta · Esc sai"
-          : "↑↓ escolhe · Enter continua · ← volta · Esc sai";
+      st.phase === "confirm"
+        ? "Enter inicia · d dry-run · ← volta · Esc sai"
+        : st.phase === "tm-roles"
+          ? "↑↓ move · espaço marca · a todas · Enter confirma · ← volta · Esc sai"
+          : typing
+            ? "Enter continua · ← volta · Esc sai"
+            : "↑↓ escolhe · Enter continua · ← volta · Esc sai";
     out.push(fg(PURPLE, "└─ ") + dim(hints) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - visibleLen(hints) - 5)) + "┘"));
 
     let frame = `${ESC}H`;
@@ -461,31 +632,149 @@ async function wizard() {
 
   const payload = await new Promise((resolve) => {
     const bootAt = Date.now();
+    const commitMusician = () => {
+      const p = curProv();
+      st.tm.musicians.push({
+        provider: p.id, cli: p.cli, env: p.env, model: p.models[st.tm.modelIdx].id,
+        modelLabel: p.models[st.tm.modelIdx].label, effort: p.efforts[st.tm.effortIdx],
+        roles: TEAM_ROLES.filter((_, i) => st.tm.roleSel[i]).map((r) => r.id),
+        face: p.face, color: p.color,
+      });
+      st.tm.provIdx = 0; st.tm.modelIdx = 0; st.tm.effortIdx = 0;
+      st.tm.roleSel = TEAM_ROLES.map(() => false); st.tm.roleCursor = 0;
+    };
     const onKey = (str, key) => {
       // terminais Windows soltam ESC fantasma ao entrar em raw mode — engole o boot
       if (Date.now() - bootAt < 350) return;
       st.err = "";
       if ((key.ctrl && key.name === "c") || key.name === "escape") return finish(null);
-      if (st.step === 0) {
+
+      if (st.phase === "profile") {
+        const n = profiles.length + 1;
+        if (key.name === "up") st.profIdx = (st.profIdx + n - 1) % n;
+        else if (key.name === "down") st.profIdx = (st.profIdx + 1) % n;
+        else if (key.name === "return") {
+          if (st.profIdx === profiles.length) {
+            st.pf = { step: 0, name: "", niche: "", namespace: "@forge", baseUrl: "gbbragadev.com", context: "", i18nIdx: 0 };
+            st.phase = "pf-field";
+          } else {
+            activateProfile(ROOT, profiles[st.profIdx].slug);
+            profiles = listProfiles(ROOT);
+            st.phase = "idea";
+          }
+        }
+      } else if (st.phase === "pf-field") {
+        const f = PROFILE_FIELDS[st.pf.step];
         if (key.name === "return") {
-          if (st.idea.trim().length >= 6) st.step = 1;
-          else st.err = "escreve a ideia (mínimo 6 caracteres)";
+          if (String(st.pf[f.key]).trim().length >= f.min) {
+            if (st.pf.step < PROFILE_FIELDS.length - 1) st.pf.step++;
+            else st.phase = "pf-context";
+          } else st.err = `mínimo ${f.min} caracteres`;
+        } else if (key.name === "backspace") st.pf[f.key] = st.pf[f.key].slice(0, -1);
+        else if (key.name === "left") {
+          if (st.pf.step > 0) st.pf.step--;
+          else st.phase = "profile";
+        } else if (str && !key.ctrl && str >= " " && st.pf[f.key].length < f.max) st.pf[f.key] += str;
+      } else if (st.phase === "pf-context") {
+        if (key.name === "return") st.phase = "pf-i18n";
+        else if (key.name === "backspace") st.pf.context = st.pf.context.slice(0, -1);
+        else if (key.name === "left" && !st.pf.context) st.phase = "pf-field";
+        else if (str && !key.ctrl && str >= " " && st.pf.context.length < 800) st.pf.context += str;
+      } else if (st.phase === "pf-i18n") {
+        const n = PROFILE_I18N_OPTS.length;
+        if (key.name === "up") st.pf.i18nIdx = (st.pf.i18nIdx + n - 1) % n;
+        else if (key.name === "down") st.pf.i18nIdx = (st.pf.i18nIdx + 1) % n;
+        else if (key.name === "left") st.phase = "pf-context";
+        else if (key.name === "return") {
+          const [rule, , locales] = PROFILE_I18N_OPTS[st.pf.i18nIdx];
+          saveProfileToLibrary({
+            name: st.pf.name.trim(), niche: st.pf.niche.trim(), namespace: st.pf.namespace.trim(),
+            baseUrl: st.pf.baseUrl.trim(), i18nRule: rule, locales, context: st.pf.context.trim(),
+          });
+          profiles = listProfiles(ROOT);
+          st.profIdx = Math.max(0, profiles.findIndex((p) => p.active));
+          st.phase = "idea";
+        }
+      } else if (st.phase === "idea") {
+        if (key.name === "return") {
+          if (st.idea.trim().length >= 6) {
+            if (!st.nameEdited) st.appName = slugify(st.idea);
+            st.phase = "name";
+          } else st.err = "escreve a ideia (mínimo 6 caracteres)";
         } else if (key.name === "backspace") st.idea = st.idea.slice(0, -1);
+        else if (key.name === "left" && !st.idea) st.phase = "profile";
         else if (str && !key.ctrl && str >= " " && st.idea.length < 600) st.idea += str;
-      } else if (st.step === 1) {
-        if (key.name === "up") st.teamIdx = (st.teamIdx + teams.length - 1) % teams.length;
-        else if (key.name === "down") st.teamIdx = (st.teamIdx + 1) % teams.length;
-        else if (key.name === "return") st.step = 2;
-        else if (key.name === "left") st.step = 0;
-      } else if (st.step === 2) {
+      } else if (st.phase === "name") {
+        if (key.name === "return") {
+          if (slugify(st.appName)) st.phase = "team";
+          else st.err = "nome vazio — o app precisa de um slug";
+        } else if (key.name === "backspace") { st.appName = st.appName.slice(0, -1); st.nameEdited = true; }
+        else if (key.name === "left") st.phase = "idea";
+        else if (str && !key.ctrl && str >= " " && st.appName.length < 60) { st.appName += str; st.nameEdited = true; }
+      } else if (st.phase === "team") {
+        const n = teams.length + 1;
+        if (key.name === "up") st.teamIdx = (st.teamIdx + n - 1) % n;
+        else if (key.name === "down") st.teamIdx = (st.teamIdx + 1) % n;
+        else if (key.name === "return") {
+          if (st.teamIdx === teams.length) { st.tm = freshTm(); st.phase = "tm-name"; }
+          else st.phase = "cap";
+        } else if (key.name === "left") st.phase = "name";
+      } else if (st.phase === "tm-name") {
+        if (key.name === "return") {
+          if (st.tm.teamName.trim().length >= 2) st.phase = "tm-provider";
+          else st.err = "mínimo 2 caracteres";
+        } else if (key.name === "backspace") st.tm.teamName = st.tm.teamName.slice(0, -1);
+        else if (key.name === "left") st.phase = "team";
+        else if (str && !key.ctrl && str >= " " && st.tm.teamName.length < 40) st.tm.teamName += str;
+      } else if (st.phase === "tm-provider") {
+        const n = PROVIDERS.length;
+        if (key.name === "up") st.tm.provIdx = (st.tm.provIdx + n - 1) % n;
+        else if (key.name === "down") st.tm.provIdx = (st.tm.provIdx + 1) % n;
+        else if (key.name === "return") { st.tm.modelIdx = 0; st.tm.effortIdx = 0; st.phase = "tm-model"; }
+        else if (key.name === "left") st.phase = st.tm.musicians.length ? "tm-more" : "tm-name";
+      } else if (st.phase === "tm-model") {
+        const n = curProv().models.length;
+        if (key.name === "up") st.tm.modelIdx = (st.tm.modelIdx + n - 1) % n;
+        else if (key.name === "down") st.tm.modelIdx = (st.tm.modelIdx + 1) % n;
+        else if (key.name === "return") { st.tm.effortIdx = 0; st.phase = "tm-effort"; }
+        else if (key.name === "left") st.phase = "tm-provider";
+      } else if (st.phase === "tm-effort") {
+        const n = curProv().efforts.length;
+        if (key.name === "up") st.tm.effortIdx = (st.tm.effortIdx + n - 1) % n;
+        else if (key.name === "down") st.tm.effortIdx = (st.tm.effortIdx + 1) % n;
+        else if (key.name === "return") st.phase = "tm-roles";
+        else if (key.name === "left") st.phase = "tm-model";
+      } else if (st.phase === "tm-roles") {
+        const n = TEAM_ROLES.length;
+        if (key.name === "up") st.tm.roleCursor = (st.tm.roleCursor + n - 1) % n;
+        else if (key.name === "down") st.tm.roleCursor = (st.tm.roleCursor + 1) % n;
+        else if (str === " ") st.tm.roleSel[st.tm.roleCursor] = !st.tm.roleSel[st.tm.roleCursor];
+        else if (str === "a") st.tm.roleSel = TEAM_ROLES.map(() => true);
+        else if (key.name === "return") {
+          if (st.tm.roleSel.some(Boolean)) { commitMusician(); st.tm.moreIdx = 0; st.phase = "tm-more"; }
+          else st.err = "marque ao menos 1 função (espaço) ou 'a' pra todas";
+        } else if (key.name === "left") st.phase = "tm-effort";
+      } else if (st.phase === "tm-more") {
+        if (key.name === "up" || key.name === "down") st.tm.moreIdx = st.tm.moreIdx ? 0 : 1;
+        else if (key.name === "return") st.phase = st.tm.moreIdx === 0 ? "tm-provider" : "tm-confirm";
+        else if (key.name === "left") st.phase = "tm-provider";
+      } else if (st.phase === "tm-confirm") {
+        if (key.name === "return") {
+          const { teamId, team, players } = composeTeam(st.tm.teamName.trim() || "time", st.tm.musicians, st.tm.musicians[0]?.face || "🎼");
+          writeTeamToRoster(teamId, team, players);
+          teams.push([teamId, team]);
+          st.teamIdx = teams.length - 1;
+          st.phase = "cap";
+        } else if (key.name === "left") { st.tm.moreIdx = 1; st.phase = "tm-more"; }
+      } else if (st.phase === "cap") {
         if (key.name === "up") st.capIdx = (st.capIdx + caps.length - 1) % caps.length;
         else if (key.name === "down") st.capIdx = (st.capIdx + 1) % caps.length;
-        else if (key.name === "return") st.step = 3;
-        else if (key.name === "left") st.step = 1;
+        else if (key.name === "return") st.phase = "confirm";
+        else if (key.name === "left") st.phase = "team";
       } else {
         if (key.name === "return")
-          return finish({ idea: st.idea.trim(), team: teams[st.teamIdx][0], capability: caps[st.capIdx][0], dryRun: st.dry });
-        if (key.name === "left") st.step = 2;
+          return finish({ idea: st.idea.trim(), team: teams[st.teamIdx][0], capability: caps[st.capIdx][0], dryRun: st.dry, appId: slugify(st.appName) });
+        if (key.name === "left") st.phase = "cap";
         if (str === "d") st.dry = !st.dry;
       }
       render();
@@ -504,7 +793,7 @@ async function wizard() {
     process.exit(0);
   }
   const r = await api("/api/pipeline/start", payload);
-  console.log(fg(GREEN, `✓ pipeline iniciada: ${r.pipeline.appId} · team ${r.pipeline.team}`));
+  console.log(fg(GREEN, `✓ pipeline iniciada: ${r.pipeline.appId} · team ${r.pipeline.team} · profile ${r.pipeline.profileName || "?"}`));
   await attachTUI();
 }
 
@@ -517,16 +806,8 @@ async function profileWizard() {
     existingName = m ? m[1] : "(sem nome)";
   } catch {}
 
-  const i18nOpts = [
-    ["single", "só pt-BR", ["pt-BR"]],
-    ["bilingual", "pt-BR + inglês (toggle no app)", ["pt-BR", "en"]],
-  ];
-  const fields = [
-    { key: "name", title: "Nome do projeto", ex: "Anime Forge · Fitplan · FinTrack", min: 2, max: 60 },
-    { key: "niche", title: "Nicho / vertical", ex: "anime · fitness · finanças pessoais", min: 2, max: 40 },
-    { key: "namespace", title: "Namespace dos apps (npm workspaces)", ex: "@forge  → apps viram @forge/<app>", min: 2, max: 40 },
-    { key: "baseUrl", title: "Domínio de deploy", ex: "gbbragadev.com  → <app>.gbbragadev.com", min: 3, max: 60 },
-  ];
+  const i18nOpts = PROFILE_I18N_OPTS;
+  const fields = PROFILE_FIELDS;
   const CONTEXT_STEP = fields.length; // textarea
   const I18N_STEP = fields.length + 1;
   const CONFIRM_STEP = fields.length + 2;
@@ -589,7 +870,7 @@ async function profileWizard() {
       out.push(row(`  idiomas    ${fg(CYAN, i18nOpts[st.i18nIdx][2].join(" + "))}`));
       out.push(row(`  contexto   ${dim(truncTo(st.context || "(vazio — edite depois)", W - 16))}`));
       out.push(blank());
-      out.push(row(dim(`  grava em .forge/profile.md`)));
+      out.push(row(dim(`  grava em profiles/<slug>/profile.md e ativa (.forge/profile.md)`)));
       if (existingName) out.push(row(fg(YELLOW, `  ⚠ substitui o profile atual: "${existingName}"`)));
       out.push(blank());
       out.push(row(bold(fg(GREEN, "  Enter = gravar profile ▶"))));
@@ -661,9 +942,8 @@ async function profileWizard() {
     console.log(dim("profile init cancelado"));
     process.exit(0);
   }
-  fs.mkdirSync(path.dirname(profilePath), { recursive: true });
-  fs.writeFileSync(profilePath, buildProfileMd(data), "utf8");
-  console.log(fg(GREEN, `✓ profile gravado: .forge/profile.md`) + dim(`  (nicho: ${data.niche} · namespace: ${data.namespace})`));
+  const slug = saveProfileToLibrary(data);
+  console.log(fg(GREEN, `✓ profile gravado: profiles/${slug}/profile.md`) + dim(`  (ativado → .forge/profile.md · nicho: ${data.niche})`));
   console.log(dim("  edite as seções Stack/Guardrails à vontade — a engine lê o bloco forge-config + o narrativo."));
   console.log(dim("  próximo: forge new \"<sua ideia>\"  → P0 → FOUNDATION (system design) → build → ship"));
   releaseStdin();
