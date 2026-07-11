@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 // buildSpawn = matriz única de executores; sanitizers com fonte única em adapters.mjs.
 import { buildSpawn, makeRedactor, stripAnsi, isNoiseLine } from "./adapters.mjs";
-import { createEngine } from "./engine.mjs";
+import { createEngineManager } from "./engine.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -522,8 +522,9 @@ function contentType(file) {
 
 // ---------- Forge autopilot (pipeline engine) ----------
 
-function broadcastPipeline(snap) {
-  const data = `data: ${JSON.stringify({ type: "pipeline", pipeline: snap })}\n\n`;
+// multi-pipeline: o evento SSE "pipeline" carrega o MAPA { [appId]: snapshot }
+function broadcastPipeline(snapMap) {
+  const data = `data: ${JSON.stringify({ type: "pipeline", pipeline: snapMap })}\n\n`;
   for (const res of sseClients) {
     try {
       res.write(data);
@@ -533,7 +534,7 @@ function broadcastPipeline(snap) {
   }
 }
 
-const engine = createEngine({
+const engine = createEngineManager({
   root: ROOT,
   emitLog: (line) => log(line),
   emitPipeline: broadcastPipeline,
@@ -658,7 +659,9 @@ const server = http.createServer(async (req, res) => {
   // ---------- Forge autopilot ----------
 
   if (url.pathname === "/api/pipeline" && method === "GET") {
-    sendJson(res, 200, engine.snapshot());
+    // mapa { [appId]: snapshot }; ?app=<id> devolve o snapshot individual
+    const app = url.searchParams.get("app");
+    sendJson(res, 200, app ? engine.snapshotFor(app) : engine.snapshot());
     return;
   }
 
@@ -671,11 +674,11 @@ const server = http.createServer(async (req, res) => {
       } else if (action === "feedback") {
         sendJson(res, 200, { ok: true, pipeline: engine.startFeedback(body) });
       } else if (action === "decide") {
-        sendJson(res, 200, { ok: true, pipeline: engine.decide(body.gateId, body.choice, body.feedback) });
+        sendJson(res, 200, { ok: true, pipeline: engine.decide(body.appId, body.gateId, body.choice, body.feedback) });
       } else if (action === "stop") {
-        sendJson(res, 200, engine.stop());
+        sendJson(res, 200, engine.stop(body.appId));
       } else if (action === "resume") {
-        sendJson(res, 200, { ok: true, pipeline: engine.resume() });
+        sendJson(res, 200, { ok: true, pipeline: engine.resume(body.appId) });
       } else {
         sendJson(res, 404, { ok: false, error: `ação desconhecida: ${action}` });
       }

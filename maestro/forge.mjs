@@ -160,10 +160,11 @@ function statusBadge(status) {
   return dim(status || "idle");
 }
 
-async function attachTUI() {
+async function attachTUI(appArg) {
   await ensureServer();
   const state = {
-    pipeline: null,
+    pipelines: {}, // mapa { appId: snapshot } (multi-pipeline)
+    app: null, // qual pipeline este TUI acompanha
     roster: null,
     logs: [],
     tick: 0,
@@ -173,11 +174,26 @@ async function attachTUI() {
     detach: false,
   };
   try {
-    state.pipeline = await api("/api/pipeline");
+    state.pipelines = (await api("/api/pipeline")) || {};
   } catch {}
   try {
     state.roster = await api("/api/roster");
   } catch {}
+
+  // escolhe qual pipeline acompanhar: arg explícito > única ativa > única existente > lista e sai
+  const ACTIVE_ST = ["running", "paused_gate", "blocked"];
+  {
+    const ids = Object.keys(state.pipelines).filter((id) => state.pipelines[id]?.appId);
+    const act = ids.filter((id) => ACTIVE_ST.includes(state.pipelines[id].status));
+    state.app = appArg || (act.length === 1 ? act[0] : ids.length === 1 ? ids[0] : null);
+    if (!state.app && ids.length > 1) {
+      console.log(bold("pipelines no server:"));
+      for (const id of ids) console.log(`  ${id.padEnd(24)} ${statusBadge(state.pipelines[id].status)}`);
+      console.log(dim("\nuso: forge attach <app>"));
+      return;
+    }
+  }
+  const cur = () => (state.app && state.pipelines[state.app]) || null;
 
   // SSE
   (async () => {
@@ -196,10 +212,18 @@ async function attachTUI() {
             try {
               const ev = JSON.parse(line.slice(6));
               if (ev.type === "log") {
-                state.logs.push(ev.line);
-                if (state.logs.length > 300) state.logs.shift();
+                // logs de run vêm etiquetados "[stamp] [appId] …" — filtra os de OUTROS apps
+                const tag = ev.line.match(/^\[[^\]]+\] \[([a-z0-9-]+)\]/);
+                if (!tag || !state.app || tag[1] === state.app) {
+                  state.logs.push(ev.line);
+                  if (state.logs.length > 300) state.logs.shift();
+                }
               } else if (ev.type === "pipeline") {
-                state.pipeline = ev.pipeline;
+                state.pipelines = ev.pipeline || {};
+                if (!state.app) {
+                  const ids = Object.keys(state.pipelines);
+                  if (ids.length === 1) state.app = ids[0];
+                }
               }
             } catch {}
           }
@@ -214,7 +238,7 @@ async function attachTUI() {
   process.stdout.write(`${ESC}?1049h${ESC}?25l`); // alt screen + hide cursor
   const restore = () => process.stdout.write(`${ESC}?25h${ESC}?1049l`);
 
-  const gate = () => (state.pipeline?.gates || []).find((g) => !g.decision);
+  const gate = () => (cur()?.gates || []).find((g) => !g.decision);
 
   async function decideKey(choice, feedback) {
     const g = gate();
@@ -224,7 +248,7 @@ async function attachTUI() {
       return;
     }
     try {
-      await api("/api/pipeline/decide", { gateId: g.id, choice, feedback });
+      await api("/api/pipeline/decide", { appId: state.app || undefined, gateId: g.id, choice, feedback });
       state.flash = `✔ ${g.id} → ${choice}`;
     } catch (e) {
       state.flash = `✗ ${String(e.message || e).slice(0, 80)}`;
@@ -247,7 +271,7 @@ async function attachTUI() {
       state.detach = true;
       clearInterval(timer);
       restore();
-      const st = state.pipeline?.status;
+      const st = cur()?.status;
       if (st === "running") console.log("· detach — a pipeline continua no server. `forge attach` para voltar.");
       process.exit(0);
     }
@@ -269,7 +293,7 @@ async function attachTUI() {
     const cols = Math.max(64, Math.min(process.stdout.columns || 100, 110));
     const rows = Math.max(18, process.stdout.rows || 30);
     const W = cols - 2;
-    const p = state.pipeline;
+    const p = cur();
     const out = [];
     const hr = (label) =>
       fg(PURPLE, `├─ ${label} ` + "─".repeat(Math.max(0, W - visibleLen(label) - 4)) + "┤");
@@ -794,7 +818,7 @@ async function wizard() {
   }
   const r = await api("/api/pipeline/start", payload);
   console.log(fg(GREEN, `✓ pipeline iniciada: ${r.pipeline.appId} · team ${r.pipeline.team} · profile ${r.pipeline.profileName || "?"}`));
-  await attachTUI();
+  await attachTUI(r.pipeline.appId);
 }
 
 // ---------- profile init wizard (forge profile init — autora .forge/profile.md) ----------
@@ -1326,15 +1350,21 @@ async function onboardWizard(slug) {
 }
 
 // ---------- comandos ----------
-function printStatus(p) {
-  if (!p || !p.appId) {
+/** aceita 1 snapshot OU o mapa multi-pipeline { appId: snapshot } */
+function printStatus(snap) {
+  const list = snap?.appId ? [snap] : Object.values(snap || {}).filter((x) => x && x.appId);
+  if (!list.length) {
     console.log(dim("sem pipeline ativa"));
     return;
   }
-  console.log(`${bold(p.appId)} · team ${p.team} · ${statusBadge(p.status)}${p.dryRun ? " · DRY-RUN" : ""}`);
+  for (const p of list) printOne(p);
+}
+
+function printOne(p) {
+  console.log(`${bold(p.appId)} · team ${p.team}${p.profileName ? ` · profile ${p.profileName}` : ""} · ${statusBadge(p.status)}${p.dryRun ? " · DRY-RUN" : ""}`);
   console.log(`  fase: ${p.currentJob || "—"} (${p.jobIndex}/${p.jobs.length}) · ⏱ ${elapsed(p.startedAt, p.endedAt)}`);
   const g = (p.gates || []).find((x) => !x.decision);
-  if (g) console.log(fg(YELLOW, `  ⏸ gate ${g.id}: ${g.prompt}`) + `\n    → forge decide ${g.id} <${g.choices.join("|")}>`);
+  if (g) console.log(fg(YELLOW, `  ⏸ gate ${g.id}: ${g.prompt}`) + `\n    → forge decide ${g.id} <${g.choices.join("|")}> --app ${p.appId}`);
   if (p.deploy?.url) console.log(`  🌐 ${p.deploy.url}`);
 }
 
@@ -1360,11 +1390,11 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge onboard")} <slug>       wizard INTAKE + DISCOVERY → brief + gate brief-review
   ${bold("forge feedback")} <app> "<feedback geral>" [--team X] [--dry-run]
             loop de melhoria: aplica seu feedback no app pronto e redeploya
-  ${bold("forge attach")}    TUI ao vivo da pipeline
-  ${bold("forge status")}    snapshot rápido
-  ${bold("forge decide")} <gate> <go|kill|retry> [feedback…]
-  ${bold("forge stop")}      pausa a pipeline (job atual é morto)
-  ${bold("forge resume")}    retoma após stop/restart do server
+  ${bold("forge attach")} [app]   TUI ao vivo (N pipelines: sem arg lista; com arg acompanha uma)
+  ${bold("forge status")}    snapshot rápido de TODAS as pipelines
+  ${bold("forge decide")} <gate> <go|kill|retry> [feedback…] [--app X]
+  ${bold("forge stop")} [app]     pausa a pipeline (job atual é morto)
+  ${bold("forge resume")} [app]   retoma após stop/restart do server
   ${bold("forge roster")}    players e team presets
 
 Teams: grok-solo (default) · grok-glm-front · quality · dry-run
@@ -1401,7 +1431,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
       dryRun: flags.dryRun,
     });
     console.log(fg(GREEN, `✓ pipeline iniciada: ${r.pipeline.appId} · team ${r.pipeline.team}`));
-    await attachTUI();
+    await attachTUI(r.pipeline.appId);
     return;
   }
 
@@ -1419,7 +1449,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
       dryRun: flags.dryRun,
     });
     console.log(fg(GREEN, `🔁 iteração de feedback iniciada: ${r.pipeline.appId} (fb${r.pipeline.iterationNum}) · team ${r.pipeline.team}`));
-    await attachTUI();
+    await attachTUI(r.pipeline.appId);
     return;
   }
 
@@ -1453,11 +1483,11 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     await ensureServer();
     const r = await api("/api/pipeline/start", { idea: project.idea || slug, appId: slug, slug, blueprint: project.blueprint, team: flags.team });
     console.log(fg(GREEN, `✓ pipeline ${project.blueprint} iniciada: ${r.pipeline.slug}`));
-    await attachTUI();
+    await attachTUI(r.pipeline.appId);
     return;
   }
 
-  if (cmd === "attach") return attachTUI();
+  if (cmd === "attach") return attachTUI(rest[0]);
 
   if (cmd === "status") {
     await ensureServer();
@@ -1467,9 +1497,9 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
 
   if (cmd === "decide") {
     const [gateId, choice, ...fb] = rest;
-    if (!gateId || !choice) throw new Error("uso: forge decide <gate> <go|kill|retry> [feedback…]");
+    if (!gateId || !choice) throw new Error("uso: forge decide <gate> <go|kill|retry> [feedback…] [--app X]");
     await ensureServer();
-    const r = await api("/api/pipeline/decide", { gateId, choice, feedback: fb.join(" ") || undefined });
+    const r = await api("/api/pipeline/decide", { appId: flags.app, gateId, choice, feedback: fb.join(" ") || undefined });
     console.log(fg(GREEN, `✔ ${gateId} → ${choice}`));
     printStatus(r.pipeline);
     return;
@@ -1477,14 +1507,14 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
 
   if (cmd === "stop") {
     await ensureServer();
-    const r = await api("/api/pipeline/stop", {});
+    const r = await api("/api/pipeline/stop", { appId: rest[0] || flags.app });
     console.log(r.ok ? "■ pipeline parada — forge decide stopped retry|kill" : `✗ ${r.error}`);
     return;
   }
 
   if (cmd === "resume") {
     await ensureServer();
-    const r = await api("/api/pipeline/resume", {});
+    const r = await api("/api/pipeline/resume", { appId: rest[0] || flags.app });
     printStatus(r.pipeline);
     return;
   }

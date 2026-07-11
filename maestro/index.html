@@ -161,7 +161,7 @@
     const API = ""; // same-origin (servido pelo próprio Maestro server)
     // espelha JOB_SHORT de engine.mjs (fonte única) — mudou lá, muda aqui (browser não importa .mjs do node)
     const JOB_SHORT = { "L0/P0":"P0", "FOUNDATION":"Fundação", "DS-GEN":"Design", "L0/P1":"P1", "L1/B1":"B1", "L1/B2":"B2", "L1/B3":"B3", "L1/B4":"B4", "L1/B5":"B5", "P3":"ship", "ITERATE":"iterar" };
-    let TOKEN = "", state = { pipeline: null, roster: null };
+    let TOKEN = "", state = { pipelines: {}, selApp: null, roster: null }; // multi-pipeline: mapa { appId: snap }
 
     const $ = (id) => document.getElementById(id);
     const toast = (m) => { const el = $("toast"); el.textContent = m; el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 2600); };
@@ -194,7 +194,7 @@
       try {
         const r = await fetch(API + "/api/pipeline/decide", {
           method: "POST", headers: { "Content-Type": "application/json", "X-Maestro-Token": TOKEN },
-          body: JSON.stringify({ gateId, choice, feedback: feedback || undefined }),
+          body: JSON.stringify({ appId: state.selApp || undefined, gateId, choice, feedback: feedback || undefined }),
         });
         const j = await r.json();
         if (j.ok === false) return toast("✗ " + (j.error || "falha"));
@@ -204,16 +204,27 @@
 
     const pendingGate = (p) => (p && p.gates || []).find((g) => !g.decision);
 
+    window.selectApp = (id) => { state.selApp = id; renderCockpit(); };
+
     function renderCockpit() {
-      const p = state.pipeline, roster = state.roster;
+      const roster = state.roster;
+      // seleção: mantém a escolhida se ainda existe; senão a 1ª ativa; senão a 1ª
+      const ids = Object.keys(state.pipelines || {}).filter((id) => state.pipelines[id] && state.pipelines[id].appId);
+      if (!ids.includes(state.selApp)) state.selApp = null;
+      const ACT = ["running", "paused_gate", "blocked"];
+      if (!state.selApp) state.selApp = ids.find((id) => ACT.includes(state.pipelines[id].status)) || ids[0] || null;
+      const p = state.selApp ? state.pipelines[state.selApp] : null;
       const pill = $("pill-pipe");
       if (!p || !p.appId || p.status === "idle") {
         $("cockpit-empty").style.display = ""; $("cockpit-body").style.display = "none";
         pill.textContent = "sem pipeline"; pill.className = "pill"; return;
       }
+      const tabs = ids.length > 1
+        ? `<div class="actions" style="margin-bottom:8px">${ids.map((id) => `<button class="btn ${id === state.selApp ? "go" : ""}" onclick="selectApp('${esc(id)}')">${esc(id)} · ${esc(state.pipelines[id].status)}</button>`).join("")}</div>`
+        : "";
       $("cockpit-empty").style.display = "none";
       const body = $("cockpit-body"); body.style.display = "";
-      pill.textContent = `${p.appId} · ${p.status}`;
+      pill.textContent = `${p.appId} · ${p.status}${ids.length > 1 ? ` (+${ids.length - 1})` : ""}`;
       pill.className = "pill " + (p.status === "running" ? "on" : (p.status === "paused_gate" || p.status === "blocked") ? "warn" : p.status === "done" ? "on" : "off");
 
       const jobs = (p.jobs || []).map((j, idx) => {
@@ -234,10 +245,10 @@
         }).join("");
       }
 
-      body.innerHTML =
+      body.innerHTML = tabs +
         `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:6px">
            <strong style="font-size:1.05rem">${esc(p.appId)}</strong>
-           <span class="muted">team ${esc(p.team)}${p.dryRun ? " · DRY-RUN" : ""}</span>
+           <span class="muted">team ${esc(p.team)}${p.profileName ? ` · profile ${esc(p.profileName)}` : ""}${p.dryRun ? " · DRY-RUN" : ""}</span>
            ${p.deploy && p.deploy.url ? `<a href="${esc(p.deploy.url)}" target="_blank" style="color:var(--cyan);font-size:13px">🌐 ${esc(p.deploy.url)}</a>` : ""}
          </div>
          <div class="muted" style="font-size:12.5px;margin-bottom:8px">ideia: ${esc((p.idea || "").slice(0, 160))}</div>
@@ -304,7 +315,7 @@
         $("ver").textContent = state.roster.version || "1";
       } catch {}
     }
-    async function loadPipeline() { try { state.pipeline = await (await fetch(API + "/api/pipeline", { cache: "no-store" })).json(); } catch {} }
+    async function loadPipeline() { try { state.pipelines = (await (await fetch(API + "/api/pipeline", { cache: "no-store" })).json()) || {}; } catch {} }
 
     async function checkApi() {
       const pill = $("pill-api");
@@ -326,7 +337,7 @@
           if (!line.trim()) return;
           appendLog(line, line.includes("✗") ? "err" : line.includes("✓") ? "ok" : "");
         } else if (msg.type === "pipeline") {
-          state.pipeline = msg.pipeline; renderCockpit();
+          state.pipelines = msg.pipeline || {}; renderCockpit();
         }
       };
     }

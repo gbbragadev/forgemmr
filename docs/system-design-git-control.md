@@ -41,8 +41,9 @@ brigariam pelo mesmo tree. Com um repo por app, cada run dirige o **repo do pró
 
 ## Concorrência (engine)
 
-- `pipelines: Map<appId, { pipeline, looping, child, profile }>` — mata os 4 singletons
-  (`pipeline`, guard do advanceLoop, `child` do executor e o `profile` global).
+- Implementação: `createEngineManager` mantém `Map<appId, engine>` — **um engine por app**
+  (cada `createEngine` já encapsula pipeline/child/loop-guard/profile do seu run; o manager
+  só roteia). Mata os 4 singletons sem reescrever o motor.
 - `profile` é **snapshot por run** (congelado no start): trocar o profile ativo no meio de
   um run não contamina o run em andamento; o próximo run pega o novo.
 - `start()` barra apenas o **mesmo** appId já ativo. `decide/stop/resume(appId, …)` com
