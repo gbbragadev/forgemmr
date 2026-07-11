@@ -71,6 +71,10 @@ test("fake-exec cria artefato declarativo quando FORGE_FAKE_OUTFILE é set", () 
     assert.match(content, /## Objetivo/i, "faltou seção Objetivo");
     assert.match(content, /## Métricas/i, "faltou seção Métricas");
     assert.match(content, /STRATEGY/i, "faltou o job no título");
+    assert.match(content, /Conteúdo do Objetivo/, "faltou interpolação de Objetivo");
+    assert.match(content, /Conteúdo do Métricas/, "faltou interpolação de Métricas");
+    assert.doesNotMatch(content, /\$\{section\}/, "interpolação não funcionou (literal ${section})");
+
   } finally {
     try {
       fs.rmSync(tmpDir, { recursive: true });

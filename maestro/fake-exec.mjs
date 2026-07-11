@@ -34,7 +34,7 @@ if (outFile) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const lines = [`# ${job} — ${appId} (dry-run)`];
   for (const section of sections) {
-    lines.push(`\n## ${section}`, "Conteúdo do ${section} (placeholder dry-run).");
+    lines.push(`\n## ${section}`, `Conteúdo do ${section} (placeholder dry-run).`);
   }
   fs.writeFileSync(target, lines.join("\n"), "utf8");
   console.log(`✓ escreveu ${path.relative(ROOT, target)}`);

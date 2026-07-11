@@ -1169,7 +1169,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     const project = JSON.parse(fs.readFileSync(path.join(pdir, "project.json"), "utf8"));
     await ensureServer();
     const r = await api("/api/pipeline/start", { idea: project.idea || slug, appId: slug, slug, blueprint: project.blueprint, team: flags.team });
-    console.log(fg(GREEN, `✓ pipeline gameads iniciada: ${r.pipeline.slug}`));
+    console.log(fg(GREEN, `✓ pipeline ${project.blueprint} iniciada: ${r.pipeline.slug}`));
     await attachTUI();
     return;
   }
