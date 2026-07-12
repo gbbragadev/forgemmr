@@ -478,6 +478,23 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
     return JSON.parse(fs.readFileSync(path.join(root, "maestro", "roster.json"), "utf8"));
   }
 
+  /** team por nome, tolerante a caixa ("CxB" acha "cxb") — devolve a chave real do roster */
+  function resolveTeam(roster, wanted) {
+    if (roster.teams?.[wanted]) return wanted;
+    const lc = String(wanted).toLowerCase();
+    return Object.keys(roster.teams || {}).find((k) => k.toLowerCase() === lc) || wanted;
+  }
+
+  /** erro do guard por-app: deixa explícito que o limite é DESTE app, não global */
+  function activeRunError() {
+    const g = (pipeline.gates || []).find((x) => !x.decision);
+    return new Error(
+      `o app ${pipeline.appId} já tem run ativo (${pipeline.status}${g ? ` · gate ${g.id} pendente` : ""}) — ` +
+        `decida ou pare ESTE app (forge decide ${g ? g.id : "<gate>"} <escolha> --app ${pipeline.appId} · forge stop ${pipeline.appId}); ` +
+        `outros apps rodam em paralelo normalmente`
+    );
+  }
+
   // ---------- dispatch ----------
 
   function pickPlayer(job, excluded = []) {
@@ -1120,13 +1137,13 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
 
   function start(params) {
     if (pipeline && ["running", "paused_gate", "blocked"].includes(pipeline.status)) {
-      throw new Error(`já existe pipeline ativa (${pipeline.appId} · ${pipeline.status}) — forge stop ou decide antes`);
+      throw activeRunError();
     }
     profile = loadProfile(root);
     const idea = String(params.idea || "").trim();
     if (!idea) throw new Error("idea vazia");
     const roster = readRoster();
-    const team = params.team || "grok-solo";
+    const team = resolveTeam(roster, params.team || "grok-solo");
     if (!roster.teams?.[team]) {
       throw new Error(`team "${team}" não existe — disponíveis: ${Object.keys(roster.teams || {}).join(", ")}`);
     }
@@ -1226,7 +1243,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
   /** Loop de melhoria: feedback geral do dono → ITERATE → gate visual → B5 → gate deploy → redeploy */
   function startFeedback(params) {
     if (pipeline && ["running", "paused_gate", "blocked"].includes(pipeline.status)) {
-      throw new Error(`já existe pipeline ativa (${pipeline.appId} · ${pipeline.status}) — forge stop ou decide antes`);
+      throw activeRunError();
     }
     profile = loadProfile(root);
     const appId = slugify(params.appId || "");
@@ -1236,7 +1253,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
     const feedbackText = String(params.feedbackText || "").trim();
     if (feedbackText.length < 8) throw new Error("feedback vazio ou curto demais");
     const roster = readRoster();
-    const team = params.team || (roster.teams?.["grok-glm-front"] ? "grok-glm-front" : "grok-solo");
+    const team = resolveTeam(roster, params.team || (roster.teams?.["grok-glm-front"] ? "grok-glm-front" : "grok-solo"));
     if (!roster.teams?.[team]) {
       throw new Error(`team "${team}" não existe — disponíveis: ${Object.keys(roster.teams || {}).join(", ")}`);
     }

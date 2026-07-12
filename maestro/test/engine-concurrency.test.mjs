@@ -102,6 +102,37 @@ test("resume pós-restart: novo manager reconstrói pipelines de maestro/pipelin
   assert.equal(mgr2.snapshot()["persist-a"].status, "killed");
 });
 
+test("guard é POR APP: re-start do mesmo app ativo explica que outros apps rodam em paralelo", async () => {
+  const root = tmpRoot();
+  const mgr = makeManager(root);
+  mgr.start({ idea: "app original de teste do guard", team: "dry-run", appId: "guard-a" });
+  await waitFor(() => mgr.snapshot()["guard-a"].status === "paused_gate", 30000, "guard-a no gate");
+  assert.throws(
+    () => mgr.start({ idea: "segundo run do mesmo app", team: "dry-run", appId: "guard-a" }),
+    /guard-a.*outros apps rodam em paralelo/s
+  );
+  // outro app começa numa boa enquanto o primeiro segue ativo
+  mgr.start({ idea: "outro app em paralelo ao guard", team: "dry-run", appId: "guard-b" });
+  assert.ok(["running", "paused_gate"].includes(mgr.snapshot()["guard-b"].status));
+  mgr.decide("guard-a", "p0-go", "kill");
+  await waitFor(() => mgr.snapshot()["guard-b"].status === "paused_gate", 30000, "guard-b no gate");
+  mgr.decide("guard-b", "p0-go", "kill");
+});
+
+test("team é resolvido case-insensitive (CxB → cxb)", async () => {
+  const root = tmpRoot();
+  // adiciona um team com nome minúsculo e chama com caixa mista
+  const rosterPath = path.join(root, "maestro", "roster.json");
+  const roster = JSON.parse(fs.readFileSync(rosterPath, "utf8"));
+  roster.teams.cxb = roster.teams["dry-run"];
+  fs.writeFileSync(rosterPath, JSON.stringify(roster), "utf8");
+  const mgr = makeManager(root);
+  mgr.start({ idea: "team com caixa mista deve resolver", team: "CxB", appId: "case-team" });
+  assert.equal(mgr.snapshot()["case-team"].team, "cxb");
+  await waitFor(() => mgr.snapshot()["case-team"].status === "paused_gate", 30000, "case-team no gate");
+  mgr.decide("case-team", "p0-go", "kill");
+});
+
 test("migração: maestro/pipeline.json legado vira maestro/pipelines/<appId>.json", () => {
   const root = tmpRoot();
   const legacyState = { appId: "legado-x", status: "paused_gate", idea: "x", team: "dry-run", jobs: ["L0/P0"], jobIndex: 1, gates: [{ id: "p0-go", choices: ["go", "kill"], decision: null }], history: [], cooldowns: {}, git: {} };
