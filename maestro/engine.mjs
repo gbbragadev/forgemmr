@@ -37,6 +37,15 @@ const JOB_TEMPLATES = {
 // rótulos curtos por job (fonte única — TUI importa; index.html espelha em literal)
 export const JOB_SHORT = { "L0/P0": "P0", FOUNDATION: "Fundação", "DS-GEN": "Design", "L0/P1": "P1", "L1/B1": "B1", "L1/B2": "B2", "L1/B3": "B3", "L1/B4": "B4", "L1/B5": "B5", P3: "ship", ITERATE: "iterar" };
 
+/**
+ * Extrai o tipo de app declarado pelo P0 no scorecard (linha "Tipo: static|quiz|chat",
+ * tolerante a markdown: bold/heading/bullet). null = scorecard não declarou.
+ */
+export function parseCapabilityFromScorecard(txt) {
+  const m = String(txt).match(/^[\s>*#-]*(?:tipo|capability)\**\s*:\s*\**\s*(static|quiz|chat)\b/im);
+  return m ? m[1].toLowerCase() : null;
+}
+
 export const JOBS_BY_CAPABILITY = {
   static: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
   quiz: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
@@ -47,9 +56,11 @@ export const JOBS_BY_CAPABILITY = {
 const GATES_AFTER = {
   "L0/P0": (p) => ({
     id: "p0-go",
-    prompt: `Scorecard pronto (${runDocRel(p.appId, "scorecard")}). GO ou KILL?`,
+    prompt: `Scorecard pronto (${runDocRel(p.appId, "scorecard")}).${
+      p.capabilityAuto ? ` Tipo proposto: ${p.detectedCapability || "static"} — GO aplica (retry com feedback corrige).` : ""
+    } GO, retry ou KILL?`,
     payload: runDocRel(p.appId, "scorecard"),
-    choices: ["go", "kill"],
+    choices: ["go", "retry", "kill"],
   }),
   FOUNDATION: (p) => ({
     id: "foundation-review",
@@ -500,7 +511,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
       `App: ${p.appId}`,
       `Repo: ${root}`,
       `Ideia do app: ${p.idea}`,
-      `Capability: ${p.capability}`,
+      `Capability: ${p.capabilityAuto ? "auto — VOCÊ decide no P0 e declara no scorecard em linha própria (Tipo: static|quiz|chat)" : p.capability}`,
       "",
       `Você é o executor "${player.name}" do job ${job} na pipeline autônoma Forge (Maestro / ${profile.name}).`,
       `Projeto (nicho): ${profile.niche}. Namespace: ${profile.namespace}.`,
@@ -995,6 +1006,17 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
         if (!pipeline || pipeline.status === "killed") break; // stop/kill no meio
 
         if (result.pass) {
+          // capability auto: o P0 acabou de declarar o tipo no scorecard — propõe p/ o gate (GO aplica)
+          if (job === "L0/P0" && pipeline.capabilityAuto) {
+            let parsed = null;
+            try {
+              parsed = parseCapabilityFromScorecard(fs.readFileSync(path.join(root, runDocRel(pipeline.appId, "scorecard")), "utf8"));
+            } catch {}
+            pipeline.detectedCapability = parsed || "static";
+            log(parsed
+              ? `· P0 propôs tipo: ${parsed} — GO no gate aplica jobs/deploy`
+              : "⚠ scorecard não declarou \"Tipo:\" — assumindo static (retry com feedback se discordar)");
+          }
           if (job !== "P3") checkpoint(job); // P3 já terminou em master via merge — sem commit extra
           if (job !== "P3") await maybeReview(job); // overlay do papel Revisor (no-op se o team não tem review)
           if (!pipeline || pipeline.status !== "running") break; // review pode ter sido parada/morta
@@ -1109,8 +1131,10 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
       throw new Error(`team "${team}" não existe — disponíveis: ${Object.keys(roster.teams || {}).join(", ")}`);
     }
     const dryRun = !!params.dryRun || team === "dry-run";
-    const capability = params.capability || "static";
     const blueprint = params.blueprint || "generic";
+    // tipo do app: sem --capability o P0 decide (declara "Tipo:" no scorecard; GO do p0-go aplica)
+    const capabilityAuto = blueprint === "generic" && (!params.capability || params.capability === "auto");
+    const capability = capabilityAuto ? "static" : params.capability || "static";
     const appId = deriveAppId(params);
     if (!appId) throw new Error("não consegui derivar app-id — passe --app-id ou --slug");
     if (boundAppId && appId !== boundAppId) throw new Error(`engine é do app "${boundAppId}" — start de "${appId}" vai pelo manager`);
@@ -1142,6 +1166,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
       dryRun,
       status: "running",
       profileName: profile.name,
+      capabilityAuto,
       jobs,
       jobIndex: 0,
       currentJob: null,
@@ -1155,6 +1180,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
       cooldowns: {},
       deploy: {
         target: params.target || (capability === "chat" ? profile.deploy.serverHost : profile.deploy.staticHost),
+        autoTarget: !params.target, // sem --target o alvo segue o tipo (recalculado quando o P0 define)
         subdomain: slugify(params.subdomain || appId),
         baseUrl: profile.deploy.baseUrl,
         url: null,
@@ -1163,7 +1189,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
       startedAt: new Date().toISOString(),
       endedAt: null,
     };
-    log(`🎼 forge new · app=${appId} · team=${team} · capability=${capability} · profile=${profile.name}${pipeline.dryRun ? " · DRY-RUN" : ""}`);
+    log(`🎼 forge new · app=${appId} · team=${team} · capability=${capabilityAuto ? "auto (P0 decide)" : capability} · profile=${profile.name}${pipeline.dryRun ? " · DRY-RUN" : ""}`);
     workbench.handoffUpdate(paths, pipeline);
     save();
     advanceLoop();
@@ -1272,6 +1298,21 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
     gate.decidedAt = new Date().toISOString();
     if (feedback) gate.feedback = feedback;
     log(`✔ gate ${gateId} → ${choice}${feedback ? ` (${feedback.slice(0, 80)})` : ""}`);
+
+    // capability auto: GO no p0-go aplica o tipo proposto pelo P0 (jobs da sequência + alvo de deploy)
+    if (gate.id === "p0-go" && choice === "go" && pipeline.capabilityAuto) {
+      const cap = pipeline.detectedCapability || "static";
+      pipeline.capability = cap;
+      pipeline.capabilityAuto = false;
+      let jobs = JOBS_BY_CAPABILITY[cap].slice();
+      if (fs.existsSync(path.join(root, runDocRel(pipeline.appId, "design-system")))) jobs = jobs.filter((j) => j !== "DS-GEN");
+      pipeline.jobs = jobs; // P0 é o job 0 em toda sequência (divergem só depois) — trocar o array com jobIndex=1 é seguro
+      pipeline.currentJob = jobs[pipeline.jobIndex] || null;
+      if (pipeline.deploy?.autoTarget) {
+        pipeline.deploy.target = cap === "chat" ? profile.deploy.serverHost : profile.deploy.staticHost;
+      }
+      log(`✔ tipo aplicado: ${cap} — ${jobs.length} jobs · deploy ${pipeline.deploy.target}`);
+    }
 
     // ds-pick: escolha 1/2/3 fixa a proposta de design system que os builds de UI vão seguir
     if (gate.id === "ds-pick" && ["1", "2", "3"].includes(choice)) {

@@ -29,8 +29,19 @@
       "model": "default",
       "modelLabel": "Grok 4.5",
       "effort": "high",
-      "jobs": ["E2E", "B1", "B2", "B4", "B5", "L1-any"],
-      "roles": ["backend", "frontend", "qa"],
+      "jobs": [
+        "E2E",
+        "B1",
+        "B2",
+        "B4",
+        "B5",
+        "L1-any"
+      ],
+      "roles": [
+        "backend",
+        "frontend",
+        "qa"
+      ],
       "color": "#22d3ee",
       "blurb": "Grok Build CLI headless — run completa solo (subscription xAI)."
     },
@@ -43,8 +54,15 @@
       "model": "sonnet",
       "modelLabel": "Claude Sonnet",
       "effort": "high",
-      "jobs": ["B3", "L1-ui", "review-ui"],
-      "roles": ["frontend", "reviewer"],
+      "jobs": [
+        "B3",
+        "L1-ui",
+        "review-ui"
+      ],
+      "roles": [
+        "frontend",
+        "reviewer"
+      ],
       "color": "#f59e0b",
       "blurb": "UI polish, componentes, acessibilidade visual."
     },
@@ -57,8 +75,17 @@
       "model": "gpt-5.6-sol",
       "modelLabel": "GPT-5.6 Sol",
       "effort": "medium",
-      "jobs": ["B1", "B4", "B5", "L1-api", "scaffold"],
-      "roles": ["backend", "devops"],
+      "jobs": [
+        "B1",
+        "B4",
+        "B5",
+        "L1-api",
+        "scaffold"
+      ],
+      "roles": [
+        "backend",
+        "devops"
+      ],
       "color": "#38bdf8",
       "blurb": "Scaffold, API, credits, build gates."
     },
@@ -71,8 +98,15 @@
       "model": "sonnet",
       "modelLabel": "Claude Sonnet",
       "effort": "medium",
-      "jobs": ["B5", "review", "ship-check"],
-      "roles": ["qa", "reviewer"],
+      "jobs": [
+        "B5",
+        "review",
+        "ship-check"
+      ],
+      "roles": [
+        "qa",
+        "reviewer"
+      ],
       "color": "#34d399",
       "blurb": "Review, ship check, não expandir escopo."
     },
@@ -85,8 +119,17 @@
       "model": "default",
       "modelLabel": "Gemini (agy)",
       "effort": "medium",
-      "jobs": ["B2", "P0", "P1", "personas", "hooks"],
-      "roles": ["prompt-engineer", "analyst"],
+      "jobs": [
+        "B2",
+        "P0",
+        "P1",
+        "personas",
+        "hooks"
+      ],
+      "roles": [
+        "prompt-engineer",
+        "analyst"
+      ],
       "color": "#a78bfa",
       "blurb": "Personas, hooks, scorecard via Antigravity (agy, Google OAuth).",
       "optional": true
@@ -101,8 +144,13 @@
       "model": "opus",
       "modelLabel": "GLM 5.2",
       "effort": "max",
-      "jobs": ["B3", "L1-ui"],
-      "roles": ["frontend"],
+      "jobs": [
+        "B3",
+        "L1-ui"
+      ],
+      "roles": [
+        "frontend"
+      ],
       "color": "#00b8a9",
       "blurb": "GLM-5.2 headless (Claude Code + backend Z.ai) — UI polish B3 sem copiar prompt na mão."
     },
@@ -115,8 +163,20 @@
       "model": "opus",
       "modelLabel": "Claude Opus",
       "effort": "high",
-      "jobs": ["B1", "B2", "B4", "B5", "P0", "P1", "L1-any"],
-      "roles": ["backend", "frontend", "architect"],
+      "jobs": [
+        "B1",
+        "B2",
+        "B4",
+        "B5",
+        "P0",
+        "P1",
+        "L1-any"
+      ],
+      "roles": [
+        "backend",
+        "frontend",
+        "architect"
+      ],
       "color": "#f97316",
       "blurb": "Executor de qualidade (Anthropic OAuth) para o preset quality."
     },
@@ -129,8 +189,12 @@
       "model": "gpt-5.6-sol",
       "modelLabel": "GPT-5.6 Sol",
       "effort": "medium",
-      "jobs": ["review"],
-      "roles": ["reviewer"],
+      "jobs": [
+        "review"
+      ],
+      "roles": [
+        "reviewer"
+      ],
       "color": "#eab308",
       "blurb": "GPT-5.6 Sol revisando após jobs críticos (preset quality)."
     },
@@ -143,38 +207,165 @@
       "model": "default",
       "modelLabel": "Fake",
       "effort": "low",
-      "jobs": ["*"],
-      "roles": ["test"],
+      "jobs": [
+        "*"
+      ],
+      "roles": [
+        "test"
+      ],
       "color": "#64748b",
       "blurb": "Executor simulado para testar a pipeline sem gastar limite.",
       "hidden": true
+    },
+    {
+      "id": "frontier-cxb-codex1",
+      "face": "⚙️",
+      "name": "GPT-5.6 Sol",
+      "cli": "codex",
+      "model": "gpt-5.6-sol",
+      "modelLabel": "GPT-5.6 Sol",
+      "effort": "xhigh",
+      "roles": [
+        "Estrategista",
+        "Revisor"
+      ],
+      "color": "#38bdf8",
+      "blurb": "GPT-5.6 Sol · Estrategista/Revisor",
+      "generated": true
+    },
+    {
+      "id": "frontier-cxb-glm2",
+      "face": "🖌️",
+      "name": "GLM 5.2",
+      "cli": "claude",
+      "env": "glm",
+      "model": "opus",
+      "modelLabel": "GLM 5.2",
+      "effort": "max",
+      "roles": [
+        "Designer"
+      ],
+      "color": "#00b8a9",
+      "blurb": "GLM 5.2 · Designer",
+      "generated": true
+    },
+    {
+      "id": "frontier-cxb-gemini3",
+      "face": "✨",
+      "name": "Gemini (agy)",
+      "cli": "gemini",
+      "model": "default",
+      "modelLabel": "Gemini (agy)",
+      "effort": "medium",
+      "roles": [
+        "QA"
+      ],
+      "color": "#a78bfa",
+      "blurb": "Gemini (agy) · QA",
+      "generated": true
+    },
+    {
+      "id": "frontier-cxb-codex4",
+      "face": "⚙️",
+      "name": "GPT-5.6 Sol",
+      "cli": "codex",
+      "model": "gpt-5.6-sol",
+      "modelLabel": "GPT-5.6 Sol",
+      "effort": "medium",
+      "roles": [
+        "Engenheiro"
+      ],
+      "color": "#38bdf8",
+      "blurb": "GPT-5.6 Sol · Engenheiro",
+      "generated": true
     }
   ],
   "teams": {
     "grok-solo": {
       "label": "Só Grok",
       "emoji": "⚡",
-      "dispatch": { "default": "grok-solo" },
-      "fallbacks": { "grok-solo": ["codex-backend", "claude-frontend"] }
+      "dispatch": {
+        "default": "grok-solo"
+      },
+      "fallbacks": {
+        "grok-solo": [
+          "codex-backend",
+          "claude-frontend"
+        ]
+      }
     },
     "grok-glm-front": {
       "label": "Grok + GLM no front",
       "emoji": "🖌️",
-      "dispatch": { "L1/B3": "glm-front", "default": "grok-solo" },
-      "fallbacks": { "grok-solo": ["codex-backend"], "glm-front": ["claude-frontend"] }
+      "dispatch": {
+        "L1/B3": "glm-front",
+        "default": "grok-solo"
+      },
+      "fallbacks": {
+        "grok-solo": [
+          "codex-backend"
+        ],
+        "glm-front": [
+          "claude-frontend"
+        ]
+      }
     },
     "quality": {
       "label": "Opus executa · Codex revisa · GLM front",
       "emoji": "🧠",
-      "dispatch": { "L1/B3": "glm-front", "default": "claude-opus" },
-      "review": { "after": ["L1/B1", "L1/B4"], "player": "codex-review" },
-      "fallbacks": { "claude-opus": ["codex-backend", "grok-solo"], "glm-front": ["claude-frontend"] }
+      "dispatch": {
+        "L1/B3": "glm-front",
+        "default": "claude-opus"
+      },
+      "review": {
+        "after": [
+          "L1/B1",
+          "L1/B4"
+        ],
+        "player": "codex-review"
+      },
+      "fallbacks": {
+        "claude-opus": [
+          "codex-backend",
+          "grok-solo"
+        ],
+        "glm-front": [
+          "claude-frontend"
+        ]
+      }
     },
     "dry-run": {
       "label": "Dry-run (fake)",
       "emoji": "🎭",
-      "dispatch": { "default": "fake-dry" },
+      "dispatch": {
+        "default": "fake-dry"
+      },
       "fallbacks": {}
+    },
+    "frontier-cxb": {
+      "label": "Frontier CxB",
+      "emoji": "⚙️",
+      "dispatch": {
+        "L0/P0": "frontier-cxb-codex1",
+        "FOUNDATION": "frontier-cxb-codex1",
+        "L0/P1": "frontier-cxb-codex1",
+        "L1/B2": "frontier-cxb-codex1",
+        "L1/B3": "frontier-cxb-glm2",
+        "ITERATE": "frontier-cxb-glm2",
+        "DS-GEN": "frontier-cxb-glm2",
+        "L1/B5": "frontier-cxb-gemini3",
+        "L1/B1": "frontier-cxb-codex4",
+        "L1/B4": "frontier-cxb-codex4",
+        "default": "frontier-cxb-codex4"
+      },
+      "fallbacks": {},
+      "review": {
+        "after": [
+          "L1/B1",
+          "L1/B4"
+        ],
+        "player": "frontier-cxb-codex1"
+      }
     }
   },
   "dispatch_map": {

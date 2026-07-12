@@ -430,11 +430,7 @@ async function wizard() {
   } catch {}
   const teams = Object.entries(roster?.teams || {});
   if (!teams.length) throw new Error("roster sem teams — confira maestro/roster.json");
-  const caps = [
-    ["static", "site estático (export → <app>.gbbragadev.com)"],
-    ["quiz", "quiz estático shareable"],
-    ["chat", "app com API/chat (server → Vercel)"],
-  ];
+  // tipo do app (static|quiz|chat) NÃO é passo do wizard: o P0 decide pela ideia e o gate p0-go confirma
 
   importActiveProfile(ROOT); // migra .forge/profile.md órfão pra biblioteca (idempotente)
   let profiles = listProfiles(ROOT);
@@ -454,7 +450,6 @@ async function wizard() {
     nameEdited: false,
     teamIdx: 0,
     tm: freshTm(),
-    capIdx: 0,
     dry: false,
     err: "",
   };
@@ -465,12 +460,12 @@ async function wizard() {
   const restore = () => process.stdout.write(`${ESC}?25h${ESC}?1049l`);
   enableKeys();
 
-  const stepNames = ["profile", "ideia", "nome", "time", "tipo", "confirmar"];
+  const stepNames = ["profile", "ideia", "nome", "time", "confirmar"];
   const stepOf = {
     profile: 0, "pf-field": 0, "pf-context": 0, "pf-i18n": 0,
     idea: 1, name: 2,
     team: 3, "tm-name": 3, "tm-provider": 3, "tm-model": 3, "tm-effort": 3, "tm-roles": 3, "tm-more": 3, "tm-confirm": 3,
-    cap: 4, confirm: 5,
+    confirm: 4,
   };
 
   function render() {
@@ -622,13 +617,6 @@ async function wizard() {
       if (missing.length) out.push(row(fg(YELLOW, `  ⚠ sem papel: ${missing.join(", ")} → cai no default nesses jobs`)));
       out.push(blank());
       out.push(row(bold(fg(GREEN, "  Enter = gravar e usar este time ▶"))));
-    } else if (st.phase === "cap") {
-      out.push(row(bold("Que tipo de app?")));
-      out.push(blank());
-      caps.forEach(([id, label], i) => {
-        const sel = i === st.capIdx;
-        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(id) : id}  ${dim(label)}`));
-      });
     } else {
       const [teamId, team] = teams[st.teamIdx];
       out.push(row(bold("Partitura pronta:")));
@@ -637,7 +625,7 @@ async function wizard() {
       out.push(row(`  ideia   ${fg(CYAN, truncTo(st.ideaFile ? `📄 ${st.ideaFile} (${st.ideaText.length} chars)` : st.idea, W - 14))}`));
       out.push(row(`  app     ${fg(CYAN, slugify(st.appName))}`));
       out.push(row(`  time    ${team.emoji || "·"} ${fg(CYAN, teamId)} ${dim(team.label || "")}`));
-      out.push(row(`  tipo    ${fg(CYAN, caps[st.capIdx][0])}`));
+      out.push(row(`  tipo    ${dim("auto — o P0 decide (static|quiz|chat) e você confirma no gate")}`));
       out.push(row(`  dry-run ${st.dry ? fg(YELLOW, "SIM (não gasta limite)") : dim("não")}   ${dim("← tecla [d] alterna")}`));
       out.push(blank());
       out.push(row(bold(fg(GREEN, "  Enter = começar o arco ▶"))));
@@ -764,7 +752,7 @@ async function wizard() {
         else if (key.name === "down") st.teamIdx = (st.teamIdx + 1) % n;
         else if (key.name === "return") {
           if (st.teamIdx === teams.length) { st.tm = freshTm(); st.phase = "tm-name"; }
-          else st.phase = "cap";
+          else st.phase = "confirm";
         } else if (key.name === "left") st.phase = "name";
       } else if (st.phase === "tm-name") {
         if (key.name === "return") {
@@ -811,17 +799,12 @@ async function wizard() {
           writeTeamToRoster(teamId, team, players);
           teams.push([teamId, team]);
           st.teamIdx = teams.length - 1;
-          st.phase = "cap";
+          st.phase = "confirm";
         } else if (key.name === "left") { st.tm.moreIdx = 1; st.phase = "tm-more"; }
-      } else if (st.phase === "cap") {
-        if (key.name === "up") st.capIdx = (st.capIdx + caps.length - 1) % caps.length;
-        else if (key.name === "down") st.capIdx = (st.capIdx + 1) % caps.length;
-        else if (key.name === "return") st.phase = "confirm";
-        else if (key.name === "left") st.phase = "team";
       } else {
         if (key.name === "return")
-          return finish({ idea: (st.ideaText || st.idea).trim(), team: teams[st.teamIdx][0], capability: caps[st.capIdx][0], dryRun: st.dry, appId: slugify(st.appName) });
-        if (key.name === "left") st.phase = "cap";
+          return finish({ idea: (st.ideaText || st.idea).trim(), team: teams[st.teamIdx][0], dryRun: st.dry, appId: slugify(st.appName) });
+        if (key.name === "left") st.phase = "team";
         if (str === "d") st.dry = !st.dry;
       }
       render();
@@ -1419,6 +1402,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge team")}          monta um time na TUI (Provedor→Modelo→Effort→Funções) e grava no roster
   ${bold("forge new")} "<ideia>" [--team X] [--app-id X] [--capability static|quiz|chat]
             [--subdomain X] [--target cf-pages|vercel] [--dry-run]
+            (sem --capability o P0 decide o tipo pela ideia; o gate p0-go confirma)
   ${bold("forge new --idea-file")} ideia.md   ideia GRANDE/estruturada (markdown multi-linha —
             vai inteira pro prompt de todos os jobs; mais contexto = app melhor)
   ${bold("forge new --blueprint gameads")} "<campanha>" [--slug X]   scaffold de projeto por blueprint

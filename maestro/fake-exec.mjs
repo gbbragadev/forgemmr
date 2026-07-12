@@ -50,9 +50,12 @@ if (outFile) {
 
 if (job === "L0/P0") {
   const p = docPath(appId, "scorecard");
+  // tipo derivado da IDEIA (não do goal inteiro — o boilerplate menciona static|quiz|chat)
+  const idea = (goal.match(/^Ideia do app:\s*(.*)$/m) || [])[1] || "";
+  const tipo = /\bchat\b/i.test(idea) ? "chat" : /\bquiz\b/i.test(idea) ? "quiz" : "static";
   fs.writeFileSync(
     p,
-    `# Scorecard — ${appId} (dry-run)\n\n**GO**\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
+    `# Scorecard — ${appId} (dry-run)\n\n**GO**\n\nTipo: ${tipo}\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
     "utf8"
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);
