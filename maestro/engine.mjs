@@ -740,7 +740,9 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
 
       let proc;
       try {
-        proc = spawn(spec.cmd, spec.args, { cwd: root, env: spec.env, windowsHide: true });
+        // stdin "ignore": codex exec lê stdin quando o pipe fica aberto ("Reading additional input
+        // from stdin...") e trava esperando EOF até o timeout — nenhum executor headless usa stdin
+        proc = spawn(spec.cmd, spec.args, { cwd: root, env: spec.env, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
       } catch (e) {
         try {
           fs.closeSync(rawFd);
