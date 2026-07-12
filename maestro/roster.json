@@ -278,6 +278,130 @@
       "color": "#38bdf8",
       "blurb": "GPT-5.6 Sol · Engenheiro",
       "generated": true
+    },
+    {
+      "id": "cxb-grok1",
+      "face": "⚡",
+      "name": "Grok 4.5",
+      "cli": "grok",
+      "model": "default",
+      "modelLabel": "Grok 4.5",
+      "effort": "high",
+      "roles": [
+        "Estrategista",
+        "Engenheiro"
+      ],
+      "color": "#22d3ee",
+      "blurb": "Grok 4.5 · Estrategista/Engenheiro",
+      "generated": true
+    },
+    {
+      "id": "cxb-glm2",
+      "face": "🖌️",
+      "name": "GLM 5.2",
+      "cli": "claude",
+      "env": "glm",
+      "model": "opus",
+      "modelLabel": "GLM 5.2",
+      "effort": "max",
+      "roles": [
+        "Designer"
+      ],
+      "color": "#00b8a9",
+      "blurb": "GLM 5.2 · Designer",
+      "generated": true
+    },
+    {
+      "id": "cxb-claude3",
+      "face": "🎨",
+      "name": "Claude Opus",
+      "cli": "claude",
+      "model": "opus",
+      "modelLabel": "Claude Opus",
+      "effort": "xhigh",
+      "roles": [
+        "Revisor"
+      ],
+      "color": "#f59e0b",
+      "blurb": "Claude Opus · Revisor",
+      "generated": true
+    },
+    {
+      "id": "cxb-gemini4",
+      "face": "✨",
+      "name": "Gemini (agy)",
+      "cli": "gemini",
+      "model": "default",
+      "modelLabel": "Gemini (agy)",
+      "effort": "medium",
+      "roles": [
+        "QA"
+      ],
+      "color": "#a78bfa",
+      "blurb": "Gemini (agy) · QA",
+      "generated": true
+    },
+    {
+      "id": "ggg-grok1",
+      "face": "⚡",
+      "name": "Grok 4.5",
+      "cli": "grok",
+      "model": "default",
+      "modelLabel": "Grok 4.5",
+      "effort": "high",
+      "roles": [
+        "Estrategista",
+        "Engenheiro"
+      ],
+      "color": "#22d3ee",
+      "blurb": "Grok 4.5 · Estrategista/Engenheiro",
+      "generated": true
+    },
+    {
+      "id": "ggg-glm2",
+      "face": "🖌️",
+      "name": "GLM 5.2",
+      "cli": "claude",
+      "env": "glm",
+      "model": "opus",
+      "modelLabel": "GLM 5.2",
+      "effort": "max",
+      "roles": [
+        "Designer"
+      ],
+      "color": "#00b8a9",
+      "blurb": "GLM 5.2 · Designer",
+      "generated": true
+    },
+    {
+      "id": "ggg-gemini3",
+      "face": "✨",
+      "name": "Gemini (agy)",
+      "cli": "gemini",
+      "model": "default",
+      "modelLabel": "Gemini (agy)",
+      "effort": "medium",
+      "roles": [
+        "QA"
+      ],
+      "color": "#a78bfa",
+      "blurb": "Gemini (agy) · QA",
+      "generated": true
+    },
+    {
+      "id": "ggg-grok4",
+      "face": "⚡",
+      "name": "Grok 4.5",
+      "cli": "grok",
+      "model": "default",
+      "modelLabel": "Grok 4.5",
+      "effort": "high",
+      "roles": [
+        "Revisor"
+      ],
+      "color": "#22d3ee",
+      "blurb": "Grok 4.5 · Revisor",
+      "generated": true
     }
   ],
   "teams": {
@@ -365,6 +489,56 @@
           "L1/B4"
         ],
         "player": "frontier-cxb-codex1"
+      }
+    },
+    "cxb": {
+      "label": "CxB",
+      "emoji": "⚡",
+      "dispatch": {
+        "L0/P0": "cxb-grok1",
+        "FOUNDATION": "cxb-grok1",
+        "L0/P1": "cxb-grok1",
+        "L1/B2": "cxb-grok1",
+        "L1/B1": "cxb-grok1",
+        "L1/B4": "cxb-grok1",
+        "L1/B3": "cxb-glm2",
+        "ITERATE": "cxb-glm2",
+        "DS-GEN": "cxb-glm2",
+        "L1/B5": "cxb-gemini4",
+        "default": "cxb-grok1"
+      },
+      "fallbacks": {},
+      "review": {
+        "after": [
+          "L1/B1",
+          "L1/B4"
+        ],
+        "player": "cxb-claude3"
+      }
+    },
+    "ggg": {
+      "label": "GGG",
+      "emoji": "⚡",
+      "dispatch": {
+        "L0/P0": "ggg-grok1",
+        "FOUNDATION": "ggg-grok1",
+        "L0/P1": "ggg-grok1",
+        "L1/B2": "ggg-grok1",
+        "L1/B1": "ggg-grok1",
+        "L1/B4": "ggg-grok1",
+        "L1/B3": "ggg-glm2",
+        "ITERATE": "ggg-glm2",
+        "DS-GEN": "ggg-glm2",
+        "L1/B5": "ggg-gemini3",
+        "default": "ggg-grok1"
+      },
+      "fallbacks": {},
+      "review": {
+        "after": [
+          "L1/B1",
+          "L1/B4"
+        ],
+        "player": "ggg-grok4"
       }
     }
   },
