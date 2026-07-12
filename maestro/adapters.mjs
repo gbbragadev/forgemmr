@@ -157,8 +157,8 @@ const EMPTY_MCP = path.join(HOME, ".claude", "empty-mcp.json");
  */
 export function buildSpawn(cli, goal, opts) {
   const { root, maxTurns = 30, model, effort } = opts;
-  // effort só é honrado onde o CLI expõe de fato (codex via -c model_reasoning_effort);
-  // em claude/glm (-p sem flag de effort) e grok fica como etiqueta. Sanitiza p/ argv.
+  // effort é REAL onde o CLI expõe (grok --effort · codex -c model_reasoning_effort);
+  // em claude/glm/gemini (-p sem flag de effort) fica como etiqueta. Sanitiza p/ argv.
   const safeEffort = effort && /^[a-z]+$/.test(effort) && effort !== "default" ? effort : null;
   const base = {
     ...process.env,
@@ -292,6 +292,7 @@ export function buildSpawn(cli, goal, opts) {
       goal,
       "--cwd",
       root,
+      ...(safeEffort ? ["--effort", safeEffort] : []),
       "--always-approve",
       "--permission-mode",
       "bypassPermissions",
