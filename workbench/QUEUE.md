@@ -21,6 +21,7 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 ## Done
 
 
+- [x] **L0/P0** prova-3x — forge/fake-dry (2026-07-12)
 - [x] **L0/P0** o-anima-deck — forge/grok-solo (2026-07-12)
 - [x] **L0/P0** Scorecard DOKI//CALL (`o-anima-deck`) — **GO condicionado** content-first + fake-door (2026-07-12)
 - [x] **Meta** Pipeline/loops upgrade (lições B1/B3/GLM/ship) (2026-07-10)

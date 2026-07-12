@@ -5,6 +5,7 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 | slot | agent | loop | job | app / area | since | notes |
 |------|-------|------|-----|------------|-------|-------|
 
+| — | — | — | — | — | — | livre |
 | F | frontier-cxb-codex1 | L0 | L0/P0 | doki-call | 23:20 | forge autopilot |
 _(sem claims ativos — L0/P0 o-anima-deck liberado 2026-07-12)_
 
