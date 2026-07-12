@@ -383,12 +383,3 @@ _Atualizado 2026-07-12T22:38:47.962Z pelo forge (maestro/engine.mjs). Estado com
 _Atualizado 2026-07-12T23:20:32.470Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->
 
-<!-- forge:begin:prova-3x -->
-## Forge autopilot — prova-3x
-- **Ideia:** prova de tres pipelines ativas ao mesmo tempo
-- **Team:** dry-run · **Status:** killed
-- **Job atual:** — (2/9)
-- **Branch:** pipeline/prova-3x · checkpoints: 1
-- pipeline encerrada: killed
-_Atualizado 2026-07-12T23:51:09.708Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/prova-3x.json_
-<!-- forge:end:prova-3x -->
