@@ -448,6 +448,8 @@ async function wizard() {
     profIdx: Math.max(0, profiles.findIndex((p) => p.active)),
     pf: { step: 0, name: "", niche: "", namespace: "@forge", baseUrl: "gbbragadev.com", context: "", i18nIdx: 0 },
     idea: "",
+    ideaFile: null, // caminho digitado no passo ideia que apontou pra um arquivo
+    ideaText: null, // conteúdo lido do arquivo (vira a ideia completa do run)
     appName: "",
     nameEdited: false,
     teamIdx: 0,
@@ -534,8 +536,14 @@ async function wizard() {
       out.push(blank());
       out.push(row(dim("  ex.: quiz de openings de anime · gerador de photocard · fanfic interativa")));
       out.push(blank());
-      out.push(row(dim("  ideia grande/detalhada? escreva um .md em ideas/ (pasta gitignored) e rode:")));
-      out.push(row(dim("  forge new --idea-file ideas/minha-ideia.md   (mais contexto = app melhor)")));
+      out.push(row(dim("  ideia grande? cole um caminho .md/.txt (ex.: ideas/minha-ideia.md) — eu leio o arquivo")));
+      const t = st.idea.trim();
+      if (/\.(md|txt)$/i.test(t)) {
+        const cand = path.isAbsolute(t) ? t : path.join(ROOT, t);
+        out.push(row(fs.existsSync(cand)
+          ? fg(GREEN, "  ↳ arquivo encontrado — Enter usa o conteúdo como ideia")
+          : fg(YELLOW, "  ↳ arquivo não encontrado (caminho relativo à raiz do forge)")));
+      }
     } else if (st.phase === "name") {
       out.push(row(bold("Nome do app? (default veio da ideia — edite à vontade)")));
       out.push(blank());
@@ -626,7 +634,7 @@ async function wizard() {
       out.push(row(bold("Partitura pronta:")));
       out.push(blank());
       out.push(row(`  profile ${fg(CYAN, ap ? ap.name : "?")} ${dim(ap ? `(nicho: ${ap.niche})` : "")}`));
-      out.push(row(`  ideia   ${fg(CYAN, truncTo(st.idea, W - 14))}`));
+      out.push(row(`  ideia   ${fg(CYAN, truncTo(st.ideaFile ? `📄 ${st.ideaFile} (${st.ideaText.length} chars)` : st.idea, W - 14))}`));
       out.push(row(`  app     ${fg(CYAN, slugify(st.appName))}`));
       out.push(row(`  time    ${team.emoji || "·"} ${fg(CYAN, teamId)} ${dim(team.label || "")}`));
       out.push(row(`  tipo    ${fg(CYAN, caps[st.capIdx][0])}`));
@@ -721,10 +729,25 @@ async function wizard() {
         }
       } else if (st.phase === "idea") {
         if (key.name === "return") {
-          if (st.idea.trim().length >= 6) {
-            if (!st.nameEdited) st.appName = slugify(st.idea);
+          const t = st.idea.trim();
+          const cand = /\.(md|txt)$/i.test(t) ? (path.isAbsolute(t) ? t : path.join(ROOT, t)) : null;
+          if (cand && fs.existsSync(cand) && fs.statSync(cand).isFile()) {
+            // caminho de arquivo → lê o prompt dele (equivalente inline do forge new --idea-file)
+            const txt = fs.readFileSync(cand, "utf8").trim();
+            if (!txt) st.err = "arquivo de ideia vazio";
+            else {
+              st.ideaFile = t;
+              st.ideaText = txt;
+              // nome default vem do NOME do arquivo (slugify do conteúdo em prosa gerava lixo tipo "o-anima-deck")
+              if (!st.nameEdited) st.appName = slugify(path.basename(cand).replace(/\.[^.]+$/, ""));
+              st.phase = "name";
+            }
+          } else if (t.length >= 6) {
+            st.ideaFile = null;
+            st.ideaText = null;
+            if (!st.nameEdited) st.appName = slugify(t);
             st.phase = "name";
-          } else st.err = "escreve a ideia (mínimo 6 caracteres)";
+          } else st.err = "escreve a ideia (mínimo 6 caracteres) ou cole um caminho .md/.txt";
         } else if (key.name === "backspace") st.idea = st.idea.slice(0, -1);
         else if (key.name === "left" && !st.idea) st.phase = "profile";
         else if (str && !key.ctrl && str >= " " && st.idea.length < 600) st.idea += str;
@@ -797,7 +820,7 @@ async function wizard() {
         else if (key.name === "left") st.phase = "team";
       } else {
         if (key.name === "return")
-          return finish({ idea: st.idea.trim(), team: teams[st.teamIdx][0], capability: caps[st.capIdx][0], dryRun: st.dry, appId: slugify(st.appName) });
+          return finish({ idea: (st.ideaText || st.idea).trim(), team: teams[st.teamIdx][0], capability: caps[st.capIdx][0], dryRun: st.dry, appId: slugify(st.appName) });
         if (key.name === "left") st.phase = "cap";
         if (str === "d") st.dry = !st.dry;
       }
