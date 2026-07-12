@@ -578,7 +578,7 @@ async function wizard() {
       const p = curProv();
       out.push(row(bold(`${p.face} ${p.models[st.tm.modelIdx].label} · effort?`)));
       out.push(blank());
-      p.efforts.forEach((e, i) => {
+      effortsOf(p, st.tm.modelIdx).forEach((e, i) => {
         const sel = i === st.tm.effortIdx;
         out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(e.toUpperCase()) : e.toUpperCase()}`));
       });
@@ -660,7 +660,7 @@ async function wizard() {
       const p = curProv();
       st.tm.musicians.push({
         provider: p.id, cli: p.cli, env: p.env, model: p.models[st.tm.modelIdx].id,
-        modelLabel: p.models[st.tm.modelIdx].label, effort: p.efforts[st.tm.effortIdx],
+        modelLabel: p.models[st.tm.modelIdx].label, effort: effortsOf(p, st.tm.modelIdx)[st.tm.effortIdx],
         roles: TEAM_ROLES.filter((_, i) => st.tm.roleSel[i]).map((r) => r.id),
         face: p.face, color: p.color,
       });
@@ -763,7 +763,7 @@ async function wizard() {
         else if (key.name === "return") { st.tm.effortIdx = 0; st.phase = "tm-effort"; }
         else if (key.name === "left") st.phase = "tm-provider";
       } else if (st.phase === "tm-effort") {
-        const n = curProv().efforts.length;
+        const n = effortsOf(curProv(), st.tm.modelIdx).length;
         if (key.name === "up") st.tm.effortIdx = (st.tm.effortIdx + n - 1) % n;
         else if (key.name === "down") st.tm.effortIdx = (st.tm.effortIdx + 1) % n;
         else if (key.name === "return") st.phase = "tm-roles";
@@ -975,19 +975,31 @@ async function profileWizard() {
 
 // ---------- team builder wizard (forge team — Provedor→Modelo→Effort→Funções) ----------
 // Catálogo de provedores (subscription only). `real` = o effort muda o comportamento de fato
-// (grok --effort · codex model_reasoning_effort); senão é etiqueta (claude/glm/-p sem flag).
+// (grok --effort · codex -c model_reasoning_effort); senão é etiqueta (claude/glm/gemini, -p sem flag).
+// efforts = lista COMPLETA disponível, default primeiro; um modelo pode sobrescrever com `efforts` próprio.
 const PROVIDERS = [
   { id: "grok", cli: "grok", face: "⚡", color: "#22d3ee", real: true, efforts: ["high", "medium", "low"],
     models: [{ id: "default", label: "Grok 4.5" }] },
-  { id: "codex", cli: "codex", face: "⚙️", color: "#38bdf8", real: true, efforts: ["medium", "high", "xhigh", "low"],
-    models: [{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol" }, { id: "gpt-5.6-terra", label: "GPT-5.6 Terra" }, { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" }] },
-  { id: "claude", cli: "claude", face: "🎨", color: "#f59e0b", real: false, efforts: ["high", "medium"],
-    models: [{ id: "opus", label: "Claude Opus" }, { id: "sonnet", label: "Claude Sonnet" }] },
-  { id: "glm", cli: "claude", env: "glm", face: "🖌️", color: "#00b8a9", real: false, efforts: ["max"],
+  { id: "codex", cli: "codex", face: "⚙️", color: "#38bdf8", real: true, efforts: ["medium", "high", "xhigh", "max", "low"],
+    models: [
+      { id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+      { id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
+      { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
+    ] },
+  { id: "claude", cli: "claude", face: "🎨", color: "#f59e0b", real: false, efforts: ["high", "medium", "low"],
+    models: [
+      { id: "claude-fable-5", label: "Claude Fable 5", efforts: ["xhigh", "high", "medium", "low"] },
+      { id: "opus", label: "Claude Opus", efforts: ["high", "xhigh", "medium", "low"] },
+      { id: "sonnet", label: "Claude Sonnet", efforts: ["high", "medium", "low"] },
+    ] },
+  { id: "glm", cli: "claude", env: "glm", face: "🖌️", color: "#00b8a9", real: false, efforts: ["max", "high", "medium", "low"],
     models: [{ id: "opus", label: "GLM 5.2" }] },
   { id: "gemini", cli: "gemini", face: "✨", color: "#a78bfa", real: false, efforts: ["medium"],
     models: [{ id: "default", label: "Gemini (agy)" }] },
 ];
+
+/** efforts disponíveis para o modelo escolhido (override do modelo > lista do provedor) */
+const effortsOf = (prov, modelIdx) => prov.models[modelIdx]?.efforts || prov.efforts;
 
 function writeTeamToRoster(teamId, team, newPlayers) {
   const rosterPath = path.join(__dirname, "roster.json");
@@ -1056,7 +1068,7 @@ async function teamWizard() {
       const p = curProv();
       out.push(row(bold(`${p.face} ${p.models[st.modelIdx].label} · effort?`)));
       out.push(blank());
-      p.efforts.forEach((e, i) => {
+      effortsOf(p, st.modelIdx).forEach((e, i) => {
         const sel = i === st.effortIdx;
         out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(e.toUpperCase()) : e.toUpperCase()}`));
       });
@@ -1115,7 +1127,7 @@ async function teamWizard() {
       const p = curProv();
       st.musicians.push({
         provider: p.id, cli: p.cli, env: p.env, model: p.models[st.modelIdx].id,
-        modelLabel: p.models[st.modelIdx].label, effort: p.efforts[st.effortIdx],
+        modelLabel: p.models[st.modelIdx].label, effort: effortsOf(p, st.modelIdx)[st.effortIdx],
         roles: TEAM_ROLES.filter((_, i) => st.roleSel[i]).map((r) => r.id),
         face: p.face, color: p.color,
       });
@@ -1144,7 +1156,7 @@ async function teamWizard() {
         else if (key.name === "return") { st.effortIdx = 0; st.phase = "effort"; }
         else if (key.name === "left") st.phase = "provider";
       } else if (st.phase === "effort") {
-        const n = curProv().efforts.length;
+        const n = effortsOf(curProv(), st.modelIdx).length;
         if (key.name === "up") st.effortIdx = (st.effortIdx + n - 1) % n;
         else if (key.name === "down") st.effortIdx = (st.effortIdx + 1) % n;
         else if (key.name === "return") st.phase = "roles";
