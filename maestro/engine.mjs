@@ -413,7 +413,9 @@ export function composeTeam(name, musicians, emoji = "🎼") {
       if (role === "Revisor") reviewPlayer = id;
     }
   });
-  for (const k of Object.keys(fallbacks)) fallbacks[k] = [...new Set(fallbacks[k])];
+  for (const player of players) {
+    fallbacks[player.id] = [...new Set([...(fallbacks[player.id] || []), ...players.map((p) => p.id)])].filter((id) => id !== player.id);
+  }
   if (!defaultId) defaultId = players[0] ? players[0].id : null;
   dispatch.default = defaultId;
   const team = { label: name, emoji, dispatch, fallbacks };
