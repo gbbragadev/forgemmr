@@ -181,7 +181,8 @@ const PROFILE_DEFAULTS = {
     maxAttemptsPerPlayer: 3,
     cooldownMs: 60 * 60 * 1000,
     jobTimeoutMs: { "L0/P0": 15 * 60 * 1000, "L0/P1": 15 * 60 * 1000, default: 30 * 60 * 1000 },
-    jobMaxTurns: { "L0/P0": 25, "L0/P1": 25, "L1/B1": 50, "L1/B3": 50, "L1/B4": 40, default: 30 },
+    // ITERATE = reforma de UI a partir do feedback: 30 turnos estouravam ("Reached max turns")
+    jobMaxTurns: { "L0/P0": 25, "L0/P1": 25, "L1/B1": 50, "L1/B3": 50, "L1/B4": 40, ITERATE: 50, default: 30 },
     deployRetryDelaysMs: [30000, 60000, 120000, 300000],
     deployBuildTimeoutMs: 10 * 60 * 1000,
   },

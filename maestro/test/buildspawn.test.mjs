@@ -62,6 +62,17 @@ test("prompt gigante vai por ARQUIVO (Windows: >32k chars em argv = spawn ENAMET
   assert.equal(fs.readFileSync(file, "utf8"), huge, "o arquivo carrega o prompt ORIGINAL inteiro");
 });
 
+test("detectRateLimit: 529/overloaded do GLM contam como rate-limit (antes queimavam as 3 tentativas)", async () => {
+  const { detectRateLimit } = await import("../adapters.mjs");
+  assert.ok(detectRateLimit("API Error: 529 [1305][The service may be temporarily overloaded, please try again later]"));
+  assert.ok(detectRateLimit("503 Service Unavailable"));
+  assert.ok(detectRateLimit("Error: overloaded_error"));
+  assert.ok(detectRateLimit("429 rate limit exceeded"));
+  // falha de trabalho de verdade NÃO pode virar rate-limit (senão o forge troca de player à toa)
+  assert.ok(!detectRateLimit("TypeError: cannot read property x of undefined"));
+  assert.ok(!detectRateLimit("build failed: 12 type errors"));
+});
+
 test("prompt pequeno continua inline (sem arquivo)", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-arg2-"));
   const spec = buildSpawn("grok", "prompt curto", { root });

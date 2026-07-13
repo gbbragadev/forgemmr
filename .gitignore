@@ -50,3 +50,4 @@ maestro/runs/
 
 # prompts externalizados (>6k chars) — passados por arquivo ao CLI
 maestro/.prompts/
+.gstack/

@@ -19,10 +19,14 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
-- [ ] **L1/B2** doki-call — forge autopilot
-- [ ] **ITERATE** anima-deck — forge autopilot
+- [ ] **L1/B4** doki-call — forge autopilot
+- [ ] **L1/B5** anima-deck — forge autopilot
 ## Done
 
+- [x] **L1/B3** doki-call — forge/ggg-glm2 (2026-07-13)
+- [x] **ITERATE** anima-deck — forge/opussonnet-claude1 (2026-07-13)
+- [x] **L1/B2** doki-call — forge/ggg-grok1 (2026-07-13)
+- [x] **L1/B2** doki-call — forge/ggg-grok1 (2026-07-13) · `doki-pack-v2.json` + wire app.config · build EXIT 0
 - [x] **L1/B1** doki-call — forge/ggg-grok1 (2026-07-13)
 - [x] **L1/B1** doki-call scaffold — forge/ggg-grok1 (2026-07-13) · `npm run build -w @forge/doki-call` EXIT 0
 - [x] **L0/P1** doki-call — forge/ggg-grok1 (2026-07-13)

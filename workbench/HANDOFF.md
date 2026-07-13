@@ -1,13 +1,20 @@
 # HANDOFF
 
 ## Loop ativo
-**L1** — DOKI//CALL (`doki-call`) — **B1 Scaffold DONE** · próximo = B3 (prompt GLM Neon Y2K) e/ou B4 wire API  
+**L1** — DOKI//CALL (`doki-call`) — **B2 Personas DONE** · próximo = B3 (prompt GLM Neon Y2K) e/ou B4 wire API  
 *(slug legado `o-anima-deck` superado — canônico = `doki-call`)*
 
 ## Last agent
-Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B1 scaffold doki-call
+Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B2 personas doki-call
 
-## Last iteration — L1/B1 doki-call (2026-07-13)
+## Last iteration — L1/B2 doki-call (2026-07-13)
+- **Job:** L1/B2 personas pack (`content/personas/doki-pack-v2.json`)
+- **Entrega:** 3 OCs 21+ (Mika/Rena/Yuki) com system prompts densos p/ telefone+guardrails IP/idade; starters PT+EN; tags voz; `app.config` → v2; voice-note free path por persona em `mock-chat.ts`
+- **VERIFY:** `npm run build -w @forge/doki-call` **EXIT 0**
+- **Sem git** (orquestrador) · v1 mantido no repo (histórico)
+- **Próximo:** B3 prompt GLM denso (Neon Y2K) OU B4 chat AI + TTS + entitlement
+
+## Iteration anterior — L1/B1 doki-call (2026-07-13)
 - **Job:** L1/B1 scaffold app (`@forge/doki-call`)
 - **Entrega:** funil create→free_text(3)→voice_note→paywall R$4,90→fake-door+lead; 3 personas originais 21+; i18n PT+EN; age gate After Dark; `RealtimeVoiceProvider` stub; API health/telemetry/interest/voice/session (402 sem entitlement); tokens Neon Y2K (`--af-*`)
 - **VERIFY:** `npm run build -w @forge/doki-call` **EXIT 0**
@@ -59,7 +66,7 @@ Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B1 scaffold doki-call
 | **waifu-chat** | MVP + smoke OpenRouter + UI B3 GLM |
 | **anime-quiz** | P0→B5 + **live** https://gbbragadev.github.io/anime-forge/ |
 | **anima-deck** | ship/iterate em curso (engagement/share-first) |
-| **doki-call** | L0/P0–P1 + FOUNDATION + **B1 scaffold** · fake-door no app · próximo B3/B4 |
+| **doki-call** | L0/P0–P1 + FOUNDATION + B1 scaffold + **B2 personas v2** · fake-door · próximo B3/B4 |
 
 ## Done (harness)
 - Loops L0/L1/L2 multi-sub (Claude/Codex/Grok/Gemini + GLM B3)
@@ -69,7 +76,7 @@ Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B1 scaffold doki-call
 
 ## Next
 1. **L1/B3** doki-call: prompt GLM denso (Prop. 2 Neon Y2K já escolhida) — polish UI sem implementar B3 aqui
-2. **L1/B4** wire chat AI real + TTS + entitlement/checkout (Realtime só pós-pago)
+2. **L1/B4** wire chat AI real (system do pack v2) + TTS + entitlement/checkout (Realtime só pós-pago)
 3. **Content:** postar hooks batch 1,2,3,5,8 + medir `audio_play→buy_click` no app scaffold
 4. **Humano P4** anime-quiz / anima-deck measure
 5. **Token CF** Pages:Edit + DNS:Edit; Vercel quando ship server doki-call
@@ -416,10 +423,11 @@ _Atualizado 2026-07-13T00:16:12.372Z pelo forge (maestro/engine.mjs). Estado com
 <!-- forge:begin:anima-deck -->
 ## Forge autopilot — anima-deck
 - **Ideia:** feedback fb1: Revise o app como um todo, leve ele a um nivel superior
-- **Team:** opussonnet · **Status:** running
-- **Job atual:** — (1/3)
-- **Branch:** pipeline/anima-deck-fb1 · checkpoints: 0
-_Atualizado 2026-07-13T02:10:19.941Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/anima-deck.json_
+- **Team:** opussonnet · **Status:** paused_gate
+- **Job atual:** L1/B5 (2/3)
+- **Branch:** pipeline/anima-deck-fb1 · checkpoints: 1
+- **⏸ GATE pendente:** `iterate-visual` — Feedback aplicado. Preview: http://127.0.0.1:8799/preview/anima-deck/ (ou npm run dev). Aprova a iteração? → `forge decide iterate-visual go|kill`
+_Atualizado 2026-07-13T02:31:09.069Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/anima-deck.json_
 <!-- forge:end:anima-deck -->
 
 ## Last iteration — FEEDBACK fb1 iter 3 anima-deck (2026-07-12 · GLM ITERATE, skill /frontend-fable)
@@ -765,8 +773,9 @@ no CTA de R\$ 4,90.
 Este conceito deve ser registrado como a primeira aposta
 monetização-first do portfólio, enquanto o ANIMA//DECK permanece como
 aposta engagement/share-first.
-- **Team:** ggg · **Status:** running
-- **Job atual:** L1/B2 (6/10)
-- **Branch:** pipeline/doki-call · checkpoints: 5
-_Atualizado 2026-07-13T02:11:44.589Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
+- **Team:** ggg · **Status:** paused_gate
+- **Job atual:** L1/B4 (8/10)
+- **Branch:** pipeline/doki-call · checkpoints: 7
+- **⏸ GATE pendente:** `b3-visual` — UI polida. Preview: http://127.0.0.1:8799/preview/doki-call/ (ou npm run dev). Aprova o visual? → `forge decide b3-visual go|kill`
+_Atualizado 2026-07-13T02:33:29.698Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->

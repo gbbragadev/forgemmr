@@ -139,9 +139,13 @@ export function makeRedactor() {
   };
 }
 
-/** Sinais de rate-limit/quota → L2 automático (cooldown + fallback player) */
+/**
+ * Sinais de rate-limit/quota/indisponibilidade → L2 automático (cooldown + fallback player).
+ * Inclui 529/503 e "overloaded": o GLM (api.z.ai) devolve `API Error: 529 ... temporarily overloaded`,
+ * que o forge contava como falha de trabalho e queimava as 3 tentativas do player.
+ */
 export function detectRateLimit(text) {
-  return /(429|rate.?limit|usage limit|quota (exceeded|reached)|limit (reached|exceeded)|overloaded_error)/i.test(
+  return /(429|\b5(29|03)\b|rate.?limit|usage limit|quota (exceeded|reached)|limit (reached|exceeded)|overloaded|service unavailable|temporarily unavailable)/i.test(
     String(text)
   );
 }
