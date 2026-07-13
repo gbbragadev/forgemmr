@@ -36,7 +36,7 @@
 | T-11 | **ACCEPTED** | `maestro/engine.mjs`, teste | todos os conteúdos não confiáveis envelopados e delimitadores neutralizados | Onda 1 | DONE |
 | T-16 | **ACCEPTED** | `maestro/engine.mjs`, teste | duas tentativas com mesma base invocam improver uma vez | T-11 | DONE |
 | T-15 | **ACCEPTED** | `maestro/engine.mjs`, fake-exec, teste | artefato oco reprova; válido passa; dry-run permanece verde | T-16 | DONE |
-| T-12 | **ADAPTED** — fixar apenas versões comprovadas localmente | `maestro/deploy.mjs` | zero `@latest`; versões vêm de instalação/lock atuais; sem deploy | T-15 | PENDING |
+| T-12 | **ADAPTED** — fixar apenas versões comprovadas localmente | `maestro/deploy.mjs` | zero `@latest`; versões vêm de instalação/lock atuais; sem deploy | T-15 | DONE (Wrangler 4.108.0; Vercel fail-closed) |
 | T-20 | **ACCEPTED com testes locais** | `maestro/server.mjs`, writers de prompt/raw log, testes | SSE sem ACAO; logger redige; arquivos sensíveis 0600; cleanup comprovado | T-12 | PENDING |
 | T-10b | **ACCEPTED** | prompt P4, validação/teste | schema fixo; dois resultados comparáveis por fixture realista | Onda 3 | PENDING |
 | T-17 | **ACCEPTED** | `maestro/stats.mjs`, `maestro/forge.mjs`, teste | `forge stats` agrega runs reais/fixtures e imprime três tabelas | T-10b | PENDING |
