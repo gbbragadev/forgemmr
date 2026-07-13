@@ -21,14 +21,14 @@
 
 | ID | Decisão | Arquivos previstos | Verificação principal | Dependências | Status inicial |
 |---|---|---|---|---|---|
-| T-14 | **ADAPTED** — criar CI separado de testes; não alegar que F-28/workflow de deploy foi corrigido | `.github/workflows/test.yml` | validar YAML/estrutura local + `npm test`; GitHub verde exige push e fica não verificado | nenhuma | PENDING |
-| T-01 | **ACCEPTED** | `package.json` | `npm run build:all` inclui 4 apps e sai 0 no Windows | T-14 | PENDING |
-| T-03 | **ACCEPTED** | `maestro/adapters.mjs`, `engine.mjs`, `fake-exec.mjs`, teste novo | teste unitário + integração de exit 0 mencionando 429; suíte | Onda 0 | PENDING |
-| T-04 | **ACCEPTED** | `maestro/engine.mjs`, teste novo | JSON truncado logado; save final válido sem `.tmp`; suíte | T-03 | PENDING |
-| T-02 | **ADAPTED** — unificar target local e preservar alias legado se houver estado; não alegar recuperação do deploy legado | `maestro/deploy.mjs`, teste de contrato | todos os targets da engine são tratados; suíte; sem deploy | T-04 | PENDING |
-| T-06 | **ACCEPTED** | `maestro/engine.mjs`, teste novo | todo player de time gerado possui fallback; solo não quebra | T-02 | PENDING |
-| T-05 | **ACCEPTED** | `maestro/engine.mjs`, teste novo | cooldown compartilhado no manager afeta outra pipeline; estado local preservado | T-03, T-06 | PENDING |
-| T-07 | **ACCEPTED** | `maestro/engine.mjs`, `forge.mjs`, characterization | tail redigido ≤500 no snapshot/TUI; caracterização atualizada; suíte | T-05 | PENDING |
+| T-14 | **ADAPTED** — criar CI separado de testes; não alegar que F-28/workflow de deploy foi corrigido | `.github/workflows/test.yml` | validar YAML/estrutura local + `npm test`; GitHub verde exige push e fica não verificado | nenhuma | PARCIAL (`90c6cfc`; local verde, Actions não observado sem push) |
+| T-01 | **ACCEPTED** | `package.json` | `npm run build:all` inclui 4 apps e sai 0 no Windows | T-14 | DONE (`113cddd`) |
+| T-03 | **ACCEPTED** | `maestro/adapters.mjs`, `engine.mjs`, `fake-exec.mjs`, teste novo | teste unitário + integração de exit 0 mencionando 429; suíte | Onda 0 | DONE (`c721af8`, `8d51386`, `d4fc628`) |
+| T-04 | **ACCEPTED** | `maestro/engine.mjs`, teste novo | JSON truncado logado; save final válido sem `.tmp`; suíte | T-03 | DONE (`8c49a0f`) |
+| T-02 | **ADAPTED** — unificar target local e preservar alias legado se houver estado; não alegar recuperação do deploy legado | `maestro/deploy.mjs`, teste de contrato | todos os targets da engine são tratados; suíte; sem deploy | T-04 | DONE LOCAL (`b6a10c0`; deploy não executado) |
+| T-06 | **ACCEPTED** | `maestro/engine.mjs`, teste novo | todo player de time gerado possui fallback; solo não quebra | T-02 | DONE (`2fbaa4b`) |
+| T-05 | **ACCEPTED** | `maestro/engine.mjs`, teste novo | cooldown compartilhado no manager afeta outra pipeline; estado local preservado | T-03, T-06 | DONE (`87bbe13`) |
+| T-07 | **ACCEPTED** | `maestro/engine.mjs`, `forge.mjs`, characterization | tail redigido ≤500 no snapshot/TUI; caracterização atualizada; suíte | T-05 | DONE (`8bb8b4b`, `a01db93`) |
 | T-08 | **ACCEPTED** | prompt P0, PLAYBOOK, engine verify, fake-exec, teste | Mercado incompleto reprova; completo passa; dry-run chega a `p0-go` | Onda 1 | DONE |
 | T-09 | **ACCEPTED** | `maestro/engine.mjs`, fake-exec, teste | GO condicionado pausa em `p1-signal`; GO simples não ganha gate | T-08 | DONE |
 | T-13 | **ACCEPTED** | repo próprio `apps/doki-call`: checkout route, UI e i18n | build:doki; nenhuma resposta `paid` sem PSP; fluxo honesto PT/EN; sem deploy | T-09 | DONE (`32ba6df`) |
