@@ -102,17 +102,31 @@ denunciar (que é o objetivo). **Dependências:** nenhuma.
 ## T-03 · Rate-limit deixa de confundir o trabalho do agente com limite do provedor
 
 **Objetivo:** só classificar como rate-limit quando o **provedor** falhou.
-**Motivo:** hoje qualquer menção a `429`/"rate limit" na saída do agente põe o player em cooldown
-de 60 min, **descarta o trabalho com `git reset --hard`** e troca de modelo (F-03). O job B4 existe
-para escrever exatamente esse tipo de código; `apps/doki-call/docs/system-design.md:115` já contém
-"rate limit session/IP" e é colado em todos os prompts seguintes.
+**Motivo:** o `tail` é a **saída do processo** do executor (`engine.mjs:777` — últimos 8 KB de
+stdout+stderr). Um CLI de codificação **imprime o que fez**. Quando o agente relata que implementou
+tratamento de `429` — e o job B4 existe para escrever exatamente esse código —, o engine lê a
+palavra na saída, chama o trabalho de rate-limit, põe o player em cooldown de 60 min e
+**descarta o trabalho com `git reset --hard`** (F-03).
 
-**Evidência (executada):**
+**Evidência — nível da função (executado):**
 ```
 detectRateLimit("API Error: 429 Too Many Requests")            → true   ✅ correto
 detectRateLimit("Criei o handler: if (res.status === 429)…")   → true   ❌ falso positivo
 detectRateLimit("Adicionei rate limit no middleware do app")   → true   ❌ falso positivo
 ```
+
+**Evidência — ponta a ponta (executado, com um `fake-exec` que ecoa a saída como um CLI real):**
+```
+pipeline com ideia "app que trata rate limit 429" · executor sai com exit 0
+→ status final: "blocked"   (esperado: "paused_gate")
+→ o trabalho correto foi para o rollback. O bug destrói trabalho, não é teórico.
+```
+
+**Honestidade sobre a frequência:** em **23 runs reais** (`maestro/runs/`), **nenhum** tail contém
+`429` nem "rate limit" — `grep -ril "429\|rate limit" maestro/runs/` = vazio. O caminho destrutivo
+está **verificado**; o gatilho **ainda não ocorreu**, porque nenhum app construído até hoje tinha
+rate limiting no escopo. Isso rebaixa a urgência (P0 → **P1**), não o fix: são duas linhas, e a
+primeira app que implementar um rate limiter cai nele.
 
 **Arquivos:** `maestro/adapters.mjs:147-150` · `maestro/engine.mjs:862` · teste novo em
 `maestro/test/ratelimit.test.mjs`.
@@ -189,21 +203,99 @@ Em `engine.mjs:862`, exigir também o exit code:
         if (res.exitCode !== 0 && detectRateLimit(res.tail)) {
 ```
 
-**Mudanças permitidas:** a função `detectRateLimit`, a condição em `engine.mjs:862`, o teste novo.
+**Passo 3 — o `fake-exec` precisa saber simular um executor que fala.**
+
+O teste do Passo 1 exercita **só** a `detectRateLimit`. Ele passa mesmo se você esquecer a linha do
+`engine.mjs` — metade do bug continua viva, com a suíte verde. E o teste de integração que fecharia
+esse buraco **não é escrevível hoje**: o `fake-exec` imprime apenas `▶ fake-exec: job=… app=…`, nunca
+ecoa o trabalho. Ou seja, **o harness de teste não alcança o caminho mais destrutivo da engine** — foi
+por isso que o bug sobreviveu tanto tempo.
+
+Em `maestro/fake-exec.mjs`, logo após o `await sleep(800)` e **antes** do bloco `FORGE_FAKE_FAIL`:
+
+```javascript
+// Um CLI de codificação real IMPRIME o que fez. Sem isto, o dry-run não consegue simular
+// o executor que relata "implementei o tratamento de 429" — e o caminho do L2 fica sem teste.
+if (process.env.FORGE_FAKE_ECHO) console.log(goal.slice(0, 2000));
+```
+
+Isto **adiciona capacidade de simulação**; não afrouxa nenhum verify. (A revisão vai olhar o diff do
+`fake-exec` com desconfiança — como deve. Esta é a mudança legítima; qualquer outra, explique.)
+
+**Passo 4 — o teste de integração (OBRIGATÓRIO, é o critério de aceite real).**
+
+Em `maestro/test/ratelimit.test.mjs`:
+
+```javascript
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createEngineManager } from "../engine.mjs";
+
+// O executor ECOA o que fez (como um CLI real) e sai com exit 0: é o cenário do falso positivo.
+test("integração: saída de SUCESSO que fala de 429 não põe o player em cooldown", async () => {
+  process.env.FORGE_FAKE_ECHO = "1";
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-rl-"));
+  fs.mkdirSync(path.join(root, "maestro"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "maestro", "roster.json"),
+    JSON.stringify({
+      version: "2.0",
+      players: [{ id: "fake-1", face: "🧪", name: "Fake 1", cli: "fake", model: "default", modelLabel: "Fake", effort: "low", jobs: [], roles: [] }],
+      teams: { "dry-run": { emoji: "🧪", label: "fake", dispatch: { default: "fake-1" }, fallbacks: {} } },
+    }),
+    "utf8"
+  );
+
+  const logs = [];
+  const mgr = createEngineManager({ root, emitLog: (l) => logs.push(l), emitPipeline: () => {} });
+  mgr.start({ idea: "app que trata rate limit 429 do provedor", team: "dry-run", capability: "static", appId: "rl-int" });
+
+  const t0 = Date.now();
+  while (Date.now() - t0 < 40000 && mgr.snapshot()["rl-int"]?.status !== "paused_gate") {
+    await new Promise((r) => setTimeout(r, 200));
+  }
+
+  const snap = mgr.snapshot()["rl-int"];
+  assert.equal(snap.status, "paused_gate", "o job PASSOU — o trabalho não foi descartado");
+  assert.deepEqual(Object.keys(snap.cooldowns || {}), [], "nenhum player entrou em cooldown");
+  assert.ok(!logs.some((l) => l.includes("rate-limit")), "o engine não classificou como rate-limit");
+
+  delete process.env.FORGE_FAKE_ECHO;
+  mgr.decide("rl-int", "p0-go", "kill");
+});
+```
+
+**Isto já foi executado — e falha hoje.** Com o echo ligado no commit auditado:
+
+```
+status final: "blocked"   (esperado: "paused_gate")
+```
+
+O trabalho foi para o `rollback()`. **Se você mudar só o `adapters.mjs`, este teste continua
+vermelho** — é exatamente esse o ponto. Ele só fica verde com o guard do `engine.mjs:862` também.
+
+**Mudanças permitidas:** a função `detectRateLimit`, a condição em `engine.mjs:862`, o hook
+`FORGE_FAKE_ECHO` no `fake-exec.mjs`, os testes novos.
 **Proibido:** alterar `improver.mjs` (usa `detectRateLimit` só para *log*, e ali um falso positivo é
-inofensivo); mudar a lógica de cooldown/fallback em si (é T-05/T-06).
+inofensivo); mudar a lógica de cooldown/fallback em si (é T-05/T-06); qualquer outra mudança no
+`fake-exec` além das 2 linhas do echo.
 
 **Verificação:**
 ```bash
-node --test maestro/test/ratelimit.test.mjs      # 2/2 PASS
+node --test maestro/test/ratelimit.test.mjs      # 3/3 PASS (2 unitários + 1 de integração)
 npm test                                          # tudo verde, inclusive characterization
 ```
-**Aceite:** os 4 casos de menção retornam `false`; os 4 casos reais retornam `true`; o cooldown só
-é aplicado quando o processo falhou.
-**Rollback:** `git revert`. **Risco:** médio-baixo — se um provedor imprimir rate-limit **e** sair
-com 0 (não observado em nenhum log de `maestro/runs/`), o L2 não dispara e o job simplesmente segue
-para o verify, que reprova e faz retry. Falha degradada, não destrutiva.
-**Dependências:** nenhuma. **Prioridade: P0.**
+**Aceite:** o teste de **integração** passa — ele é o critério real, porque é o único que prova que o
+guard do `engine.mjs` existe. Os casos de menção retornam `false`; os reais, `true`.
+**Rollback:** `git revert`.
+**Risco:** médio-baixo — quem carrega o peso é o guard `res.exitCode !== 0 &&`, que é óbvio por
+inspeção. O regex de 7 ramos é defesa **secundária**: se um provedor imprimir rate-limit **e** sair
+com 0 (não observado em 23 runs), o L2 não dispara, o verify reprova e o job faz retry. Falha
+degradada, não destrutiva — o oposto do bug atual.
+**Dependências:** nenhuma. **Prioridade: P1** (rebaixada de P0: o caminho destrutivo está provado,
+mas o gatilho nunca ocorreu nos 23 runs — nenhum app teve rate limiting no escopo até hoje).
+**Continua sendo a primeira tarefa da Onda 1, e continua obrigatoriamente antes da T-05.**
 
 ---
 

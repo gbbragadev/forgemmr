@@ -25,7 +25,7 @@ fila por ser interessante.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | **T-01** | `build:all` quebrado | 2 | 5 | 5 | 3 | 1 | 5 (executado) | 1 | 1 | 5 | **~163** | **P0** |
 | **T-02** | `gh-pages` mismatch | 3 | 5 | 3 | 2 | 1 | 5 | 1 | 1 | 5 | **~145** | **P0** |
-| **T-03** | rate-limit falso positivo destrói trabalho | 3 | 5 | 4 | 5 | 2 | 5 (executado) | 2 | 2 | 5 | **~106** | **P0** |
+| **T-03** | rate-limit falso positivo destrói trabalho (caminho reproduzido; gatilho ainda não ocorreu em 23 runs) | 3 | 5 | 4 | 5 | 2 | 5 (executado) | 2 | 2 | 5 | **~106** | **P1** ⚠ |
 | **T-04** | escrita de estado não-atômica | 2 | 5 | 3 | 2 | 2 | 5 | 1 | 1 | 5 | **~120** | **P0** |
 | **T-05** | cooldown por-pipeline | 2 | 4 | 2 | 5 | 2 | 5 | 2 | 2 | 4 | **~75** | **P1** |
 | **T-06** | times gerados sem fallback | 2 | 5 | 2 | 5 | 2 | 5 | 2 | 2 | 4 | **~80** | **P1** |
@@ -47,6 +47,14 @@ fila por ser interessante.
 
 **Divergência fórmula × julgamento:** T-14 (CI) sai como P2 pela fórmula, mas **sobe para a Onda 0**.
 Motivo: sem CI verde, nenhuma onda seguinte tem rede de segurança — e o custo é de 6 linhas de YAML.
+
+**⚠ T-03 rebaixada de P0 → P1 (13/07, pós-revisão do handoff).** O caminho destrutivo foi
+**reproduzido ponta a ponta** (executor sai com exit 0, engine chama de rate-limit, `rollback()`
+descarta o trabalho, pipeline vai a `blocked`). Mas o gatilho **nunca ocorreu**: `grep -ril
+"429\|rate limit" maestro/runs/` = vazio em **23 runs**. É bug latente com fix de duas linhas, não
+incêndio ativo. **Continua sendo a primeira tarefa da Onda 1 e continua obrigatoriamente antes da
+T-05** — a ordem não muda, só a narrativa de urgência. Ver F-03 na auditoria para o erro de
+julgamento original (verifiquei no nível da função e vendi como ponta a ponta).
 
 **NÃO FAZER** (justificado em `00` §4 e `01` §6): scheduler adaptativo por histórico · worktree por
 job · kernel de MRR com 4 archetypes · banco/fila/vector DB · reescrita da engine.

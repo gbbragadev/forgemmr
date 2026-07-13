@@ -122,36 +122,31 @@ test("caracterização: 3 falhas do único player → rollback + BLOCKED com gat
 });
 
 /**
- * CARACTERIZAÇÃO 3 — rate-limit troca de player SEM gastar tentativa (L2 automático).
+ * CARACTERIZAÇÃO 3 — o harness de teste NÃO ALCANÇA o caminho destrutivo do rate-limit.
  *
- * detectRateLimit(saída do executor) → cooldown no player + redispatch do MESMO job no
- * fallback. O texto "rate limit" é procurado na SAÍDA do processo: o fake-exec ecoa o prompt,
- * então uma ideia que contenha o termo dispara o caminho de rate-limit. Isso caracteriza tanto
- * o L2 quanto a fragilidade da detecção por substring (ver auditoria).
+ * `detectRateLimit` é aplicada ao TAIL (a saída do processo do executor, engine.mjs:777 —
+ * últimos 8 KB de stdout+stderr), não ao prompt. O `fake-exec` imprime só "▶ fake-exec: job=…",
+ * nunca ecoa o trabalho — então, no dry-run, o texto do agente jamais chega ao tail e o L2 nunca
+ * dispara, por mais que a ideia fale de "rate limit 429".
+ *
+ * É por isso que o falso positivo do F-03 sobreviveu: nenhum teste conseguia vê-lo. Este teste
+ * congela essa cegueira. A T-03 do contrato acrescenta um FORGE_FAKE_ECHO ao fake-exec justamente
+ * para tornar o cenário testável — quando isso existir, este teste passa a ser o "antes".
  */
-test("caracterização: saída com 'rate limit' põe o player em cooldown e redispacha no fallback", async () => {
+test("caracterização: no dry-run o texto do agente nunca chega ao tail, então o L2 não dispara", async () => {
   const root = tmpRoot({ fallback: true });
   const logs = [];
   const mgr = makeManager(root, logs);
-  // fake-exec imprime "▶ fake-exec: job=… app=…" e o goal chega no log do engine; a ideia entra no prompt
   mgr.start({ idea: "app cujo texto menciona rate limit 429 no enunciado", team: "dry-run", capability: "static", appId: "rl-app" });
 
   await waitFor(() => mgr.snapshot()["rl-app"].status === "paused_gate" || mgr.snapshot()["rl-app"].status === "blocked", 40000, "run avançou");
 
   const snap = mgr.snapshot()["rl-app"];
-  const cooldownAplicado = Object.keys(snap.cooldowns || {}).length > 0;
-  const l2 = logs.some((l) => l.includes("rate-limit"));
+  assert.equal(snap.status, "paused_gate", "o run chega ao gate: nada de rate-limit aconteceu");
+  assert.deepEqual(Object.keys(snap.cooldowns || {}), [], "nenhum cooldown — o fake não ecoa o goal");
+  assert.ok(!logs.some((l) => l.includes("rate-limit")), "o engine nunca classificou como rate-limit");
 
-  if (cooldownAplicado || l2) {
-    // caminho L2: o player entrou em cooldown; o job seguiu com outro player (sem contar tentativa)
-    assert.ok(l2, "log registra o rate-limit e o redispatch (L2)");
-    const p0 = snap.history.filter((h) => h.job === "L0/P0");
-    assert.ok(p0.length <= 1, "rate-limit NÃO consome tentativa do player (nenhum history de falha)");
-  } else {
-    // se o texto não vazou pra saída do processo, o run segue normal — caracteriza que a detecção
-    // depende do que o executor IMPRIME, não de um sinal estruturado do provedor
-    assert.equal(snap.status, "paused_gate");
-  }
+  mgr.decide("rl-app", "p0-go", "kill");
 });
 
 /**

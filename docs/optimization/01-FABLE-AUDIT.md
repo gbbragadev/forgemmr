@@ -141,12 +141,19 @@ inalcançável pela pipeline. Quem tentar usá-lo trava no gate de deploy sem en
 
 ---
 
-#### F-03 · A detecção de rate-limit confunde o trabalho do agente com limite do provedor — **VERIFICADO (executado) · cético: PARCIAL**
+#### F-03 · A detecção de rate-limit confunde o trabalho do agente com limite do provedor — **caminho VERIFICADO (reproduzido ponta a ponta) · gatilho PROVÁVEL, nunca observado**
 
-`adapters.mjs:147-150` — `detectRateLimit()` casa `/(429|529|503|rate.?limit|overloaded|…)/i`
-contra **a saída do executor** (`engine.mjs:862`), sem olhar o exit code.
+> **Correção de rota (13/07, pós-revisão).** Este achado saiu do primeiro passe como **P0 "está
+> destruindo trabalho hoje"**, com uma justificativa **errada**. A justificativa errada era:
+> *"o `system-design.md` do doki-call contém 'rate limit session/IP' e é colado nos prompts
+> seguintes"*. **O `tail` não é o prompt** — é a **saída** do processo do executor (`engine.mjs:777`,
+> últimos 8 KB de stdout+stderr). Colar texto no prompt não dispara nada. Rebaixado para **P1**, com
+> a evidência real abaixo. Fica registrado como exemplo do erro que esta auditoria mais tenta evitar:
+> verificar no nível da função e vender como ponta a ponta.
 
-Prova executável:
+**O que está verificado (função):** `adapters.mjs:147-150` — `detectRateLimit()` casa
+`/(429|529|503|rate.?limit|overloaded|…)/i` contra a saída do executor, e `engine.mjs:862` a aplica
+**sem olhar o exit code**:
 
 ```
 RATE-LIMIT | "API Error: 429 Too Many Requests"                    ← correto
@@ -154,23 +161,31 @@ RATE-LIMIT | "Criei o handler: if (res.status === 429) retry()"    ← FALSO POS
 RATE-LIMIT | "Adicionei rate limit no middleware do app"           ← FALSO POSITIVO
 ```
 
-Isso não é hipotético: o job **B4 (wire API)** existe para escrever exatamente esse código, e
-`apps/doki-call/docs/system-design.md:115` já contém *"rate limit session/IP"* — e esse documento é
-colado no prompt de **todos** os jobs seguintes (`engine.mjs:581`).
+**O que está verificado (ponta a ponta, reproduzido).** Um CLI de codificação **imprime o que fez**.
+Simulei isso fazendo o `fake-exec` ecoar a saída (patch descartável) e rodei a pipeline com uma ideia
+que menciona rate limiting. Resultado, com o executor saindo em **exit 0**:
 
-**Consequência no código** (`engine.mjs:862-868`): dispara **antes do verify**. O engine põe o
-player em **cooldown de 60 min**, dá `break`, e o caminho de saída chama `rollback()`
-(`engine.mjs:896`) — `git reset --hard` + `clean -fd`. **O trabalho correto do agente é
-descartado** e o job vai para outro modelo.
+```
+status final: "blocked"    (esperado: "paused_gate")
+```
 
-*O cético reduziu a severidade argumentando que o `break` não consome as 3 tentativas do player —
-verdade, e por isso o custo é "só" o trabalho jogado fora + 1 h de cooldown de um provedor que
-estava saudável. Mantenho P0: destruir trabalho bom silenciosamente é a pior classe de bug numa
-fábrica, porque parece rate-limit no log.*
+O engine classificou a saída bem-sucedida como rate-limit, deu `break`, e o caminho de saída chamou
+`rollback()` (`engine.mjs:896` — `git reset --hard` + `clean -fd`). **O trabalho correto foi
+descartado.** O caminho destrutivo é real.
 
-**Fix mínimo:** só considerar rate-limit quando `exitCode !== 0` (o provedor falhou de fato), e
-apertar o regex para evidência de **recebimento** (`API Error: 429`, `status: 429`, `429 Too Many`)
-em vez de menção.
+**O que NÃO está verificado — e é o ponto honesto:** em **23 runs reais** (`maestro/runs/`),
+`grep -ril "429\|rate limit"` retorna **vazio**. O gatilho nunca ocorreu. A razão é simples: nenhum
+app construído até hoje tinha rate limiting no escopo. Isso é evidência **fraca** de segurança, não
+prova de inocuidade — o job **B4 (wire API)** existe justamente para escrever esse tipo de código.
+
+**Por que o bug sobreviveu tanto tempo:** nenhum teste conseguia vê-lo. O `fake-exec` nunca ecoa o
+trabalho, então o dry-run jamais alcança este caminho da engine (congelado em
+`characterization.test.mjs`, teste 3). O harness era cego exatamente onde o dano mora.
+
+**Fix mínimo:** o guard `res.exitCode !== 0` em `engine.mjs:862` — **uma linha, e é ela que carrega
+o peso**. Apertar o regex (evidência de *recebimento*: `API Error: 429`, `status: 429`) é defesa
+secundária. Nenhum regex separa "rate limit exceeded" escrito por um provedor de "rate limit
+exceeded" escrito por um agente: a frase é idêntica. **O discriminador é o exit code.**
 
 ---
 
@@ -366,6 +381,47 @@ e dizer a verdade ("em breve"), em vez de retornar `status: "paid"`.
 | F-25 | Arquivos de prompt/log gravados sem `mode 0o600`; `maestro/.prompts/` nunca é limpo | `adapters.mjs:174`, `server.mjs:255,283` |
 | F-26 | Preview do gate `b3-visual` dá 404 para apps `chat` (não têm `out/`), com mensagem enganosa ("rode o build") | `server.mjs:811` |
 | F-27 | Suíte de testes é levemente instável (ops de git reais, uma falha intermitente observada em `CxB→cxb`) | `engine-generic-regression` |
+
+### P1 — descobertos na revisão adversarial do handoff (13/07, pós-primeiro-passe)
+
+#### F-28 · O deploy do anime-quiz está morto desde o repo-por-app, e falha em **todo** push — **VERIFICADO (executado)**
+
+`.github/workflows/deploy-anime-quiz.yml` roda `on: push → master` e executa `npm run build:quiz`.
+Mas `.gitignore:45` ignora **`apps/`** (decisão correta do repo-por-app: cada app tem seu próprio
+`.git`). O runner clona a fábrica **sem os apps** — e o workspace não existe:
+
+```
+npm error No workspaces found:
+npm error   --workspace=@forge/anime-quiz
+```
+
+Verificado em 3 runs consecutivos do GitHub Actions (`29231854260`, `29220743600`, `29220402527`) —
+**todos vermelhos**, os dois primeiros de commits anteriores a esta auditoria. Consequências:
+
+1. **O `anime-quiz` no ar está órfão:** nenhum push consegue republicá-lo. Ele está congelado na
+   última publicação bem-sucedida, anterior à migração. Isso também explica o `/anime-quiz/` → 404
+   (F-14): o base path legado nunca foi corrigido *porque o deploy nunca mais rodou*.
+2. **O CI vermelho virou paisagem.** Todo push falha, e ninguém olha. Se a T-14 acrescentar um CI de
+   testes ao lado deste workflow morto, ela nasce num repo onde vermelho não significa nada — que é
+   o pior lugar para pôr uma rede de segurança.
+3. **A barreira contra deploy acidental é um bug.** O texto do handoff diz "PARE antes de qualquer
+   deploy"; na prática o deploy não acontece porque o workflow está quebrado. **Barreira que depende
+   de um bug não é barreira** — se alguém consertar o workflow sem saber disso, o risco volta inteiro.
+
+**Fix:** decisão do **dono**, não do implementador — ou o workflow passa a fazer checkout do repo do
+app (`gbbragadev/anime-quiz`), ou vira `workflow_dispatch` (manual), ou é apagado. Nenhuma das três é
+uma escolha de engenharia; é uma escolha sobre o que fazer com um app publicado.
+
+#### F-29 · `forge remove <app> --force` apaga app de **produção** sem gate — **VERIFICADO (leitura)**
+
+`engine.mjs:1630-1663` (`removeApp`) valida token e `--force`, e então apaga `apps/<appId>`,
+`maestro/pipelines/<appId>.json` e `maestro/proposals/<appId>`. **Não há gate humano, e não há
+distinção entre um app-probe de dry-run e `doki-call` / `anima-deck`, que estão no ar.** O comando é
+idioma natural de limpeza (o próprio contrato manda rodar `forge remove probe --force` depois do
+dry-run E2E) — um erro de digitação no `appId` apaga produção.
+
+**Fix mínimo (P1):** exigir confirmação (ou gate) quando o app tem deploy registrado no estado. Fora
+do escopo desta rodada — mitigado no handoff nomeando os apps intocáveis.
 
 ### P3 — menor
 

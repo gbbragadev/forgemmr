@@ -96,6 +96,17 @@ checklist de revisão como MUST FIX.
 - Rotacionar, criar ou pedir credencial (Cloudflare, Vercel, Stripe, chaves de Realtime).
 - Editar `maestro/roster.json` (é estado do usuário — times que ele montou).
 - Apagar app, branch de pipeline, ou qualquer coisa em `maestro/pipelines/` e `maestro/runs/`.
+
+> ### ⛔ `forge remove` — leia antes de digitar
+>
+> `removeApp` (`engine.mjs:1630`) **não tem gate e não distingue probe de produção**: ele apaga
+> `apps/<app>`, `maestro/pipelines/<app>.json` e `maestro/proposals/<app>` e pronto (F-29).
+>
+> **Estes quatro apps são INTOCÁVEIS** — três estão no ar:
+> `doki-call` · `anima-deck` · `anime-quiz` · `waifu-chat`
+>
+> Você só pode remover **o app-probe que você mesmo criou** no dry-run, com o nome exato que você
+> deu a ele. Confira o `appId` **antes** de apertar enter. Um typo aqui é irreversível.
 - Integrar PSP real (Stripe/Pix) — é decisão de negócio, não de engenharia.
 - Adicionar dependência nova, banco, fila ou serviço externo. (Resposta esperada: não. Ver
   `00-RESEARCH-CONTEXT.md` §4.)
@@ -110,6 +121,12 @@ checklist de revisão como MUST FIX.
 3. **T-05 muda estado compartilhado.** Não apague `pipeline.cooldowns` no mesmo commit — o cockpit e
    o snapshot o consomem.
 4. **Windows.** `cmd.exe` não entende `;`. Não use `pkill`, `/tmp`, nem paths com `/`.
+5. **O GitHub Actions vai ficar vermelho a cada push que você der — e não é culpa sua.**
+   `deploy-anime-quiz.yml` roda `on: push → master` e falha com `No workspaces found` desde a
+   migração repo-por-app (o runner clona a fábrica, que **ignora `apps/`** — F-28). **Não conserte
+   esse workflow**: o que fazer com ele é decisão do dono (o `anime-quiz` está publicado). Só não
+   confunda esse vermelho pré-existente com uma quebra sua — e, ao criar o CI da T-14, faça-o num
+   workflow **separado**, para que o verde dele signifique alguma coisa.
 
 ## 9. Definição global de pronto
 
