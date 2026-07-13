@@ -19,6 +19,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
+- [ ] **META/P3** Tutorial visual de onboarding completo do Forge + push/deploy + WhatsApp — GPT-5.6 (2026-07-13)
+
 ## Done
 
 - [x] **L2/META** Correções pós-revisão Fable C-1/C-2 — cooldown pós-restart + fonte textual de stats (2026-07-13)
