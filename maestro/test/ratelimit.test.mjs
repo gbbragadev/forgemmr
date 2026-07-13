@@ -26,6 +26,9 @@ const agentMentions = [
   "Adicionei rate limit por sessão/IP no middleware",
   "| Custo free path | cap 3 textos; rate limit session/IP |",
   "Job concluído: 12 arquivos, build ok, 429 linhas alteradas",
+  "Build falhou depois que implementei tratamento para quota exceeded",
+  "Documentei o estado temporarily overloaded no fallback",
+  "Adicionei suporte a overloaded_error no parser",
 ];
 
 function tmpRoot() {

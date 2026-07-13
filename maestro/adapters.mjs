@@ -145,7 +145,7 @@ export function makeRedactor() {
  * que o forge contava como falha de trabalho e queimava as 3 tentativas do player.
  */
 export function detectRateLimit(text) {
-  return /(?:\bAPI Error:\s*(?:429|529)\b|\b(?:HTTP\s+)?(?:503\s+Service Unavailable|429\s+rate.?limit exceeded)\b|\bError:\s+(?:(?:usage |quota |rate.?|)limit (?:reached|exceeded)|(?:temporarily )?(?:overloaded(?:_error)?|unavailable)|service unavailable)\b|\bquota (?:exceeded|reached)\b|\btemporarily overloaded\b|\boverloaded_error\b|\brate.?limit exceeded\b)/i.test(
+  return /(?:^|\r?\n)\s*(?:API Error:\s*(?:429|529)\b|(?:HTTP\s+)?503\s+Service Unavailable\b|Error:\s+(?:(?:usage |quota |rate.?|)limit (?:reached|exceeded)|quota exceeded|overloaded_error)\b|quota reached(?=\s*(?:[.;]|$))|temporarily overloaded(?=[^\r\n]*(?:retry|try again))|429\s+rate.?limit exceeded\b)|\brate.?limit exceeded\b/im.test(
     String(text)
   );
 }
