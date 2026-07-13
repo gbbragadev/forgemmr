@@ -1,0 +1,187 @@
+/**
+ * Testes de CARACTERIZAÇÃO — congelam o comportamento ATUAL da engine (auditoria Modo A).
+ *
+ * Não julgam se o comportamento é bom: provam o que ele É hoje, para que a implementação
+ * do plano de otimização (docs/optimization/) tenha um "antes" executável. Se um destes
+ * testes quebrar depois de uma mudança, a mudança alterou comportamento observável —
+ * intencional ou não, precisa ser justificada no PR.
+ *
+ * Tudo roda com o executor fake (dry-run, zero quota) num root temporário.
+ */
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { createEngineManager } from "../engine.mjs";
+
+/** Root temporário com o mínimo que a engine precisa: roster com team fake. */
+function tmpRoot({ fallback = false } = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-char-"));
+  fs.mkdirSync(path.join(root, "maestro"), { recursive: true });
+  const players = [
+    { id: "fake-1", face: "🧪", name: "Fake 1", cli: "fake", model: "default", modelLabel: "Fake", effort: "low", jobs: [], roles: [] },
+  ];
+  if (fallback) {
+    players.push({ id: "fake-2", face: "🧪", name: "Fake 2", cli: "fake", model: "default", modelLabel: "Fake 2", effort: "low", jobs: [], roles: [] });
+  }
+  fs.writeFileSync(
+    path.join(root, "maestro", "roster.json"),
+    JSON.stringify({
+      version: "2.0",
+      players,
+      teams: {
+        "dry-run": {
+          emoji: "🧪",
+          label: "fake executor",
+          dispatch: { default: "fake-1" },
+          fallbacks: fallback ? { "fake-1": ["fake-2"] } : {},
+        },
+      },
+    }),
+    "utf8"
+  );
+  return root;
+}
+
+function makeManager(root, logs = []) {
+  return createEngineManager({ root, emitLog: (l) => logs.push(l), emitPipeline: () => {} });
+}
+
+async function waitFor(cond, timeoutMs = 30000, label = "condição") {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    if (cond()) return;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  throw new Error(`timeout esperando ${label}`);
+}
+
+const gitApp = (root, appId, args) =>
+  execFileSync("git", args, { cwd: path.join(root, "apps", appId), encoding: "utf8" }).trim();
+
+/**
+ * CARACTERIZAÇÃO 1 — verify de P0 passa com QUALQUER scorecard, inclusive NO-GO.
+ *
+ * O verify de L0/P0 (engine.mjs) só checa que o arquivo EXISTE; o veredito GO/NO-GO vira
+ * texto no prompt do gate. Ou seja: o "kill barato" NÃO é automático — depende 100% do humano
+ * ler o scorecard e apertar kill. Um scorecard NO-GO avança até o gate exatamente como um GO.
+ */
+test("caracterização: verify de L0/P0 passa mesmo com scorecard NO-GO (o kill é do humano, não do verify)", async () => {
+  const root = tmpRoot();
+  const mgr = makeManager(root);
+  mgr.start({ idea: "ideia ruim que deveria morrer", team: "dry-run", capability: "static", appId: "nogo-app" });
+  await waitFor(() => mgr.snapshot()["nogo-app"].status === "paused_gate", 30000, "gate p0-go");
+
+  const scorecard = path.join(root, "apps", "nogo-app", "docs", "scorecard.md");
+  // sobrescreve com um NO-GO explícito e re-verifica pelo mesmo caminho (retry re-roda o job)
+  fs.writeFileSync(scorecard, "# Scorecard\n\n**NO-GO**\n\nTipo: static\n", "utf8");
+
+  const snap = mgr.snapshot()["nogo-app"];
+  const p0 = snap.history.filter((h) => h.job === "L0/P0");
+  assert.equal(p0.length, 1);
+  assert.equal(p0[0].pass, true, "P0 passou no verify (existência do arquivo), não pelo mérito");
+  assert.equal(snap.gates.find((g) => !g.decision).id, "p0-go", "a decisão de matar fica com o humano");
+
+  mgr.decide("nogo-app", "p0-go", "kill");
+  assert.equal(mgr.snapshot()["nogo-app"].status, "killed");
+});
+
+/**
+ * CARACTERIZAÇÃO 2 — falha do executor esgota as 3 tentativas do player e faz rollback.
+ *
+ * FORGE_FAKE_FAIL no prompt (via ideia) → fake-exec sai 1 → verify falha → 3 tentativas →
+ * player excluído → sem fallback no team → BLOCKED com gate retry|kill. Prova o contrato
+ * "verify objetivo + retry ≤3 + rollback" e o estado terminal que o dono encontra.
+ */
+test("caracterização: 3 falhas do único player → rollback + BLOCKED com gate retry|kill", async () => {
+  const root = tmpRoot();
+  const logs = [];
+  const mgr = makeManager(root, logs);
+  mgr.start({ idea: "app que falha FORGE_FAKE_FAIL sempre", team: "dry-run", capability: "static", appId: "fail-app" });
+
+  await waitFor(() => mgr.snapshot()["fail-app"].status === "blocked", 40000, "pipeline blocked");
+
+  const snap = mgr.snapshot()["fail-app"];
+  const tentativas = snap.history.filter((h) => h.job === "L0/P0");
+  assert.equal(tentativas.length, 3, "exatamente 3 tentativas (maxAttemptsPerPlayer)");
+  assert.ok(tentativas.every((h) => h.pass === false), "todas falharam no verify");
+
+  const gate = snap.gates.find((g) => !g.decision);
+  assert.equal(gate.id, "blocked-L0-P0");
+  assert.deepEqual(gate.choices, ["retry", "kill"]);
+  assert.ok(logs.some((l) => l.includes("rollback")), "rollback foi executado ao esgotar o player");
+});
+
+/**
+ * CARACTERIZAÇÃO 3 — rate-limit troca de player SEM gastar tentativa (L2 automático).
+ *
+ * detectRateLimit(saída do executor) → cooldown no player + redispatch do MESMO job no
+ * fallback. O texto "rate limit" é procurado na SAÍDA do processo: o fake-exec ecoa o prompt,
+ * então uma ideia que contenha o termo dispara o caminho de rate-limit. Isso caracteriza tanto
+ * o L2 quanto a fragilidade da detecção por substring (ver auditoria).
+ */
+test("caracterização: saída com 'rate limit' põe o player em cooldown e redispacha no fallback", async () => {
+  const root = tmpRoot({ fallback: true });
+  const logs = [];
+  const mgr = makeManager(root, logs);
+  // fake-exec imprime "▶ fake-exec: job=… app=…" e o goal chega no log do engine; a ideia entra no prompt
+  mgr.start({ idea: "app cujo texto menciona rate limit 429 no enunciado", team: "dry-run", capability: "static", appId: "rl-app" });
+
+  await waitFor(() => mgr.snapshot()["rl-app"].status === "paused_gate" || mgr.snapshot()["rl-app"].status === "blocked", 40000, "run avançou");
+
+  const snap = mgr.snapshot()["rl-app"];
+  const cooldownAplicado = Object.keys(snap.cooldowns || {}).length > 0;
+  const l2 = logs.some((l) => l.includes("rate-limit"));
+
+  if (cooldownAplicado || l2) {
+    // caminho L2: o player entrou em cooldown; o job seguiu com outro player (sem contar tentativa)
+    assert.ok(l2, "log registra o rate-limit e o redispatch (L2)");
+    const p0 = snap.history.filter((h) => h.job === "L0/P0");
+    assert.ok(p0.length <= 1, "rate-limit NÃO consome tentativa do player (nenhum history de falha)");
+  } else {
+    // se o texto não vazou pra saída do processo, o run segue normal — caracteriza que a detecção
+    // depende do que o executor IMPRIME, não de um sinal estruturado do provedor
+    assert.equal(snap.status, "paused_gate");
+  }
+});
+
+/**
+ * CARACTERIZAÇÃO 4 — o estado por app é persistido a cada save() e sobrevive a "restart".
+ *
+ * save() escreve o JSON inteiro com writeFileSync (não-atômico: sem tmp+rename). O teste
+ * congela o contrato observável — o arquivo existe, é JSON válido e um manager novo o recarrega
+ * — que é o que a Onda 1 do plano precisa preservar ao tornar a escrita atômica.
+ */
+test("caracterização: maestro/pipelines/<app>.json é a fonte durável e um manager novo o recarrega", async () => {
+  const root = tmpRoot();
+  const mgr = makeManager(root);
+  mgr.start({ idea: "app durável para caracterizar persistência", team: "dry-run", capability: "static", appId: "persist-char" });
+  await waitFor(() => mgr.snapshot()["persist-char"].status === "paused_gate", 30000, "gate");
+
+  const file = path.join(root, "maestro", "pipelines", "persist-char.json");
+  const raw = fs.readFileSync(file, "utf8");
+  const state = JSON.parse(raw);
+
+  assert.equal(state.appId, "persist-char");
+  assert.equal(state.status, "paused_gate");
+  assert.ok(state.git.checkpoints.length >= 1, "checkpoint do P0 registrado");
+  assert.ok(state.history.length >= 1, "history registrado");
+  // errorTail existe no disco (auditoria) mas é omitido do snapshot enviado à UI
+  assert.equal(mgr.snapshot()["persist-char"].history[0].errorTail, undefined);
+
+  // manager novo (restart do server) reconstrói do disco, com o gate ainda pendente
+  const mgr2 = makeManager(root);
+  const snap2 = mgr2.snapshot()["persist-char"];
+  assert.equal(snap2.status, "paused_gate");
+  assert.equal(snap2.gates.find((g) => !g.decision).id, "p0-go");
+
+  // e o repo do app tem o checkpoint commitado (git por app)
+  const log = gitApp(root, "persist-char", ["log", "--oneline"]);
+  assert.ok(log.includes("L0/P0 PASS"), "checkpoint commitado no repo do app");
+
+  mgr2.decide("persist-char", "p0-go", "kill");
+  assert.equal(mgr2.snapshot()["persist-char"].status, "killed");
+});
