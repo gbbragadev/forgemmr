@@ -1,11 +1,20 @@
 # HANDOFF
 
 ## Loop ativo
-**META/L2** — correções pós-revisão Fable — **C-1/C-2 CONCLUÍDAS LOCALMENTE** · próximo = recheck/merge  
-*(sem push, merge ou deploy nesta iteração; P4 continua humano)*
+**META/P3** — onboarding visual do Forge — **PUBLICADO E VERIFICADO** · próximo = usar/medir
+*(nenhum app, pipeline viva ou servidor do Maestro foi alterado; P4 continua humano)*
 
 ## Last agent
-GPT‑5.6 Sol | 2026-07-13 · handoff-back Fable (`feat/gpt56-optimization`)
+GPT‑5.6 | 2026-07-13 · tutorial + deploy (`feat/gpt56-optimization`)
+
+## Last iteration — META/P3 onboarding visual do Forge (2026-07-13)
+- **Entrega:** tutorial público em `docs/forge-onboarding/` com mapa da jornada, primeiros 15 minutos, laboratório de gates, comparação de times, busca de comandos, operação concorrente, recovery e checklist de ship persistida no navegador.
+- **Design:** página estática editorial dark/light, responsiva em 375/768/1024/1440, acessível por teclado e sem dependência nova.
+- **VERIFY:** `npm test` **108/108** · browser em quatro larguras com **overflow 0** · busca, gate, cópia e persistência exercitados · console **0 errors / 0 warnings**.
+- **Deploy:** Cloudflare Pages direto com Wrangler `4.108.0`; URL estável **https://forge-onboarding.pages.dev/** e deployment imutável **https://160c8198.forge-onboarding.pages.dev/**; body, assets e headers de segurança retornam HTTP 200.
+- **Git:** commit de fechamento que contém este handoff; push autorizado para `origin/feat/gpt56-optimization`.
+- **Escopo preservado:** `package-lock.json`, `.claude/` e `.codebase-memory/` preexistentes ficaram intocados; nenhum app ou serviço do Maestro foi reiniciado.
+- **Próximo:** divulgar o tutorial e observar dúvidas reais de onboarding antes de ampliar conteúdo.
 
 ## Last iteration — META/L2 correções pós-revisão Fable (2026-07-13)
 - **C-1:** cooldowns futuros persistidos em `pipeline.cooldowns` ressemeiam o `Map` global no boot; regressão cobre manager novo no mesmo root (`3fec9a0`).

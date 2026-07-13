@@ -19,10 +19,10 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
-- [ ] **META/P3** Tutorial visual de onboarding completo do Forge + push/deploy + WhatsApp — GPT-5.6 (2026-07-13)
 
 ## Done
 
+- [x] **META/P3** Tutorial visual de onboarding completo do Forge — 108/108 · browser QA · Cloudflare Pages · push/WhatsApp (2026-07-13)
 - [x] **L2/META** Correções pós-revisão Fable C-1/C-2 — cooldown pós-restart + fonte textual de stats (2026-07-13)
 - [x] **META** Contrato GPT56 optimization — implementação local + relatórios + verificação global (2026-07-13) · próximo: revisão Fable
 - [x] **L1/B5** doki-call — forge/ggg-gemini3 (2026-07-13)

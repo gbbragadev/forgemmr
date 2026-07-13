@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Guia visual para operar todo o potencial do Forge: primeira pipeline, times, gates, recovery, métricas e deploy.">
+  <meta name="theme-color" content="#11110f">
+  <title>Forge — Guia de Operação</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%2311110f'/%3E%3Cpath d='M17 14h34v9H27v8h20v9H27v15H17z' fill='%23e4bcff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./guide.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o tutorial</a>
+
+  <header class="hero" id="top">
+    <div class="shell hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> FORGE // OPERATOR MANUAL 01</p>
+        <h1>Da ideia ao app no ar.<br><span>Sem perder o controle.</span></h1>
+        <p class="hero-lead">O Forge orquestra agentes, artefatos, testes e deploy. Você entra apenas onde gosto, risco ou dinheiro tornam a decisão humana.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#quickstart">Começar em 15 minutos</a>
+          <a class="button button-quiet" href="#command-atlas">Abrir mapa de comandos</a>
+        </div>
+      </div>
+
+      <div class="hero-console" aria-label="Resumo de uma pipeline Forge">
+        <div class="console-bar">
+          <span>pipeline/doki-call</span>
+          <span class="console-state">PAUSED_GATE</span>
+        </div>
+        <div class="console-body">
+          <p><span class="prompt">$</span> forge status</p>
+          <dl class="console-data">
+            <div><dt>job</dt><dd>L0/P0</dd></div>
+            <div><dt>player</dt><dd>grok-solo</dd></div>
+            <div><dt>verify</dt><dd class="verified">PASS</dd></div>
+            <div><dt>gate</dt><dd class="warning">p0-go</dd></div>
+          </dl>
+          <p class="console-question">Mercado provado. Avançar para build?</p>
+          <div class="console-choices" aria-hidden="true">
+            <span>[G] GO</span><span>[K] KILL</span><span>[R] RETRY</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="shell hero-facts" aria-label="Capacidades principais">
+      <div><strong>03</strong><span>gates humanos</span></div>
+      <div><strong>N</strong><span>pipelines paralelas</span></div>
+      <div><strong>0</strong><span>quota no dry-run</span></div>
+      <div><strong>02</strong><span>caminhos de ship</span></div>
+    </div>
+  </header>
+
+  <div class="shell page-grid">
+    <aside class="side-nav" aria-label="Navegação do tutorial">
+      <p class="side-label">Percurso</p>
+      <nav aria-label="Seções do tutorial">
+        <a href="#journey" data-nav="journey"><span>01</span> Mapa da fábrica</a>
+        <a href="#quickstart" data-nav="quickstart"><span>02</span> Primeiros 15 min</a>
+        <a href="#gate-lab" data-nav="gate-lab"><span>03</span> Gates humanos</a>
+        <a href="#teams" data-nav="teams"><span>04</span> Escolha do time</a>
+        <a href="#command-atlas" data-nav="command-atlas"><span>05</span> Comandos</a>
+        <a href="#operator" data-nav="operator"><span>06</span> Modo operador</a>
+        <a href="#recovery" data-nav="recovery"><span>07</span> Recovery</a>
+        <a href="#ship-checklist" data-nav="ship-checklist"><span>08</span> Ship checklist</a>
+      </nav>
+      <div class="side-rule">
+        <p>Regra de ouro</p>
+        <strong>Automatize o reversível. Pare no irreversível.</strong>
+      </div>
+    </aside>
+
+    <main id="main">
+      <section class="guide-section journey-section" id="journey" aria-labelledby="journey-title">
+        <div class="section-heading">
+          <p class="section-number">01 / MAPA</p>
+          <div>
+            <h2 id="journey-title">A fábrica é um loop, não uma sequência de prompts</h2>
+            <p>Cada etapa tem entrada, dono, artefato e verificação. O modelo é só o motor daquela volta.</p>
+          </div>
+        </div>
+        <div class="journey-legend" aria-label="Legenda do mapa">
+          <span><i class="legend-dot automated"></i> Agente executa</span>
+          <span><i class="legend-dot human"></i> Humano decide</span>
+          <span><i class="legend-dot evidence"></i> Evidência fica no repo</span>
+        </div>
+        <ol class="journey-list" id="journey-list"></ol>
+        <div class="loop-note">
+          <span class="loop-mark" aria-hidden="true">↺</span>
+          <div><strong>Depois do ship, o loop continua.</strong><p>Feedback volta por ITERATE. P4 mede comportamento real. P5 mata o que não paga ou escala o que provou sinal.</p></div>
+        </div>
+      </section>
+
+      <section class="guide-section" id="quickstart" aria-labelledby="quickstart-title">
+        <div class="section-heading">
+          <p class="section-number">02 / START</p>
+          <div>
+            <h2 id="quickstart-title">Primeiros 15 minutos</h2>
+            <p>Aprenda com uma pipeline completa usando o executor fake. Mesmos artefatos, mesmos gates, zero quota.</p>
+          </div>
+        </div>
+
+        <div class="quickstart-grid">
+          <ol class="steps-list">
+            <li>
+              <span class="step-index">01</span>
+              <div><h3>Instale o workspace</h3><p>Use Node 20 ou superior. Rode apenas quando dependências estiverem ausentes.</p><div class="command-line"><code>npm install</code><button type="button" data-copy="npm install">Copiar</button></div></div>
+            </li>
+            <li>
+              <span class="step-index">02</span>
+              <div><h3>Abra o Maestro</h3><p>O helper sobe o server e abre a interface local. Se a página mostrar só “Running”, você acertou o Docker, não o Maestro.</p><div class="command-line"><code>npm run maestro:open</code><button type="button" data-copy="npm run maestro:open">Copiar</button></div></div>
+            </li>
+            <li>
+              <span class="step-index">03</span>
+              <div><h3>Defina a fábrica</h3><p>Nicho, stack, contexto e idiomas viram instruções persistentes para todos os jobs.</p><div class="command-line"><code>npm run forge -- profile init</code><button type="button" data-copy="npm run forge -- profile init">Copiar</button></div></div>
+            </li>
+            <li>
+              <span class="step-index">04</span>
+              <div><h3>Monte o time</h3><p>Escolha provedor, modelo, esforço e função sem editar o roster à mão.</p><div class="command-line"><code>npm run forge -- team</code><button type="button" data-copy="npm run forge -- team">Copiar</button></div></div>
+            </li>
+            <li class="step-featured">
+              <span class="step-index">05</span>
+              <div><h3>Rode sem gastar quota</h3><p>Seu ensaio geral. O fake produz artefatos substanciais e pausa no mesmo <code>p0-go</code> do run real.</p><div class="command-line"><code>npm run forge -- new "minha ideia" --team dry-run --dry-run</code><button type="button" data-copy="npm run forge -- new &quot;minha ideia&quot; --team dry-run --dry-run">Copiar</button></div></div>
+            </li>
+            <li>
+              <span class="step-index">06</span>
+              <div><h3>Veja o estado</h3><p>Confirme job, player, gate e histórico de cada pipeline.</p><div class="command-line"><code>npm run forge -- status</code><button type="button" data-copy="npm run forge -- status">Copiar</button></div></div>
+            </li>
+            <li>
+              <span class="step-index">07</span>
+              <div><h3>Decida com evidência</h3><p>Leia o scorecard e só então responda ao gate.</p><div class="command-line"><code>npm run forge -- decide p0-go go --app meu-app</code><button type="button" data-copy="npm run forge -- decide p0-go go --app meu-app">Copiar</button></div></div>
+            </li>
+          </ol>
+
+          <aside class="expected-panel" aria-label="O que você deve observar">
+            <p class="panel-kicker">Você chegou lá quando</p>
+            <ul class="check-list compact">
+              <li>o app ganhou um repositório próprio;</li>
+              <li>o scorecard contém seção Mercado;</li>
+              <li>o verify terminou PASS;</li>
+              <li>a pipeline parou em <code>p0-go</code>;</li>
+              <li>nenhum provedor real gastou quota.</li>
+            </ul>
+            <div class="expected-state"><span>STATUS</span><strong>PAUSED_GATE</strong></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="guide-section gate-section" id="gate-lab" aria-labelledby="gate-title">
+        <div class="section-heading light-heading">
+          <p class="section-number">03 / GATES</p>
+          <div>
+            <h2 id="gate-title">O Forge sabe trabalhar. Você sabe quando parar.</h2>
+            <p>Simule uma decisão. Nada aqui executa comandos; o laboratório mostra o efeito antes de você agir no terminal.</p>
+          </div>
+        </div>
+        <div class="gate-lab-grid">
+          <fieldset class="gate-controls">
+            <legend>Simule uma decisão humana</legend>
+            <label for="gate-select">Gate atual</label>
+            <select id="gate-select">
+              <option value="p0-go">p0-go · mercado</option>
+              <option value="b3-visual">b3-visual · gosto</option>
+              <option value="deploy">deploy · publicação</option>
+            </select>
+            <div id="gate-context" class="gate-context"></div>
+            <div id="gate-decisions" class="gate-decisions"></div>
+          </fieldset>
+          <output id="gate-output" aria-live="polite">Escolha uma decisão para ver efeito e comando.</output>
+        </div>
+        <div class="gate-principles">
+          <div><span>p0-go</span><strong>Dinheiro</strong><p>Quem compra, por qual canal, por quanto e com qual recorrência?</p></div>
+          <div><span>b3-visual</span><strong>Gosto</strong><p>Escolha visual não se terceiriza para uma média estatística.</p></div>
+          <div><span>deploy</span><strong>Irreversível</strong><p>Publicar muda estado externo. A autorização é sua.</p></div>
+        </div>
+      </section>
+
+      <section class="guide-section" id="teams" aria-labelledby="teams-title">
+        <div class="section-heading">
+          <p class="section-number">04 / TIMES</p>
+          <div>
+            <h2 id="teams-title">Escolha o menor time que entrega confiança</h2>
+            <p>Mais agentes não são automaticamente mais qualidade. Use especialização quando o job pede.</p>
+          </div>
+        </div>
+        <div class="team-list" id="team-list"></div>
+        <div class="team-builder-note">
+          <div><p class="panel-kicker">Time próprio</p><h3>Monte por função, não por torcida.</h3><p>O wizard combina provedor, modelo, esforço e papéis. Fallbacks entram quando o player primário fica inelegível.</p></div>
+          <div class="command-line"><code>npm run forge -- team</code><button type="button" data-copy="npm run forge -- team">Copiar</button></div>
+        </div>
+      </section>
+
+      <section class="guide-section atlas-section" id="command-atlas" aria-labelledby="atlas-title">
+        <div class="section-heading">
+          <p class="section-number">05 / COMANDOS</p>
+          <div>
+            <h2 id="atlas-title">Mapa de comandos por intenção</h2>
+            <p>Você não precisa decorar a CLI. Comece pelo que quer fazer.</p>
+          </div>
+        </div>
+        <div class="command-tools" role="search">
+          <label for="command-search">O que você quer fazer?</label>
+          <input id="command-search" type="search" placeholder="Ex.: métricas, pausar, deploy" autocomplete="off">
+          <div id="command-filters" class="filter-row" aria-label="Filtrar comandos por intenção"></div>
+        </div>
+        <div id="command-results" class="command-results" aria-live="polite"></div>
+      </section>
+
+      <section class="guide-section operator-section" id="operator" aria-labelledby="operator-title">
+        <div class="section-heading">
+          <p class="section-number">06 / OPERATOR</p>
+          <div>
+            <h2 id="operator-title">Modo operador: confiança vem do estado</h2>
+            <p>O Forge aguenta paralelismo, falha e restart porque o run vive em arquivos, não na memória de uma conversa.</p>
+          </div>
+        </div>
+
+        <div class="operator-grid">
+          <article class="operator-card card-wide">
+            <p class="card-code">N PIPELINES</p>
+            <h3>Cada app tem estado e git próprios</h3>
+            <p>Os engines compartilham apenas o que precisa ser global, como cooldown de provider. O working tree de um app não disputa com o outro.</p>
+            <div class="pipeline-stack" aria-label="Exemplo de pipelines paralelas">
+              <span><b>anima-deck</b><i class="verified">P4 · measure</i></span>
+              <span><b>doki-call</b><i class="warning">deploy · gate</i></span>
+              <span><b>nova-ideia</b><i>L1/B3 · running</i></span>
+            </div>
+          </article>
+          <article class="operator-card">
+            <p class="card-code">FAIL ≤ 3</p>
+            <h3>Retry não é loop infinito</h3>
+            <p>Verify objetivo, até três correções, rollback via git e L2 quando quota ou provedor bloqueiam.</p>
+          </article>
+          <article class="operator-card">
+            <p class="card-code">COOLDOWN</p>
+            <h3>Rate-limit atravessa pipelines</h3>
+            <p>Um provider saturado fica inelegível globalmente. O estado sobrevive a restart e o fallback assume.</p>
+          </article>
+          <article class="operator-card card-dark">
+            <p class="card-code">FORGE STATS</p>
+            <h3>Leia o que falhou</h3>
+            <div class="mini-table" role="table" aria-label="Exemplo de estatísticas">
+              <span role="row"><b role="cell">player/job</b><b role="cell">PASS</b></span>
+              <span role="row"><i role="cell">glm · B3</i><i role="cell" class="verified">4/4</i></span>
+              <span role="row"><i role="cell">grok · P1</i><i role="cell" class="warning">1/16</i></span>
+            </div>
+            <div class="command-line inverse"><code>npm run forge -- stats</code><button type="button" data-copy="npm run forge -- stats">Copiar</button></div>
+          </article>
+        </div>
+
+        <div class="deploy-matrix">
+          <div class="matrix-heading"><p class="panel-kicker">Ship matrix</p><h3>O target segue a capacidade do app</h3></div>
+          <div class="matrix-row matrix-labels"><span>Free path</span><span>Target</span><span>Prova final</span></div>
+          <div class="matrix-row"><strong>Static / quiz</strong><code>cf-pages · gh-pages</code><span>HTTP + assets</span></div>
+          <div class="matrix-row"><strong>API / chat</strong><code>vercel · cf-workers</code><span>Health + fluxo real</span></div>
+        </div>
+      </section>
+
+      <section class="guide-section recovery-section" id="recovery" aria-labelledby="recovery-title">
+        <div class="section-heading">
+          <p class="section-number">07 / RECOVERY</p>
+          <div>
+            <h2 id="recovery-title">Algo parou. Qual comando usar?</h2>
+            <p>Comece pelo sintoma. O objetivo é preservar trabalho e reduzir blast radius.</p>
+          </div>
+        </div>
+
+        <div class="decision-tree" aria-label="Árvore de recuperação">
+          <div class="decision-root"><span>01</span><div><strong>Existe job vivo?</strong><p>Sim: pause antes de mexer no server.</p></div><code>forge stop meu-app</code></div>
+          <div class="decision-branch">
+            <article><span>02A</span><h3>Código do Maestro mudou</h3><p>Recarregue. O restart recusa job vivo por padrão.</p><code>forge restart</code></article>
+            <article><span>02B</span><h3>Pipeline está parada</h3><p>Se não há gate pendente, continue do estado persistido.</p><code>forge resume meu-app</code></article>
+            <article><span>02C</span><h3>Provider saturou</h3><p>Não reinicie produto. Aguarde cooldown ou deixe fallback assumir.</p><code>forge status</code></article>
+          </div>
+          <div class="decision-end"><span>03</span><div><strong>Run sem saída segura?</strong><p><code>kill</code> encerra o run. Não apaga o app.</p></div><code>forge kill meu-app</code></div>
+        </div>
+
+        <aside class="danger-zone" aria-labelledby="danger-title">
+          <p class="danger-label">ZONA DE RISCO · IRREVERSÍVEL</p>
+          <h3 id="danger-title"><code>remove</code> não é um “kill mais forte”. Ele apaga.</h3>
+          <p>Remove o repo do app, estado da pipeline e propostas. Confirme o app-id, verifique se está em produção e só então execute.</p>
+          <div class="command-line danger-command"><code>npm run forge -- remove meu-app --force</code><button type="button" data-copy="npm run forge -- remove meu-app --force">Copiar com cuidado</button></div>
+        </aside>
+      </section>
+
+      <section class="guide-section checklist-section" id="ship-checklist" aria-labelledby="checklist-title">
+        <div class="section-heading">
+          <p class="section-number">08 / SHIP</p>
+          <div>
+            <h2 id="checklist-title">Build verde é o começo da prova</h2>
+            <p>Marque o que já foi verificado. O progresso fica apenas neste navegador.</p>
+          </div>
+        </div>
+
+        <div class="checklist-layout">
+          <div>
+            <div class="progress-label"><span>Prontidão de ship</span><strong id="checklist-count">0 / 8</strong></div>
+            <div class="progress-track" aria-hidden="true"><span id="checklist-progress"></span></div>
+            <div class="ship-checks" id="ship-checks">
+              <label><input type="checkbox" value="build"><span><b>Build</b> saiu com exit 0</span></label>
+              <label><input type="checkbox" value="typecheck"><span><b>Typecheck</b> saiu com exit 0</span></label>
+              <label><input type="checkbox" value="tests"><span><b>Testes</b> passaram sem falha</span></label>
+              <label><input type="checkbox" value="gate"><span><b>Gate</b> foi decidido pelo dono</span></label>
+              <label><input type="checkbox" value="target"><span><b>Target</b> corresponde à capability</span></label>
+              <label><input type="checkbox" value="url"><span><b>URL</b> pública foi capturada</span></label>
+              <label><input type="checkbox" value="smoke"><span><b>Smoke</b> HTTP/browser passou</span></label>
+              <label><input type="checkbox" value="p4"><span><b>P4</b> tem métrica e janela definidas</span></label>
+            </div>
+          </div>
+          <aside class="ship-proof">
+            <p class="panel-kicker">Definition of Done</p>
+            <blockquote>“Compiled successfully” prova compilação. Não prova que a rota publicada serve o produto certo.</blockquote>
+            <ul>
+              <li>Leia o body, não só o status.</li>
+              <li>Confira domínio e versão.</li>
+              <li>Exercite o free path.</li>
+              <li>Registre o que ainda depende do humano.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section class="finish-line" aria-labelledby="finish-title">
+        <p>VOCÊ AGORA OPERA O LOOP COMPLETO</p>
+        <h2 id="finish-title">Comece seco. Prove sinal. Escale com evidência.</h2>
+        <a class="button button-primary" href="#quickstart">Rodar o primeiro dry-run</a>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="shell footer-grid">
+      <div><strong>FORGE</strong><p>Starter genérico, profile-driven, ideia → app no ar.</p></div>
+      <div><span>Fonte de verdade</span><a href="https://github.com/gbbragadev/forgemmr">Repositório</a><a href="https://github.com/gbbragadev/forgemmr/blob/master/docs/MAESTRO.md">MAESTRO.md</a></div>
+      <a class="back-top" href="#top">Voltar ao topo ↑</a>
+    </div>
+  </footer>
+
+  <template id="journey-template">
+    <li class="journey-card">
+      <div class="journey-meta"><span data-stage-code></span><i data-stage-owner></i></div>
+      <h3 data-stage-title></h3>
+      <p data-stage-summary></p>
+      <div class="journey-output"><span>OUTPUT</span><strong data-stage-output></strong></div>
+      <div class="journey-gate" data-stage-gate></div>
+    </li>
+  </template>
+
+  <template id="team-template">
+    <article class="team-row">
+      <div class="team-rank" data-team-rank></div>
+      <div><p class="team-id" data-team-id></p><h3 data-team-title></h3></div>
+      <p data-team-use></p>
+      <div class="team-quota"><span>QUOTA</span><strong data-team-quota></strong></div>
+      <div class="team-signal" data-team-signal></div>
+    </article>
+  </template>
+
+  <template id="command-template">
+    <article class="command-card">
+      <div class="command-card-top"><span data-command-category></span><p data-command-intent></p></div>
+      <code data-command-code></code>
+      <div class="command-card-bottom"><p data-command-note></p><button type="button" data-command-copy>Copiar</button></div>
+    </article>
+  </template>
+
+  <script type="module" src="./guide.js"></script>
+</body>
+</html>
