@@ -9,6 +9,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 ## Backlog
 
 
+
+- [ ] **L0/P4** Measure doki-call (5–7d) — **humano** · https://doki-call.gbbragadev.com
 - [ ] **L0/P4** Measure anima-deck (5–7d) — **humano** · https://anima-deck.gbbragadev.com
 - [ ] **L1/B5** doki-call — ship check (health + free path + paywall CTA)
 - [ ] **L0/P4** Measure anima-deck (5–7d) — **humano** · https://anima-deck.gbbragadev.com

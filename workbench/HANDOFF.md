@@ -788,10 +788,10 @@ no CTA de R\$ 4,90.
 Este conceito deve ser registrado como a primeira aposta
 monetização-first do portfólio, enquanto o ANIMA//DECK permanece como
 aposta engagement/share-first.
-- **Team:** ggg · **Status:** blocked
-- **Job atual:** P3 (10/10)
+- **Team:** ggg · **Status:** done
+- **Job atual:** — (11/10)
 - **Branch:** pipeline/doki-call · checkpoints: 10
-- **⏸ GATE pendente:** `blocked-P3` — P3 bloqueado: VERCEL_TOKEN não está no ambiente. retry (zera tentativas) ou kill? → `forge decide blocked-P3 go|kill`
-- BLOCKED: VERCEL_TOKEN não está no ambiente
-_Atualizado 2026-07-13T03:10:30.317Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
+- **URL:** https://doki-call.gbbragadev.com
+- DONE. Próximo: P4 measure (humano, 5–7d) — postar hooks de apps/doki-call/docs/content-hooks.md
+_Atualizado 2026-07-13T03:24:44.250Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->
