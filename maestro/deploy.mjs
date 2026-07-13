@@ -499,7 +499,7 @@ export async function deployApp(pipeline, opts) {
     if (deploy.target === "cf-pages") {
       return await deployToCloudflarePages(pipeline, opts);
     }
-    if (deploy.target === "gh-pages-path") {
+    if (deploy.target === "gh-pages" || deploy.target === "gh-pages-path") {
       return await deployToGitHubPages(pipeline, opts);
     }
     if (deploy.target === "cf-workers") {
@@ -511,7 +511,7 @@ export async function deployApp(pipeline, opts) {
     return {
       ok: false,
       error: `target desconhecido: ${deploy.target}`,
-      fallbackSteps: ["Targets suportados: cf-pages | cf-workers | vercel | gh-pages-path"],
+      fallbackSteps: ["Targets suportados: cf-pages | cf-workers | vercel | gh-pages"],
     };
   } catch (e) {
     return {
