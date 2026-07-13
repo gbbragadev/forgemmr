@@ -202,6 +202,15 @@ export function latestFailureTail(history = []) {
   return null;
 }
 
+export function tuiLogRows(logs = [], history = [], capacity = 0) {
+  if (capacity <= 0) return [];
+  const failure = latestFailureTail(history);
+  if (!failure) return logs.slice(-capacity);
+  const lines = failure.lines.slice(-Math.max(0, capacity - 1));
+  const logCapacity = capacity - lines.length - 1;
+  return [...(logCapacity > 0 ? logs.slice(-logCapacity) : []), `✗ ${JOB_SHORT[failure.job] || failure.job}`, ...lines.map((line) => `  ${line}`)];
+}
+
 async function attachTUI(appArg) {
   await ensureServer();
   const state = {
@@ -434,12 +443,6 @@ async function attachTUI(appArg) {
           out.push(row(opts.join(dim("  ·  "))));
         }
       }
-      const failure = latestFailureTail(p.history);
-      if (failure) {
-        out.push(hr("falha mais recente"));
-        out.push(row(fg(RED, `✗ ${JOB_SHORT[failure.job] || failure.job}`)));
-        for (const line of failure.lines) out.push(row(`  ${line}`));
-      }
       if (p.deploy?.url) out.push(row(`🌐 ${fg(CYAN, p.deploy.url)}`));
     }
 
@@ -447,9 +450,8 @@ async function attachTUI(appArg) {
     out.push(hr("log"));
     const used = out.length;
     const footerRows = 1;
-    const logRows = Math.max(3, rows - used - footerRows - 1);
-    const tail = state.logs.slice(-logRows);
-    for (let i = 0; i < logRows; i++) out.push(row(tail[i] !== undefined ? dim(tail[i]) : ""));
+    const logRows = Math.max(0, rows - used - footerRows - 1);
+    for (const line of tuiLogRows(state.logs, p?.history, logRows)) out.push(row(line.startsWith("✗ ") ? fg(RED, line) : dim(line)));
 
     const foot = state.flash
       ? fg(YELLOW, ` ${state.flash} `)
