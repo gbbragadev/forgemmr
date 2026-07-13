@@ -29,8 +29,8 @@
 | T-06 | **ACCEPTED** | `maestro/engine.mjs`, teste novo | todo player de time gerado possui fallback; solo não quebra | T-02 | PENDING |
 | T-05 | **ACCEPTED** | `maestro/engine.mjs`, teste novo | cooldown compartilhado no manager afeta outra pipeline; estado local preservado | T-03, T-06 | PENDING |
 | T-07 | **ACCEPTED** | `maestro/engine.mjs`, `forge.mjs`, characterization | tail redigido ≤500 no snapshot/TUI; caracterização atualizada; suíte | T-05 | PENDING |
-| T-08 | **ACCEPTED** | prompt P0, PLAYBOOK, engine verify, fake-exec, teste | Mercado incompleto reprova; completo passa; dry-run chega a `p0-go` | Onda 1 | PENDING |
-| T-09 | **ACCEPTED** | `maestro/engine.mjs`, fake-exec, teste | GO condicionado pausa em `p1-signal`; GO simples não ganha gate | T-08 | PENDING |
+| T-08 | **ACCEPTED** | prompt P0, PLAYBOOK, engine verify, fake-exec, teste | Mercado incompleto reprova; completo passa; dry-run chega a `p0-go` | Onda 1 | DONE |
+| T-09 | **ACCEPTED** | `maestro/engine.mjs`, fake-exec, teste | GO condicionado pausa em `p1-signal`; GO simples não ganha gate | T-08 | DONE |
 | T-13 | **ACCEPTED** | repo próprio `apps/doki-call`: checkout route, UI e i18n | build:doki; nenhuma resposta `paid` sem PSP; fluxo honesto PT/EN; sem deploy | T-09 | PENDING |
 | T-10a | **BLOCKED em produção / ADAPTED local** — não inventar persistência serverless | app(s) com telemetria, somente se destino existente for comprovado | append local sobrevive restart; produção só fecha com destino durável real | decisão de host/destino | BLOCKED |
 | T-11 | **ACCEPTED** | `maestro/engine.mjs`, teste | todos os conteúdos não confiáveis envelopados e delimitadores neutralizados | Onda 1 | PENDING |

@@ -92,6 +92,15 @@ const GATES_AFTER = {
     payload: runDocRel(p.appId, "scorecard"),
     choices: ["go", "retry", "kill"],
   }),
+  "L0/P1": (p) =>
+    p.conditionalGo
+      ? {
+          id: "p1-signal",
+          prompt: "Fake-door/conteúdo no ar. Houve sinal de interesse (cliques, respostas, e-mails)? `go` constrói; `kill` mata custando 2 jobs.",
+          payload: runDocRel(p.appId, "content-hooks"),
+          choices: ["go", "kill"],
+        }
+      : null,
   FOUNDATION: (p) => ({
     id: "foundation-review",
     prompt: `System design pronto (${runDocRel(p.appId, "system-design")}) — é o contrato de arquitetura que os builds vão seguir. Aprova, refaz ou mata?`,
@@ -704,7 +713,9 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       const txt = fs.readFileSync(f, "utf8");
       const market = validateP0Market(txt);
       if (!market.pass) return market;
-      const go = /\bGO\b/.test(txt) && !/\bNO-?GO\b/.test(txt.split("\n").slice(0, 10).join("\n"));
+      const verdict = txt.split("\n").slice(0, 10).join("\n");
+      const go = /\bGO\b/.test(txt) && !/\bNO-?GO\b/.test(verdict);
+      p.conditionalGo = go && /\bGO(?:\s*-\s*|\s+)condicionado\b/i.test(verdict);
       return { pass: true, detail: go ? "scorecard: GO; mercado declarado" : "scorecard: revisar GO/NO-GO no gate; mercado declarado" };
     }
     if (job === "L0/P1") {

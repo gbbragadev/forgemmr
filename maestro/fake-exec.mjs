@@ -80,9 +80,10 @@ if (job === "L0/P0") {
   // tipo derivado da IDEIA (não do goal inteiro — o boilerplate menciona static|quiz|chat)
   const idea = (goal.match(/^Ideia do app:\s*(.*)$/m) || [])[1] || "";
   const tipo = /\bchat\b/i.test(idea) ? "chat" : /\bquiz\b/i.test(idea) ? "quiz" : "static";
+  const verdict = /\bGO(?:\s*-\s*|\s+)condicionado\b/i.test(idea) ? "GO condicionado" : "GO";
   fs.writeFileSync(
     p,
-    `# Scorecard — ${appId} (dry-run)\n\n**GO**\n\nTipo: ${tipo}\n\n## Mercado\n\n- **Comprador:** fãs de anime que organizam sessões semanais com amigos\n- **Canal:** comunidades de Discord e vídeos orgânicos no TikTok\n- **Preço-alvo:** R$ 9,90/mês — custa menos que um lanche da sessão\n- **Recorrência:** novos quizzes e rankings semanais trazem o grupo de volta\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
+    `# Scorecard — ${appId} (dry-run)\n\n**${verdict}**\n\nTipo: ${tipo}\n\n## Mercado\n\n- **Comprador:** fãs de anime que organizam sessões semanais com amigos\n- **Canal:** comunidades de Discord e vídeos orgânicos no TikTok\n- **Preço-alvo:** R$ 9,90/mês — custa menos que um lanche da sessão\n- **Recorrência:** novos quizzes e rankings semanais trazem o grupo de volta\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
     "utf8"
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);
