@@ -47,7 +47,7 @@ novo:** nenhum. **Push/deploy:** nenhum foi executado pelo GPT (confirmado: `ori
 | T-11 | **VERIFIED** | `untrustedBlock` envelopa TODO conteúdo colado (narrative, system-design, DS, feedbacks, inputs, erro de retry). Tentei escapar: ``` ``` vira ` ``​` ` (não fecha fence), `<<<`/`>>>` ganham ZWSP, `--- FIM` vira `-​--` — as três rotas de escape que tentei estão neutralizadas |
 | T-12 | **VERIFIED** | wrangler pinado `4.108.0`; vercel `--no-install` (falha fechado — pacote não está no lockfile; decisão correta, e a dúvida foi levantada por escrito) |
 | T-13 | **VERIFIED (local)** | doki-call `32ba6df`: checkout **não** concede mais entitlement, `status: "waitlist"`, sem `orderId`; copy honesta. Li o diff da rota inteira. Não publicado — correto |
-| T-14 | **PARCIAL → VERIFIED no push desta revisão** | `test.yml` correto (npm ci + npm test, workflow separado do deploy morto F-28). Actions só confirma com push — o push desta revisão valida |
+| T-14 | **PARCIAL → corrigido e VERIFIED nesta revisão** | `test.yml` bem separado do deploy morto (F-28), mas o primeiro push real **reprovou**: runner sem identidade git (F-B5). Corrigido por mim e validado no Actions |
 | T-15 | **VERIFIED** | `thinMarkdownSections`/`isSubstantialHtml`/`hasSubstantialText` endurecem FOUNDATION/DS-GEN/P1. **O fake-exec foi endurecido junto, não afrouxado** — comparei os dois diffs lado a lado; o fake agora gera artefatos substanciais (a armadilha nº1 da checklist NÃO aconteceu) |
 | T-16 | **VERIFIED** | Improver roda 1× por (runId, job, player, hash do prompt-base); retries anexam o erro novo **depois** da reescrita, envelopado; feedback novo muda o hash → invalida cache. Caracterização afirma o cache-hit |
 | T-17 | **VERIFIED com ressalva** | `forge stats` agrega os runs reais; rodei. **Ressalva: F-B3 (arquivo binário), abaixo** |
@@ -64,6 +64,14 @@ relatórios estavam untracked e `GPT56-IMPLEMENTATION-PLAN.md` + `workbench/*` m
 commit. Um `git clean`/`checkout` teria apagado a evidência da entrega inteira.
 **Resolvido nesta revisão:** commit de fechamento feito por mim (ver histórico). Para a próxima
 leva: entregável sem commit não é entregável.
+
+**F-B5 · O CI só passava na máquina do dono.** Descoberto no **primeiro push real** da branch
+(run `29268242807`, falha em 11s): os testes do engine fazem `git commit` reais nos repos de app,
+e o runner do Actions não tem `user.name`/`user.email` — `fatal: empty ident name`. O T-14 estava
+"verde" apenas onde a identidade git já existia. O GPT foi honesto ao marcar T-14 como PARCIAL
+("Actions remoto não observado"), e este é exatamente o buraco que a observação remota pegaria.
+**Resolvido nesta revisão:** identidade de CI adicionada ao `test.yml` e validada com push
+(ver o run verde na branch).
 
 ### SHOULD FIX (pequenos, vão no HANDOFF-BACK)
 
