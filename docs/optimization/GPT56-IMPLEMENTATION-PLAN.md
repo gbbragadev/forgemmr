@@ -38,7 +38,7 @@
 | T-15 | **ACCEPTED** | `maestro/engine.mjs`, fake-exec, teste | artefato oco reprova; válido passa; dry-run permanece verde | T-16 | DONE |
 | T-12 | **ADAPTED** — fixar apenas versões comprovadas localmente | `maestro/deploy.mjs` | zero `@latest`; versões vêm de instalação/lock atuais; sem deploy | T-15 | DONE (Wrangler 4.108.0; Vercel fail-closed) |
 | T-20 | **ACCEPTED com testes locais** | `maestro/server.mjs`, writers de prompt/raw log, testes | SSE sem ACAO; logger redige; arquivos sensíveis 0600; cleanup comprovado | T-12 | DONE |
-| T-10b | **ACCEPTED** | prompt P4, validação/teste | schema fixo; dois resultados comparáveis por fixture realista | Onda 3 | PENDING |
+| T-10b | **ACCEPTED** | prompt P4, validação/teste | schema fixo; dois resultados comparáveis por fixture realista | Onda 3 | DONE |
 | T-17 | **ACCEPTED** | `maestro/stats.mjs`, `maestro/forge.mjs`, teste | `forge stats` agrega runs reais/fixtures e imprime três tabelas | T-10b | PENDING |
 | T-18 | **DEFERRED** — backlog sem contrato executável nesta passagem | — | — | — | DEFERRED |
 | T-19 | **DEFERRED** — parte da cobertura será criada pelas tarefas; deploy real continua proibido | — | — | — | DEFERRED |
