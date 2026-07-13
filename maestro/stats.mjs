@@ -1,0 +1,125 @@
+import fs from "node:fs";
+import path from "node:path";
+
+function durationSeconds(startedAt, endedAt) {
+  const start = Date.parse(startedAt);
+  const end = Date.parse(endedAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+  return Math.round((end - start) / 1000);
+}
+
+function averages(map, keyName) {
+  return [...map.entries()]
+    .map(([key, value]) => ({
+      [keyName]: key,
+      runs: value.count,
+      averageSeconds: Math.round(value.total / value.count),
+    }))
+    .sort((a, b) => String(a[keyName]).localeCompare(String(b[keyName])));
+}
+
+/** Agrega runs persistidos sem depender de banco ou estado do servidor. */
+export function aggregateRuns(runs) {
+  const passMap = new Map();
+  const jobTimes = new Map();
+  const appTimes = new Map();
+  const deaths = [];
+
+  for (const run of runs) {
+    for (const entry of run.history || []) {
+      const player = entry.playerId || "desconhecido";
+      const job = entry.job || "desconhecido";
+      const passKey = `${player}\u0000${job}`;
+      const pass = passMap.get(passKey) || { player, job, passes: 0, attempts: 0 };
+      pass.attempts++;
+      if (entry.pass) pass.passes++;
+      passMap.set(passKey, pass);
+
+      const seconds = durationSeconds(entry.startedAt, entry.endedAt);
+      if (seconds !== null) {
+        const timing = jobTimes.get(job) || { total: 0, count: 0 };
+        timing.total += seconds;
+        timing.count++;
+        jobTimes.set(job, timing);
+      }
+    }
+
+    const runSeconds = durationSeconds(run.startedAt, run.endedAt);
+    if (runSeconds !== null && run.appId) {
+      const timing = appTimes.get(run.appId) || { total: 0, count: 0 };
+      timing.total += runSeconds;
+      timing.count++;
+      appTimes.set(run.appId, timing);
+    }
+
+    if (run.status === "killed") {
+      const gate = [...(run.gates || [])].reverse().find((candidate) => candidate.decision === "kill");
+      deaths.push({
+        app: run.appId || "desconhecido",
+        gate: gate?.id || "—",
+        cause: gate?.feedback || gate?.prompt || "kill sem feedback",
+      });
+    }
+  }
+
+  const passRates = [...passMap.values()]
+    .map((row) => ({
+      ...row,
+      rate: Math.round((row.passes / row.attempts) * 100),
+    }))
+    .sort((a, b) => a.player.localeCompare(b.player) || a.job.localeCompare(b.job));
+
+  return {
+    passRates,
+    jobDurations: averages(jobTimes, "job"),
+    appDurations: averages(appTimes, "app"),
+    deaths: deaths.sort((a, b) => a.app.localeCompare(b.app)),
+  };
+}
+
+/** Lê apenas snapshots finais de pipeline; arquivos inválidos são ignorados. */
+export function loadRuns(root) {
+  const dir = path.join(root, "maestro", "runs");
+  if (!fs.existsSync(dir)) return [];
+
+  const runs = [];
+  for (const file of fs.readdirSync(dir).filter((name) => /^pipeline-.*\.json$/.test(name)).sort()) {
+    try {
+      runs.push(JSON.parse(fs.readFileSync(path.join(dir, file), "utf8")));
+    } catch {
+      // Um snapshot corrompido não impede a leitura dos demais.
+    }
+  }
+  return runs;
+}
+
+function table(title, columns, rows) {
+  const rendered = rows.length ? rows : [Object.fromEntries(columns.map(([key]) => [key, "sem dados"]))];
+  const widths = columns.map(([key, label]) =>
+    Math.max(label.length, ...rendered.map((row) => String(row[key] ?? "").length))
+  );
+  const line = (row) =>
+    columns.map(([key], index) => String(row[key] ?? "").padEnd(widths[index])).join(" | ");
+  const header = columns.map(([, label], index) => label.padEnd(widths[index])).join(" | ");
+  const separator = widths.map((width) => "-".repeat(width)).join("-+-");
+  return [`## ${title}`, header, separator, ...rendered.map(line)].join("\n");
+}
+
+export function formatStats(stats) {
+  const passRows = stats.passRates.map((row) => ({
+    player: row.player,
+    job: row.job,
+    result: `${row.passes}/${row.attempts}`,
+    rate: `${row.rate}%`,
+  }));
+  const durationRows = [
+    ...stats.jobDurations.map((row) => ({ scope: `job:${row.job}`, runs: row.runs, average: `${row.averageSeconds}s` })),
+    ...stats.appDurations.map((row) => ({ scope: `app:${row.app}`, runs: row.runs, average: `${row.averageSeconds}s` })),
+  ];
+
+  return [
+    table("PASS por player e job", [["player", "Player"], ["job", "Job"], ["result", "PASS"], ["rate", "Taxa"]], passRows),
+    table("Duração média por job e app", [["scope", "Escopo"], ["runs", "Runs"], ["average", "Média"]], durationRows),
+    table("Mortes por app", [["app", "App"], ["gate", "Gate"], ["cause", "Causa"]], stats.deaths),
+  ].join("\n\n");
+}

@@ -1,0 +1,21 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      # os testes do engine fazem git commit reais nos repos de app — o runner precisa de identidade
+      - run: |
+          git config --global user.email "ci@forge.local"
+          git config --global user.name "Forge CI"
+      - run: npm test

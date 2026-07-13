@@ -17,7 +17,15 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 // buildSpawn = matriz única de executores; sanitizers com fonte única em adapters.mjs.
-import { buildSpawn, makeRedactor, stripAnsi, isNoiseLine } from "./adapters.mjs";
+import {
+  buildSpawn,
+  cleanupExternalizedPrompts,
+  isNoiseLine,
+  makeRedactor,
+  openPrivateFile,
+  stripAnsi,
+  writePrivateFile,
+} from "./adapters.mjs";
 import { createEngineManager } from "./engine.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +40,7 @@ if (!fs.existsSync(TOKEN_PATH)) {
   fs.writeFileSync(TOKEN_PATH, crypto.randomBytes(24).toString("hex"), { mode: 0o600 });
 }
 const API_TOKEN = fs.readFileSync(TOKEN_PATH, "utf8").trim();
+const redactLog = makeRedactor();
 
 function checkToken(req) {
   const got = String(req.headers["x-maestro-token"] || "");
@@ -125,7 +134,7 @@ function createStreamSanitizer(prefix = "") {
 }
 
 function log(line) {
-  let msg = stripAnsi(typeof line === "string" ? line : String(line)).trimEnd();
+  let msg = redactLog(stripAnsi(typeof line === "string" ? line : String(line))).trimEnd();
   // strip accidental "stderr: " prefix noise labels we no longer want for clean TUI
   if (msg.startsWith("stderr: ")) {
     const rest = msg.slice(8);
@@ -252,7 +261,7 @@ function startRun(goal, opts = {}) {
   // Goal em arquivo — evita quebra de args no Windows/shell
   const goalFile = path.join(__dirname, ".run-goal.txt");
   try {
-    fs.writeFileSync(goalFile, fullGoal, "utf8");
+    writePrivateFile(goalFile, fullGoal);
   } catch (e) {
     state.status = "error";
     state.exitCode = 1;
@@ -280,7 +289,7 @@ function startRun(goal, opts = {}) {
   fs.mkdirSync(runsDir, { recursive: true });
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const rawLogPath = path.join(runsDir, `${runId}-${executor}.raw.log`);
-  const rawFd = fs.openSync(rawLogPath, "w");
+  const rawFd = openPrivateFile(rawLogPath);
 
   log(`▶ Run start · executor=${executor} · player=${player?.id || "—"}`);
   log(`  raw log → maestro/runs/${path.basename(rawLogPath)}`);
@@ -474,6 +483,7 @@ function finishRun(code) {
   state.status = code === 0 ? "done" : "error";
   state.pid = null;
   child = null;
+  if (code === 0) cleanupExternalizedPrompts(ROOT);
   log(code === 0 ? "✓ Run finished OK" : `✗ Run finished exit=${code}`);
   broadcastStatus();
   try {
@@ -624,7 +634,6 @@ const server = http.createServer(async (req, res) => {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
-      "Access-Control-Allow-Origin": "*",
     });
     res.write(`data: ${JSON.stringify({ type: "hello", status: state.status })}\n\n`);
     // replay recent

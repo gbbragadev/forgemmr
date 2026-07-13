@@ -16,7 +16,7 @@
     "build:quiz": "npm run build -w @forge/anime-quiz",
     "build:doki": "npm run build -w @forge/doki-call",
     "build:deck": "npm run build -w @forge/anima-deck",
-    "build:all": "npm run build -w @forge/waifu-chat ; npm run build -w @forge/anime-quiz ; npm run build -w @forge/doki-call",
+    "build:all": "npm run build --workspaces --if-present",
     "lint": "npm run lint -w @forge/waifu-chat",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "node --test maestro/test/*.test.mjs",

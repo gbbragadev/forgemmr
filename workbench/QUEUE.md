@@ -12,8 +12,6 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 - [ ] **L0/P4** Measure doki-call (5–7d) — **humano** · https://doki-call.gbbragadev.com
 - [ ] **L0/P4** Measure anima-deck (5–7d) — **humano** · https://anima-deck.gbbragadev.com
-- [ ] **L1/B5** doki-call — ship check (health + free path + paywall CTA)
-- [ ] **L0/P4** Measure anima-deck (5–7d) — **humano** · https://anima-deck.gbbragadev.com
 - [ ] **L0/P4** Measure anime-quiz (5–7d) — **humano** · URL https://quiz.gbbragadev.com (+ Pages antiga) · hooks `docs/content-hooks-anime-quiz.md`
 - [ ] **L0/P0** Próxima ideia via autopilot: `.\forge` (tela de setup) ou `forge new "<ideia>" --team grok-glm-front`
 - [ ] **L1** i18n anime-quiz: adicionar EN (regra da casa: apps sempre PT-BR + EN — autopilot já injeta nos próximos)
@@ -21,8 +19,12 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
+- [ ] **META/P3** Tutorial visual de onboarding completo do Forge + push/deploy + WhatsApp — GPT-5.6 (2026-07-13)
+
 ## Done
 
+- [x] **L2/META** Correções pós-revisão Fable C-1/C-2 — cooldown pós-restart + fonte textual de stats (2026-07-13)
+- [x] **META** Contrato GPT56 optimization — implementação local + relatórios + verificação global (2026-07-13) · próximo: revisão Fable
 - [x] **L1/B5** doki-call — forge/ggg-gemini3 (2026-07-13)
 - [x] **L1/B5** anima-deck — forge/opussonnet-claude2 (2026-07-13)
 - [x] **L1/B5** anima-deck — forge/opussonnet-claude2 (2026-07-13) · ship check: fix domínio do share (`deck.` → `anima-deck.gbbragadev.com`) · build EXIT 0 · core smoke PASS

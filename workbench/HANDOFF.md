@@ -1,18 +1,26 @@
 # HANDOFF
 
 ## Loop ativo
-**L1** — DOKI//CALL (`doki-call`) — **B4 Wire API DONE** · próximo = B5 ship check  
-*(slug legado `o-anima-deck` superado — canônico = `doki-call`)*
+**META/L2** — correções pós-revisão Fable — **C-1/C-2 CONCLUÍDAS LOCALMENTE** · próximo = recheck/merge  
+*(sem push, merge ou deploy nesta iteração; P4 continua humano)*
 
 ## Last agent
-Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B4 wire API doki-call
+GPT‑5.6 Sol | 2026-07-13 · handoff-back Fable (`feat/gpt56-optimization`)
 
-## Last iteration — L1/B4 doki-call (2026-07-13)
-- **Job:** L1/B4 wire chat AI + TTS + entitlement/checkout stub
-- **Entrega:** `POST /api/chat` (@forge/ai + cookie free quota 3 → 402); `GET /api/credits`; `POST /api/tts` (1/dia + browser speech); `POST /api/checkout` stub → entitlement server; `GET /api/entitlement`; `POST /api/voice/session` com `assertCallAllowed`; UI free chat → API real + fallback mock; paywall → checkout → call_stub
-- **VERIFY:** `npm run build -w @forge/doki-call` **EXIT 0**
-- **Sem git** (orquestrador) · Realtime live / PSP real = ship (não B4)
-- **Próximo:** B5 ship check (health + free path + paywall CTA)
+## Last iteration — META/L2 correções pós-revisão Fable (2026-07-13)
+- **C-1:** cooldowns futuros persistidos em `pipeline.cooldowns` ressemeiam o `Map` global no boot; regressão cobre manager novo no mesmo root (`3fec9a0`).
+- **C-2:** byte NUL cru removido de `maestro/stats.mjs` em favor de `\u0000`; teste impede o fonte de voltar a ser binário.
+- **VERIFY:** `npm test` **99/99** · `npm run forge -- stats` **EXIT 0**, com as três tabelas e dados reais.
+- **Escopo preservado:** nenhuma dependência, refactor, publicação, push ou deploy; `package-lock.json`, `.claude/` e `.codebase-memory/` preexistentes ficaram intocados.
+- **Próximo:** Fable reexecuta os aceites de C-1/C-2 e, se verde, branch está pronta para merge.
+
+## Last iteration — META/GPT56 optimization (2026-07-13)
+- **Entrega:** T‑01/02/03/04/05/06/07/08/09/10b/11/12/13/14/15/16/17/20 implementadas ou adaptadas conforme contrato; T‑10a local concluída e produção explicitamente bloqueada sem sink durável.
+- **VERIFY global:** `npm test` **97/97** · `npm run typecheck` **8 workspaces / EXIT 0** · `npm run build:all` **4 apps / EXIT 0**.
+- **DOKI//CALL local:** `32ba6df` checkout waitlist honesta, sem entitlement; `edc2298` telemetria JSONL local. **Não publicados.**
+- **Relatórios:** `docs/optimization/GPT56-VERIFICATION-REPORT.md` + `docs/optimization/HANDOFF-TO-FABLE-REVIEW.md`.
+- **Pendências reais:** revisão Fable; GitHub Actions após push autorizado; sink durável da telemetria; eventual publicação do DOKI//CALL; medições P4 humanas.
+- **Próximo:** revisar adversarialmente o diff `240fd22..HEAD`; não reconstruir as tarefas concluídas.
 
 ## Iteration anterior — L1/B2 doki-call (2026-07-13)
 - **Job:** L1/B2 personas pack (`content/personas/doki-pack-v2.json`)
@@ -795,3 +803,4 @@ aposta engagement/share-first.
 - DONE. Próximo: P4 measure (humano, 5–7d) — postar hooks de apps/doki-call/docs/content-hooks.md
 _Atualizado 2026-07-13T03:24:44.250Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->
+

@@ -12,6 +12,24 @@ import { fileURLToPath } from "node:url";
 
 const MAESTRO_DIR = path.dirname(fileURLToPath(import.meta.url));
 
+/** Grava conteúdo sensível com permissão restrita, inclusive ao sobrescrever arquivo existente. */
+export function writePrivateFile(file, content) {
+  fs.writeFileSync(file, content, { encoding: "utf8", mode: 0o600 });
+  fs.chmodSync(file, 0o600);
+}
+
+/** Abre log sensível truncando-o e garantindo permissão 0600. */
+export function openPrivateFile(file) {
+  const fd = fs.openSync(file, "w", 0o600);
+  fs.chmodSync(file, 0o600);
+  return fd;
+}
+
+/** Prompts externalizados são temporários e não sobrevivem a um run bem-sucedido. */
+export function cleanupExternalizedPrompts(root) {
+  fs.rmSync(path.join(root, "maestro", ".prompts"), { recursive: true, force: true });
+}
+
 /** Strip ANSI / OSC / TUI control codes */
 export function stripAnsi(input) {
   let s = String(input);
@@ -145,7 +163,7 @@ export function makeRedactor() {
  * que o forge contava como falha de trabalho e queimava as 3 tentativas do player.
  */
 export function detectRateLimit(text) {
-  return /(429|\b5(29|03)\b|rate.?limit|usage limit|quota (exceeded|reached)|limit (reached|exceeded)|overloaded|service unavailable|temporarily unavailable)/i.test(
+  return /(?:^|\r?\n)\s*(?:API Error:\s*(?:429|529)\b|(?:HTTP\s+)?503\s+Service Unavailable\b|Error:\s+(?:(?:usage |quota |rate.?|)limit (?:reached|exceeded)|quota exceeded|overloaded_error)\b|quota reached(?=\s*(?:[.;]|$))|temporarily overloaded(?=[^\r\n]*(?:retry|try again))|429\s+rate.?limit exceeded\b)|\brate.?limit exceeded\b/im.test(
     String(text)
   );
 }
@@ -172,7 +190,7 @@ export function externalizePrompt(goal, root) {
   const dir = path.join(root, "maestro", ".prompts");
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.md`);
-  fs.writeFileSync(file, text, "utf8");
+  writePrivateFile(file, text);
   const short = [
     `PROMPT_FILE: ${file}`,
     "",

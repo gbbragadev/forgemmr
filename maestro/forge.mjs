@@ -18,6 +18,7 @@ import readline from "node:readline";
 import { buildProfileMd, composeTeam, TEAM_ROLES, slugify, listProfiles, activateProfile, importActiveProfile, JOB_SHORT } from "./engine.mjs";
 import { loadBlueprint } from "./blueprint-loader.mjs";
 import { recordDecision } from "./decisions.mjs";
+import { aggregateRuns, formatStats, loadRuns } from "./stats.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -190,6 +191,25 @@ function statusBadge(status) {
   if (status === "killed") return fg(RED, "✗ killed");
   if (status === "error") return fg(RED, "✗ error");
   return dim(status || "idle");
+}
+
+export function latestFailureTail(history = []) {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const entry = history[i];
+    if (entry.pass === false && entry.errorTail) {
+      return { job: entry.job, lines: entry.errorTail.split(/\r?\n/).filter((line) => line.trim()).slice(-3) };
+    }
+  }
+  return null;
+}
+
+export function tuiLogRows(logs = [], history = [], capacity = 0) {
+  if (capacity <= 0) return [];
+  const failure = latestFailureTail(history);
+  if (!failure) return logs.slice(-capacity);
+  const lines = failure.lines.slice(-Math.max(0, capacity - 1));
+  const logCapacity = capacity - lines.length - 1;
+  return [...(logCapacity > 0 ? logs.slice(-logCapacity) : []), `✗ ${JOB_SHORT[failure.job] || failure.job}`, ...lines.map((line) => `  ${line}`)];
 }
 
 async function attachTUI(appArg) {
@@ -431,9 +451,8 @@ async function attachTUI(appArg) {
     out.push(hr("log"));
     const used = out.length;
     const footerRows = 1;
-    const logRows = Math.max(3, rows - used - footerRows - 1);
-    const tail = state.logs.slice(-logRows);
-    for (let i = 0; i < logRows; i++) out.push(row(tail[i] !== undefined ? dim(tail[i]) : ""));
+    const logRows = Math.max(0, rows - used - footerRows - 1);
+    for (const line of tuiLogRows(state.logs, p?.history, logRows)) out.push(row(line.startsWith("✗ ") ? fg(RED, line) : dim(line)));
 
     const foot = state.flash
       ? fg(YELLOW, ` ${state.flash} `)
@@ -1621,6 +1640,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge remove")} <app> [--force]   apaga o app: repo, estado do run, propostas e workbench
   ${bold("forge attach")} [app]   TUI ao vivo (N pipelines: sem arg lista; com arg acompanha uma)
   ${bold("forge status")}    snapshot rápido de TODAS as pipelines
+  ${bold("forge stats")}     PASS por player/job, duração por job/app e mortes nos runs persistidos
   ${bold("forge decide")} <gate> <go|kill|retry> [feedback…] [--app X]
   ${bold("forge target")} <app> <cf-pages|cf-workers|vercel|gh-pages>   troca o alvo de deploy do run (sem recomeçar)
   ${bold("forge restart")} [--force]  reinicia o server (carrega código novo do maestro; recusa se houver job vivo)
@@ -1728,6 +1748,11 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
   }
 
   if (cmd === "attach") return attachTUI(rest[0]);
+
+  if (cmd === "stats") {
+    console.log(formatStats(aggregateRuns(loadRuns(ROOT))));
+    return;
+  }
 
   if (cmd === "status") {
     await ensureServer();

@@ -11,6 +11,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+// Pins deliberados: deploy nunca executa código flutuante com tokens de produção.
+const WRANGLER = "wrangler@4.108.0"; // versão comprovada no package-lock/node_modules
+const VERCEL = "vercel"; // somente instalação local; adicionar ao lockfile antes de habilitar
+
 // ---------- helpers ----------
 
 /** Fetch wrapper com timeout e retry automático para rate-limit */
@@ -149,7 +153,7 @@ async function deployToCloudflarePages(pipeline, { root, log, limits }) {
 
   // 2. Deploy via wrangler (path relativo sem aspas — cmd.exe /c mastiga aspas em arg)
   log(`▶ wrangler pages deploy → ${appId}`);
-  const deployCmd = `npx --yes wrangler@latest pages deploy apps/${appId}/out --project-name ${appId} --commit-dirty=true`;
+  const deployCmd = `npx --yes ${WRANGLER} pages deploy apps/${appId}/out --project-name ${appId} --commit-dirty=true`;
   const deployRes = run(deployCmd, wranglerEnv, 5 * 60 * 1000, root);
 
   let deployed = deployRes.ok;
@@ -158,7 +162,7 @@ async function deployToCloudflarePages(pipeline, { root, log, limits }) {
     // Tenta criar projeto Pages
     if (/no project|not found|does not exist/i.test(errText)) {
       log(`▶ criar projeto Pages ${appId}`);
-      const createCmd = `npx --yes wrangler@latest pages project create ${appId} --production-branch master`;
+      const createCmd = `npx --yes ${WRANGLER} pages project create ${appId} --production-branch master`;
       const createRes = run(createCmd, wranglerEnv, 5 * 60 * 1000, root);
       if (!createRes.ok) {
         return {
@@ -360,7 +364,7 @@ async function deployToVercel(pipeline, { root, log, limits }) {
 
   const { appId } = pipeline;
   log(`▶ vercel deploy --prod ${appId}`);
-  const deployCmd = `npx --yes vercel@latest deploy --prod --yes --cwd apps/${appId}`;
+  const deployCmd = `npx --no-install ${VERCEL} deploy --prod --yes --cwd apps/${appId}`;
   const deployRes = run(deployCmd, { VERCEL_TOKEN: token }, limits?.deployBuildTimeoutMs || 10 * 60 * 1000);
 
   if (!deployRes.ok) {
@@ -499,7 +503,7 @@ export async function deployApp(pipeline, opts) {
     if (deploy.target === "cf-pages") {
       return await deployToCloudflarePages(pipeline, opts);
     }
-    if (deploy.target === "gh-pages-path") {
+    if (deploy.target === "gh-pages" || deploy.target === "gh-pages-path") {
       return await deployToGitHubPages(pipeline, opts);
     }
     if (deploy.target === "cf-workers") {
@@ -511,7 +515,7 @@ export async function deployApp(pipeline, opts) {
     return {
       ok: false,
       error: `target desconhecido: ${deploy.target}`,
-      fallbackSteps: ["Targets suportados: cf-pages | cf-workers | vercel | gh-pages-path"],
+      fallbackSteps: ["Targets suportados: cf-pages | cf-workers | vercel | gh-pages"],
     };
   } catch (e) {
     return {

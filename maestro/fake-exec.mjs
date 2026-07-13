@@ -54,6 +54,8 @@ if (improveOut) {
 
 await sleep(800);
 
+if (process.env.FORGE_FAKE_ECHO !== undefined) console.log(goal.slice(0, 2000));
+
 if (/FORGE_FAKE_FAIL/.test(goal)) {
   console.error("✗ fake-exec: falha simulada (FORGE_FAKE_FAIL)");
   process.exit(1);
@@ -67,7 +69,10 @@ if (outFile) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const lines = [`# ${job} — ${appId} (dry-run)`];
   for (const section of sections) {
-    lines.push(`\n## ${section}`, `Conteúdo do ${section} (placeholder dry-run).`);
+    lines.push(
+      `\n## ${section}`,
+      `Conteúdo do ${section} para o dry-run: descreve objetivo, decisões, restrições e critério observável com detalhe suficiente para provar o contrato do artefato.`
+    );
   }
   fs.writeFileSync(target, lines.join("\n"), "utf8");
   console.log(`✓ escreveu ${path.relative(ROOT, target)}`);
@@ -78,9 +83,10 @@ if (job === "L0/P0") {
   // tipo derivado da IDEIA (não do goal inteiro — o boilerplate menciona static|quiz|chat)
   const idea = (goal.match(/^Ideia do app:\s*(.*)$/m) || [])[1] || "";
   const tipo = /\bchat\b/i.test(idea) ? "chat" : /\bquiz\b/i.test(idea) ? "quiz" : "static";
+  const verdict = /\bGO(?:\s*-\s*|\s+)condicionado\b/i.test(idea) ? "GO condicionado" : "GO";
   fs.writeFileSync(
     p,
-    `# Scorecard — ${appId} (dry-run)\n\n**GO**\n\nTipo: ${tipo}\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
+    `# Scorecard — ${appId} (dry-run)\n\n**${verdict}**\n\nTipo: ${tipo}\n\n## Mercado\n\n- **Comprador:** fãs de anime que organizam sessões semanais com amigos\n- **Canal:** comunidades de Discord e vídeos orgânicos no TikTok\n- **Preço-alvo:** R$ 9,90/mês — custa menos que um lanche da sessão\n- **Recorrência:** novos quizzes e rankings semanais trazem o grupo de volta\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
     "utf8"
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);
@@ -88,7 +94,7 @@ if (job === "L0/P0") {
   const p = docPath(appId, "system-design");
   fs.writeFileSync(
     p,
-    `# System Design — ${appId} (dry-run)\n\n## Arquitetura\nFrontend estático → estado local → sem backend (dry-run).\n\n## Dados\nlocalStorage; entidades mínimas.\n\n## Decisões\n(A) localStorage (B) DB — escolho A porque v0 single-device.\n\n## Design patterns\nComponentes puros + hook de estado.\n\n## Riscos\nEscopo v0; sem conta/backend.\n`,
+    `# System Design — ${appId} (dry-run)\n\n## Arquitetura\nFrontend estático com estado local, componentes puros e limites explícitos entre apresentação, domínio e persistência temporária do navegador.\n\n## Dados\nlocalStorage; entidades mínimas.\n\n## Decisões\nEscolhemos localStorage no v0 para reduzir operação e validar o fluxo; banco entra somente após sinal real de retenção e necessidade multi-device.\n\n## Design patterns\nComponentes puros + hook de estado.\n\n## Riscos\nEscopo v0; sem conta/backend.\n`,
     "utf8"
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);
@@ -106,7 +112,9 @@ if (job === "L0/P0") {
         `<h1>${appId} — direção ${n}: ${dirs[n - 1]} (dry-run)</h1>` +
         `<p>Paleta:</p><span class="sw" style="background:#c44dff"></span><span class="sw" style="background:#38bdf8"></span>` +
         `<span class="sw" style="background:#34d399"></span><p><button class="btn">Botão primário</button></p>` +
-        `<p>proposta fake gerada pelo dry-run para testar o gate ds-pick.</p>`,
+        `<section><h2>Direção visual</h2><p>Proposta ${dirs[n - 1]} com hierarquia clara, contraste acessível, espaçamento consistente e componentes mobile-first.</p>` +
+        `<p>O hero demonstra tipografia, CTA e paleta; os estados interativos preservam foco visível e leitura em telas pequenas.</p>` +
+        `<p>Este conteúdo detalhado existe para o dry-run provar uma proposta renderizável, não apenas um arquivo HTML vazio.</p></section>`,
       "utf8"
     );
   }
@@ -127,7 +135,7 @@ if (job === "L0/P0") {
   const p = docPath(appId, "content-hooks");
   fs.writeFileSync(
     p,
-    `# Content hooks — ${appId} (dry-run)\n\n1. hook fake 1\n2. hook fake 2\n`,
+    `# Content hooks — ${appId} (dry-run)\n\n${Array.from({ length: 15 }, (_, i) => `${i + 1}. Hook ${i + 1}: descubra uma experiência original do app, compartilhe com amigos e acesse pelo link na bio. #anime #otaku`).join("\n")}\n`,
     "utf8"
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);
