@@ -246,9 +246,27 @@ async function attachTUI(appArg) {
 
   const gate = () => (cur()?.gates || []).find((g) => !g.decision);
 
+  /** kill que funciona SEM gate: mata o executor e encerra o run (tecla [k] com a pipeline rodando) */
+  async function killRun() {
+    const p = cur();
+    if (!p || ["done", "killed"].includes(p.status)) {
+      state.flash = "nada para matar (sem run ativo)";
+      return;
+    }
+    try {
+      const r = await api("/api/pipeline/kill", { appId: state.app || undefined });
+      state.flash = r.ok ? `✗ ${state.app || "run"} morto` : `✗ ${r.error}`;
+    } catch (e) {
+      state.flash = `✗ ${String(e.message || e).slice(0, 80)}`;
+    }
+  }
+
   async function decideKey(choice, feedback) {
     const g = gate();
-    if (!g) return;
+    if (!g) {
+      state.flash = `sem gate pendente — nada a decidir (use [k] 2x para matar o run)`;
+      return;
+    }
     if (!g.choices.includes(choice)) {
       state.flash = `gate ${g.id} não aceita "${choice}" (opções: ${g.choices.join("/")})`;
       return;
@@ -286,8 +304,13 @@ async function attachTUI(appArg) {
     if (["1", "2", "3"].includes(str) && gate()?.choices.includes(str)) await decideKey(str);
     if (key.name === "f" && gate()?.choices.includes("retry")) state.input = { buffer: "" };
     if (key.name === "k") {
-      if (Date.now() - state.pendingKill < 3000) await decideKey("kill");
-      else {
+      if (Date.now() - state.pendingKill < 3000) {
+        state.pendingKill = 0;
+        const g = gate();
+        // com gate que aceita kill → decide o gate; sem gate (run rodando) → kill direto
+        if (g && g.choices.includes("kill")) await decideKey("kill");
+        else await killRun();
+      } else {
         state.pendingKill = Date.now();
         state.flash = "k de novo em 3s para confirmar KILL";
       }
@@ -1573,6 +1596,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge attach")} [app]   TUI ao vivo (N pipelines: sem arg lista; com arg acompanha uma)
   ${bold("forge status")}    snapshot rápido de TODAS as pipelines
   ${bold("forge decide")} <gate> <go|kill|retry> [feedback…] [--app X]
+  ${bold("forge kill")} [app]     mata o run agora (executor + pipeline) — funciona sem gate
   ${bold("forge stop")} [app]     pausa a pipeline (job atual é morto)
   ${bold("forge resume")} [app]   retoma após stop/restart do server
   ${bold("forge roster")}    players e team presets
@@ -1704,6 +1728,14 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     await ensureServer();
     const r = await api("/api/pipeline/resume", { appId: rest[0] || flags.app });
     printStatus(r.pipeline);
+    return;
+  }
+
+  if (cmd === "kill") {
+    const appId = rest[0] || flags.app;
+    await ensureServer();
+    const r = await api("/api/pipeline/kill", { appId });
+    console.log(r.ok ? fg(RED, `✗ run morto${appId ? ": " + appId : ""}`) : `✗ ${r.error}`);
     return;
   }
 

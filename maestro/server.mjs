@@ -679,6 +679,8 @@ const server = http.createServer(async (req, res) => {
         sendJson(res, 200, engine.stop(body.appId));
       } else if (action === "resume") {
         sendJson(res, 200, { ok: true, pipeline: engine.resume(body.appId) });
+      } else if (action === "kill") {
+        sendJson(res, 200, engine.kill(body.appId));
       } else if (action === "remove") {
         sendJson(res, 200, engine.removeApp(body.appId, { force: !!body.force }));
       } else {

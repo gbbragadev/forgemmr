@@ -1409,6 +1409,27 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
     return snapshot();
   }
 
+  /** mata o executor em andamento (o child do CLI), se houver */
+  function killChild() {
+    if (!child) return;
+    try {
+      if (process.platform === "win32" && child.pid) spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { shell: true });
+      else child.kill("SIGTERM");
+    } catch {}
+  }
+
+  /** kill direto: mata o executor e encerra o run — funciona SEM gate pendente (running/blocked/paused) */
+  function kill() {
+    if (!pipeline) return { ok: false, error: "nenhuma pipeline para matar" };
+    if (["done", "killed"].includes(pipeline.status)) {
+      return { ok: false, error: `${pipeline.appId} já está ${pipeline.status} — nada a matar` };
+    }
+    killChild();
+    log("✗ kill manual — encerrando run");
+    finish("killed");
+    return { ok: true, status: "killed" };
+  }
+
   function stop() {
     if (pipeline && pipeline.status === "blocked") {
       const g = (pipeline.gates || []).find((x) => !x.decision);
@@ -1420,13 +1441,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
     if (!pipeline || !["running", "paused_gate"].includes(pipeline.status)) {
       return { ok: false, error: "nenhuma pipeline rodando" };
     }
-    if (child) {
-      try {
-        if (process.platform === "win32" && child.pid)
-          spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { shell: true });
-        else child.kill("SIGTERM");
-      } catch {}
-    }
+    killChild();
     pipeline.status = "blocked";
     pipeline.gates.push({
       id: "stopped",
@@ -1477,7 +1492,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
     } catch {}
   }
 
-  return { start, startFeedback, decide, stop, resume, snapshot };
+  return { start, startFeedback, decide, stop, kill, resume, snapshot };
 }
 
 /**
@@ -1562,6 +1577,9 @@ export function createEngineManager({ root, emitLog, emitPipeline }) {
     },
     stop(appId) {
       return target(appId).stop();
+    },
+    kill(appId) {
+      return target(appId).kill();
     },
     resume(appId) {
       return target(appId).resume();

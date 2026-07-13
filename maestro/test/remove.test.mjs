@@ -83,6 +83,29 @@ test("remove: estado órfão (sem dir do app) é limpo mesmo assim", async () =>
   assert.ok(!("rm-orfao" in mgr.snapshot()));
 });
 
+test("kill: mata run em andamento (running, SEM gate) — era o buraco da tecla [k] no TUI", async () => {
+  const root = tmpRoot();
+  const mgr = mk(root);
+  mgr.start({ idea: "run que vai ser morto no meio", team: "dry-run", appId: "kill-live" });
+  // pega a pipeline RODANDO (sem gate pendente) — é aqui que o TUI não conseguia matar
+  assert.equal(mgr.snapshot()["kill-live"].status, "running");
+  assert.equal((mgr.snapshot()["kill-live"].gates || []).filter((g) => !g.decision).length, 0, "pré-condição: sem gate");
+
+  const res = mgr.kill("kill-live");
+  assert.equal(res.ok, true);
+  assert.equal(mgr.snapshot()["kill-live"].status, "killed");
+});
+
+test("kill: run já encerrado devolve erro claro (não explode)", async () => {
+  const root = tmpRoot();
+  const mgr = mk(root);
+  mgr.start({ idea: "run que morre e depois recebe kill de novo", team: "dry-run", appId: "kill-twice" });
+  mgr.kill("kill-twice");
+  const again = mgr.kill("kill-twice");
+  assert.equal(again.ok, false);
+  assert.match(again.error, /killed|nada/i);
+});
+
 test("remove: appId inválido não vira path traversal", () => {
   const root = tmpRoot();
   const mgr = mk(root);
