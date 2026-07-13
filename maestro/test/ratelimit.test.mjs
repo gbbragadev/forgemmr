@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { detectRateLimit } from "../adapters.mjs";
 import { createEngineManager } from "../engine.mjs";
 
@@ -10,7 +12,13 @@ const providerFailures = [
   "API Error: 429 Too Many Requests",
   'API Error: 529 {"error":"temporarily overloaded"}',
   "Error: usage limit reached for this account",
+  "Error: quota exceeded",
+  "quota reached",
+  "temporarily overloaded; retry later",
   "HTTP 503 Service Unavailable",
+  "503 Service Unavailable",
+  "Error: overloaded_error",
+  "429 rate limit exceeded",
 ];
 
 const agentMentions = [
@@ -50,14 +58,32 @@ test("detectRateLimit reconhece falhas do provedor, não menções do agente", (
   assert.equal(detectRateLimit("rate limit exceeded"), true);
 });
 
+test("fake-exec ecoa goal quando FORGE_FAKE_ECHO está presente, mesmo vazio", () => {
+  const root = tmpRoot();
+  const fakeExec = fileURLToPath(new URL("../fake-exec.mjs", import.meta.url));
+  const goal = "goal curto para echo";
+
+  try {
+    const result = spawnSync(process.execPath, [fakeExec, goal], {
+      env: { ...process.env, FORGE_ROOT: root, FORGE_FAKE_ECHO: "" },
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /goal curto para echo/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("saída 0 que menciona rate limit 429 chega ao gate sem cooldown", async () => {
   const root = tmpRoot();
   const logs = [];
   const previousEcho = process.env.FORGE_FAKE_ECHO;
+  let manager;
   process.env.FORGE_FAKE_ECHO = "1";
 
   try {
-    const manager = createEngineManager({ root, emitLog: (line) => logs.push(line), emitPipeline: () => {} });
+    manager = createEngineManager({ root, emitLog: (line) => logs.push(line), emitPipeline: () => {} });
     manager.start({ idea: "ideia de teste menciona rate limit 429", team: "dry-run", appId: "rate-limit-mention" });
 
     await waitFor(() => manager.snapshot()["rate-limit-mention"]?.status === "paused_gate");
@@ -66,6 +92,12 @@ test("saída 0 que menciona rate limit 429 chega ao gate sem cooldown", async ()
     assert.deepEqual(pipeline.cooldowns, {});
     assert.ok(!logs.some((line) => /⏳ rate-limit em/.test(line)), "menção do agente não deve ser classificada como rate-limit");
   } finally {
+    const status = manager?.snapshot()["rate-limit-mention"]?.status;
+    if (["running", "paused_gate", "blocked"].includes(status)) {
+      try {
+        manager.kill("rate-limit-mention");
+      } catch {}
+    }
     if (previousEcho === undefined) delete process.env.FORGE_FAKE_ECHO;
     else process.env.FORGE_FAKE_ECHO = previousEcho;
     fs.rmSync(root, { recursive: true, force: true });
