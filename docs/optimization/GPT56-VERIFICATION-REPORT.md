@@ -94,3 +94,32 @@ DOKI//CALL telemetria
 - T-14 só pode ser confirmado no GitHub Actions após push autorizado.
 - T-10a produção precisa de decisão de host/sink durável.
 - T-13 precisa de autorização explícita para publicação.
+
+## Pós-revisão Fable — correções C-1/C-2
+
+**Data:** 2026-07-13  
+**Branch:** `feat/gpt56-optimization`  
+**C-1:** `3fec9a0`  
+**C-2:** commit que contém esta seção
+
+- C-1 ressemeia no boot os cooldowns persistidos ainda futuros e preserva o maior timestamp por player.
+- C-2 troca o NUL cru de `stats.mjs` pelo escape ASCII `\u0000`; o separador em runtime continua idêntico.
+- Nenhuma dependência, refatoração, publicação, push ou deploy foi adicionada nesta iteração.
+
+Saída real final de `npm test`:
+
+```text
+> forge@0.1.0 test
+> node --test maestro/test/*.test.mjs
+
+ℹ tests 99
+ℹ suites 0
+ℹ pass 99
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 35277.5429
+```
+
+Smoke real de `npm run forge -- stats`: **EXIT 0**; imprimiu `PASS por player e job`, `Duração média por job e app` e `Mortes por app`, incluindo `ggg-grok1 | L0/P1 | 1/16 | 6%`.

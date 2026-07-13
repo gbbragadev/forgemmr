@@ -1,11 +1,18 @@
 # HANDOFF
 
 ## Loop ativo
-**META** — contrato GPT‑5.6 de otimização do Forge — **IMPLEMENTAÇÃO LOCAL CONCLUÍDA** · próximo = revisão adversarial Fable  
-*(sem push, merge ou deploy; P4 continua humano)*
+**META/L2** — correções pós-revisão Fable — **C-1/C-2 CONCLUÍDAS LOCALMENTE** · próximo = recheck/merge  
+*(sem push, merge ou deploy nesta iteração; P4 continua humano)*
 
 ## Last agent
-GPT‑5.6 Sol | 2026-07-13 · contrato GPT56 (`feat/gpt56-optimization`)
+GPT‑5.6 Sol | 2026-07-13 · handoff-back Fable (`feat/gpt56-optimization`)
+
+## Last iteration — META/L2 correções pós-revisão Fable (2026-07-13)
+- **C-1:** cooldowns futuros persistidos em `pipeline.cooldowns` ressemeiam o `Map` global no boot; regressão cobre manager novo no mesmo root (`3fec9a0`).
+- **C-2:** byte NUL cru removido de `maestro/stats.mjs` em favor de `\u0000`; teste impede o fonte de voltar a ser binário.
+- **VERIFY:** `npm test` **99/99** · `npm run forge -- stats` **EXIT 0**, com as três tabelas e dados reais.
+- **Escopo preservado:** nenhuma dependência, refactor, publicação, push ou deploy; `package-lock.json`, `.claude/` e `.codebase-memory/` preexistentes ficaram intocados.
+- **Próximo:** Fable reexecuta os aceites de C-1/C-2 e, se verde, branch está pronta para merge.
 
 ## Last iteration — META/GPT56 optimization (2026-07-13)
 - **Entrega:** T‑01/02/03/04/05/06/07/08/09/10b/11/12/13/14/15/16/17/20 implementadas ou adaptadas conforme contrato; T‑10a local concluída e produção explicitamente bloqueada sem sink durável.

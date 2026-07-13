@@ -19,10 +19,9 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
-- [ ] **L2/META** Correções pós-revisão Fable C-1/C-2 — GPT-5.6 (2026-07-13)
-
 ## Done
 
+- [x] **L2/META** Correções pós-revisão Fable C-1/C-2 — cooldown pós-restart + fonte textual de stats (2026-07-13)
 - [x] **META** Contrato GPT56 optimization — implementação local + relatórios + verificação global (2026-07-13) · próximo: revisão Fable
 - [x] **L1/B5** doki-call — forge/ggg-gemini3 (2026-07-13)
 - [x] **L1/B5** anima-deck — forge/opussonnet-claude2 (2026-07-13)

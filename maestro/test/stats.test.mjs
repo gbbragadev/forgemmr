@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { aggregateRuns, formatStats } from "../stats.mjs";
 
 const runs = [
@@ -54,4 +55,9 @@ test("formatStats imprime as três seções mesmo sem dados", () => {
   assert.match(output, /Duração média por job e app/);
   assert.match(output, /Mortes por app/);
   assert.match(output, /sem dados/);
+});
+
+test("stats.mjs permanece texto sem byte NUL cru", () => {
+  const source = fs.readFileSync(new URL("../stats.mjs", import.meta.url));
+  assert.equal(source.includes(0), false);
 });
