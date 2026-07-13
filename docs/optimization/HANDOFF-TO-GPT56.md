@@ -6,10 +6,11 @@
 
 | | commit | o que é |
 |---|---|---|
-| **Auditado** | `0423528` | o código que eu li e medi. Todo finding aponta para linhas **deste** commit. É contra ele que um teste novo tem de falhar. |
-| **Parta daqui** | `759bb99` | o mesmo código + `docs/optimization/` + `characterization.test.mjs`. **Não faça checkout de `0423528`** — você perderia o contrato. |
+| **Auditado** | `0423528` | o código que eu li e medi. Todo finding aponta para linhas **deste** commit, e é contra ele que um teste novo tem de falhar (`git stash` + `git checkout 0423528 -- maestro/` para conferir, se quiser). |
+| **Parta daqui** | **`master` (HEAD)** | o mesmo código de produção + `docs/optimization/` + `characterization.test.mjs`. **Não faça checkout de `0423528`** — você perderia o contrato. |
 
-O código de produção é **idêntico** nos dois: entre eles só entraram docs e testes.
+Entre os dois só entraram **docs e testes**: o código de produção é byte-idêntico
+(`git diff 0423528..HEAD -- maestro/*.mjs packages/ apps/` = vazio).
 
 ---
 
