@@ -140,9 +140,22 @@ test("trabalho do agente que MENCIONA 429 não é rate-limit", () => {
   assert.equal(detectRateLimit("Criei o handler: if (res.status === 429) retry()"), false);
   assert.equal(detectRateLimit("Adicionei rate limit por sessão/IP no middleware"), false);
   assert.equal(detectRateLimit("| Custo free path | cap 3 textos; rate limit session/IP |"), false);
-  assert.equal(detectRateLimit("O teste cobre o caso de rate limit exceeded do OpenRouter"), false);
+  assert.equal(detectRateLimit("Job concluído: 12 arquivos, build ok, 429 linhas alteradas"), false);
+});
+
+// A função é PERMISSIVA de propósito para frases que um provedor emite e um agente também
+// escreve ("rate limit exceeded"). Nenhum regex separa as duas — o discriminador é o exit code,
+// e ele mora no engine. Este teste existe para que ninguém "conserte" a permissividade.
+test("frase ambígua fica a cargo do exit code, não do regex", () => {
+  assert.equal(detectRateLimit("rate limit exceeded"), true);   // provedor OU agente: não dá pra saber
 });
 ```
+
+**Nota para o implementador:** o teste `caracterização: saída com 'rate limit' põe o player em
+cooldown` é **bifurcado de propósito** — ele tolera os dois caminhos. Hoje ele cai no ramo do
+cooldown; depois do seu fix ele passa a cair no ramo `else` (o run segue até `paused_gate`), e
+**continua verde**. Isso não é o teste sendo frouxo: é a caracterização registrando que o
+comportamento mudou de lado. Não o "conserte" — diga no relatório qual ramo passou a valer.
 
 **Passo 2 — implementação.** Em `adapters.mjs`, trocar a função por evidência de recebimento:
 
@@ -631,11 +644,12 @@ o mostra no job que falhou.
 No TUI (`forge.mjs`), ao renderizar um job com `pass: false`, imprimir as últimas ~3 linhas do
 `errorTail` indentadas. Mantenha simples — não crie tela nova.
 
-**Atualizar a caracterização:** o teste `caracterização: maestro/pipelines/<app>.json é a fonte
-durável…` afirma hoje `assert.equal(mgr.snapshot()[…].history[0].errorTail, undefined)`. Esse
-comportamento **muda de propósito** — troque a asserção por: quando há `errorTail`, ele vem
-truncado em ≤500 chars. Documente a mudança no relatório (é uma quebra **intencional** de
-caracterização).
+**Atualizar a caracterização:** o teste `caracterização: 3 falhas do único player → rollback +
+BLOCKED…` termina com duas asserções que provam o bug — `errorTail` **existe no disco** e é
+**removido do snapshot**. A segunda **quebra de propósito** com este fix: troque-a por "quando há
+`errorTail`, ele vem truncado em ≤500 chars". A primeira (disco) deve continuar verde — se ela
+quebrar, você parou de gravar a evidência, e isso é regressão, não fix. Documente a quebra
+intencional no relatório (invariante I-9).
 
 **Mudanças permitidas:** `snapshot()`, render do TUI, o teste de caracterização citado.
 **Proibido:** mandar o tail inteiro (8 KB × N jobs em cada evento SSE); remover o redactor.

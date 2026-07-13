@@ -113,6 +113,12 @@ test("caracterização: 3 falhas do único player → rollback + BLOCKED com gat
   assert.equal(gate.id, "blocked-L0-P0");
   assert.deepEqual(gate.choices, ["retry", "kill"]);
   assert.ok(logs.some((l) => l.includes("rollback")), "rollback foi executado ao esgotar o player");
+
+  // O motivo da falha É gravado no disco, e É removido do snapshot que a UI/TUI consome:
+  // o dono vê "falhou 3x" sem nunca ver POR QUÊ. (T-07 devolve o tail truncado ao snapshot.)
+  const disco = JSON.parse(fs.readFileSync(path.join(root, "maestro", "pipelines", "fail-app.json"), "utf8"));
+  assert.ok(disco.history.some((h) => h.errorTail), "errorTail existe no estado durável");
+  assert.ok(snap.history.every((h) => h.errorTail === undefined), "errorTail é removido do snapshot");
 });
 
 /**
@@ -169,8 +175,6 @@ test("caracterização: maestro/pipelines/<app>.json é a fonte durável e um ma
   assert.equal(state.status, "paused_gate");
   assert.ok(state.git.checkpoints.length >= 1, "checkpoint do P0 registrado");
   assert.ok(state.history.length >= 1, "history registrado");
-  // errorTail existe no disco (auditoria) mas é omitido do snapshot enviado à UI
-  assert.equal(mgr.snapshot()["persist-char"].history[0].errorTail, undefined);
 
   // manager novo (restart do server) reconstrói do disco, com o gate ainda pendente
   const mgr2 = makeManager(root);
