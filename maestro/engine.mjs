@@ -454,7 +454,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
   function snapshot() {
     if (!pipeline) return { status: "idle" };
     const { history, ...rest } = pipeline;
-    return { ...rest, history: history.map(({ errorTail, ...h }) => h) };
+    return { ...rest, history: history.map((h) => (h.errorTail ? { ...h, errorTail: h.errorTail.slice(-500) } : h)) };
   }
 
   function git(args, opts = {}) {

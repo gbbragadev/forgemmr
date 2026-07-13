@@ -114,11 +114,22 @@ test("caracterização: 3 falhas do único player → rollback + BLOCKED com gat
   assert.deepEqual(gate.choices, ["retry", "kill"]);
   assert.ok(logs.some((l) => l.includes("rollback")), "rollback foi executado ao esgotar o player");
 
-  // O motivo da falha É gravado no disco, e É removido do snapshot que a UI/TUI consome:
-  // o dono vê "falhou 3x" sem nunca ver POR QUÊ. (T-07 devolve o tail truncado ao snapshot.)
+  // T-07: o motivo continua gravado no disco e o snapshot devolve apenas seu sufixo seguro.
   const disco = JSON.parse(fs.readFileSync(path.join(root, "maestro", "pipelines", "fail-app.json"), "utf8"));
   assert.ok(disco.history.some((h) => h.errorTail), "errorTail existe no estado durável");
-  assert.ok(snap.history.every((h) => h.errorTail === undefined), "errorTail é removido do snapshot");
+  for (let i = 0; i < snap.history.length; i++) {
+    const persistedTail = disco.history[i].errorTail;
+    const snapshotTail = snap.history[i].errorTail;
+    if (!persistedTail) assert.equal(snapshotTail, undefined, "entrada sem tail permanece igual");
+    else {
+      assert.ok(snapshotTail.length <= 500, "snapshot limita errorTail a 500 caracteres");
+      assert.ok(persistedTail.endsWith(snapshotTail), "snapshot preserva o sufixo persistido");
+    }
+  }
+
+  disco.history.at(-1).errorTail = "x".repeat(600);
+  fs.writeFileSync(path.join(root, "maestro", "pipelines", "fail-app.json"), JSON.stringify(disco), "utf8");
+  assert.equal(makeManager(root).snapshot()["fail-app"].history.at(-1).errorTail, "x".repeat(500), "truncamento é exatamente o sufixo de 500 caracteres");
 });
 
 /**

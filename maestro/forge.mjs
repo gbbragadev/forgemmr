@@ -192,6 +192,16 @@ function statusBadge(status) {
   return dim(status || "idle");
 }
 
+export function latestFailureTail(history = []) {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const entry = history[i];
+    if (entry.pass === false && entry.errorTail) {
+      return { job: entry.job, lines: entry.errorTail.split(/\r?\n/).filter((line) => line.trim()).slice(-3) };
+    }
+  }
+  return null;
+}
+
 async function attachTUI(appArg) {
   await ensureServer();
   const state = {
@@ -423,6 +433,12 @@ async function attachTUI(appArg) {
           if (g.choices.includes("kill")) opts.push(`${bold("[k]")} kill (2x)`);
           out.push(row(opts.join(dim("  ·  "))));
         }
+      }
+      const failure = latestFailureTail(p.history);
+      if (failure) {
+        out.push(hr("falha mais recente"));
+        out.push(row(fg(RED, `✗ ${JOB_SHORT[failure.job] || failure.job}`)));
+        for (const line of failure.lines) out.push(row(`  ${line}`));
       }
       if (p.deploy?.url) out.push(row(`🌐 ${fg(CYAN, p.deploy.url)}`));
     }
