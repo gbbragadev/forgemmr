@@ -61,8 +61,8 @@ async function cf(pathname, opts = {}) {
   }
 }
 
-/** Executa comando com timeout e captura stderr */
-function run(cmd, env = {}, timeout = 5 * 60 * 1000, cwd = process.cwd()) {
+/** Executa comando com timeout e captura stderr. `input` vai pelo STDIN (segredo nunca em argv/log). */
+function run(cmd, env = {}, timeout = 5 * 60 * 1000, cwd = process.cwd(), input = undefined) {
   const finalEnv = { ...process.env, ...env };
   const shell = process.platform === "win32" ? "cmd.exe" : "bash";
   const shellArgs = process.platform === "win32" ? ["/c", cmd] : ["-c", cmd];
@@ -73,6 +73,7 @@ function run(cmd, env = {}, timeout = 5 * 60 * 1000, cwd = process.cwd()) {
       env: finalEnv,
       timeout,
       encoding: "utf8",
+      ...(input !== undefined ? { input } : {}),
       stdio: ["pipe", "pipe", "pipe"],
     });
 
@@ -380,6 +381,107 @@ async function deployToVercel(pipeline, { root, log, limits }) {
   return { ok: true, url, dns: { status: "ok" } };
 }
 
+/**
+ * Cloudflare Workers via OpenNext — Next.js COM rotas de API (SSR) rodando no Cloudflare.
+ * (cf-pages só serve export estático: um app com /api/* perderia as rotas.)
+ */
+async function deployToCloudflareWorkers(pipeline, { root, log, limits, aiEnvKey }) {
+  const { appId, deploy } = pipeline;
+  if (!/^[a-z0-9-]+$/.test(appId)) return { ok: false, error: `appId inválido: ${appId}`, fallbackSteps: [] };
+  if (!CF_TOKEN) {
+    return {
+      ok: false,
+      error: "token da Cloudflare não está no ambiente (CF_GBBRAGADEV_ADM)",
+      fallbackSteps: ["1. Exporte CF_GBBRAGADEV_ADM (token com Edit em Workers/Pages/DNS)", "2. retry"],
+    };
+  }
+  const appDir = path.join(root, "apps", appId);
+  const domain = `${deploy.subdomain}.${deploy.baseUrl}`;
+
+  // 1. dependências do adapter (idempotente — só instala o que faltar)
+  const pkgPath = path.join(appDir, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+  const need = ["@opennextjs/cloudflare", "wrangler"].filter((d) => !pkg.devDependencies?.[d] && !pkg.dependencies?.[d]);
+  if (need.length) {
+    log(`▶ instalando adapter Cloudflare: ${need.join(" ")}`);
+    const r = run(`npm install -D ${need.join(" ")} -w @forge/${appId}`, {}, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, root);
+    if (!r.ok) return { ok: false, error: `npm install do adapter falhou: ${r.error}`, fallbackSteps: [`Rode: npm install -D ${need.join(" ")} -w @forge/${appId}`] };
+  }
+
+  // 2. config do worker (scaffold só se faltar — não sobrescreve ajuste manual)
+  const wranglerPath = path.join(appDir, "wrangler.jsonc");
+  if (!fs.existsSync(wranglerPath)) {
+    fs.writeFileSync(
+      wranglerPath,
+      JSON.stringify(
+        {
+          $schema: "node_modules/wrangler/config-schema.json",
+          name: appId,
+          main: ".open-next/worker.js",
+          compatibility_date: "2025-03-01",
+          compatibility_flags: ["nodejs_compat", "global_fetch_strictly_public"],
+          assets: { directory: ".open-next/assets", binding: "ASSETS" },
+          services: [{ binding: "WORKER_SELF_REFERENCE", service: appId }],
+          routes: [{ pattern: domain, custom_domain: true }],
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+    log(`✓ wrangler.jsonc criado (domínio ${domain})`);
+  }
+  const openNextPath = path.join(appDir, "open-next.config.ts");
+  if (!fs.existsSync(openNextPath)) {
+    fs.writeFileSync(
+      openNextPath,
+      'import { defineCloudflareConfig } from "@opennextjs/cloudflare";\n\nexport default defineCloudflareConfig();\n',
+      "utf8"
+    );
+  }
+
+  // 3. build do worker (OpenNext converte o Next em Worker)
+  log(`▶ opennextjs-cloudflare build (${appId})`);
+  const build = run(`npx --yes @opennextjs/cloudflare build`, {}, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, appDir);
+  if (!build.ok) {
+    return {
+      ok: false,
+      error: "build do OpenNext falhou",
+      errorTail: build.tail,
+      fallbackSteps: [
+        `1. cd apps/${appId} && npx @opennextjs/cloudflare build`,
+        "2. Rotas com APIs Node podem exigir ajuste (nodejs_compat já está ligado)",
+      ],
+    };
+  }
+
+  // 4. secrets do produto (o app precisa da key em runtime — vai por stdin, nunca por argv/log)
+  const aiKey = aiEnvKey || "ZAI_API_KEY";
+  if (process.env[aiKey]) {
+    const put = run(`npx --yes wrangler secret put ${aiKey} --name ${appId}`, { CLOUDFLARE_API_TOKEN: CF_TOKEN }, 2 * 60 * 1000, appDir, process.env[aiKey]);
+    log(put.ok ? `✓ secret ${aiKey} publicado no worker` : `⚠ secret ${aiKey} não publicado (${String(put.error).slice(0, 60)}) — o app pode falhar em runtime`);
+  } else {
+    log(`⚠ ${aiKey} não está no ambiente — publique depois: wrangler secret put ${aiKey} --name ${appId}`);
+  }
+
+  // 5. deploy
+  log(`▶ wrangler deploy → ${domain}`);
+  const dep = run(`npx --yes wrangler deploy`, { CLOUDFLARE_API_TOKEN: CF_TOKEN }, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, appDir);
+  if (!dep.ok) {
+    return {
+      ok: false,
+      error: "wrangler deploy falhou",
+      errorTail: dep.tail,
+      fallbackSteps: [`1. cd apps/${appId} && npx wrangler deploy`, "2. Confira o custom domain no dash (Workers → Settings → Domains)"],
+    };
+  }
+
+  const url = `https://${domain}`;
+  const check = await waitUrl(url, (limits?.deployRetryDelaysMs || [30000, 60000, 120000]).slice(0, 3));
+  log(check.ok ? `✓ ${url} no ar` : `· ${url} ainda propagando (DNS do custom domain)`);
+  return { ok: true, url, dns: { status: check.ok ? "ok" : "propagando" } };
+}
+
 // ---------- main ----------
 
 /**
@@ -400,13 +502,16 @@ export async function deployApp(pipeline, opts) {
     if (deploy.target === "gh-pages-path") {
       return await deployToGitHubPages(pipeline, opts);
     }
+    if (deploy.target === "cf-workers") {
+      return await deployToCloudflareWorkers(pipeline, opts);
+    }
     if (deploy.target === "vercel") {
       return await deployToVercel(pipeline, opts);
     }
     return {
       ok: false,
       error: `target desconhecido: ${deploy.target}`,
-      fallbackSteps: ['Targets suportados: cf-pages | gh-pages-path | vercel'],
+      fallbackSteps: ["Targets suportados: cf-pages | cf-workers | vercel | gh-pages-path"],
     };
   } catch (e) {
     return {

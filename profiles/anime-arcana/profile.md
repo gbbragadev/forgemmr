@@ -14,7 +14,7 @@
   "ai": { "provider": "zai", "model": "glm-4.5-flash", "envKey": "ZAI_API_KEY" },
   "i18n": { "defaultLocale": "pt-BR", "locales": ["pt-BR", "en"], "rule": "bilingual" },
   "ui": { "theme": "y2k-otaku", "designSystem": "arcana", "tokenPrefix": "--af-" },
-  "deploy": { "baseUrl": "gbbragadev.com", "staticHost": "cf-pages", "serverHost": "vercel" },
+  "deploy": { "baseUrl": "gbbragadev.com", "staticHost": "cf-pages", "serverHost": "cf-workers" },
   "git": { "targetBranch": "master", "commitPrefix": "forge" },
   "legal": {
     "ipRules": [

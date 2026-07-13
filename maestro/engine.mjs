@@ -162,7 +162,9 @@ const PROFILE_DEFAULTS = {
   ai: { provider: "zai", model: "", envKey: "ZAI_API_KEY" },
   i18n: { defaultLocale: "pt-BR", locales: ["pt-BR"], rule: "single" },
   ui: { theme: "", designSystem: "", tokenPrefix: "--af-" },
-  deploy: { baseUrl: "example.com", staticHost: "cf-pages", serverHost: "vercel", ghPagesUrl: "https://gbbragadev.github.io/anime-forge" },
+  // staticHost: app sem backend (export estático) · serverHost: app com rotas de API
+  // alvos: cf-pages (estático) · cf-workers (Next SSR no Cloudflare, via OpenNext) · vercel · gh-pages
+  deploy: { baseUrl: "example.com", staticHost: "cf-pages", serverHost: "cf-workers", ghPagesUrl: "https://gbbragadev.github.io/anime-forge" },
   git: { targetBranch: "master", commitPrefix: "forge" },
   legal: { ipRules: [] },
   capabilities: ["static", "quiz", "chat"],
@@ -953,7 +955,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
     }
     try {
       const { deployApp } = await import("./deploy.mjs");
-      const result = await deployApp(p, { root, log, limits: profile.limits, profileDeploy: profile.deploy });
+      const result = await deployApp(p, { root, log, limits: profile.limits, profileDeploy: profile.deploy, aiEnvKey: profile.ai.envKey });
       if (!result.ok) return { pass: false, detail: result.error || "deploy falhou", manual: result.fallbackSteps };
       p.deploy.url = result.url;
       p.deploy.dns = result.dns || p.deploy.dns;
@@ -1397,6 +1399,17 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
       return snapshot();
     }
     if (choice === "retry") {
+      // alvo de deploy automático → recalcula do profile ATUAL: editar o profile e dar retry basta
+      // (antes, o target ficava congelado no start e um retry batia no mesmo host para sempre)
+      if (pipeline.deploy?.autoTarget) {
+        const cap = pipeline.capability;
+        const target = cap === "chat" ? profile.deploy.serverHost : profile.deploy.staticHost;
+        if (target !== pipeline.deploy.target) {
+          log(`· alvo de deploy atualizado do profile: ${pipeline.deploy.target} → ${target}`);
+          pipeline.deploy.target = target;
+        }
+        pipeline.deploy.baseUrl = profile.deploy.baseUrl;
+      }
       // volta pro job que originou o gate (b3-visual→B3, iterate-visual→ITERATE, blocked-*→o próprio)
       if (gate.afterJob && pipeline.jobs.includes(gate.afterJob)) {
         pipeline.jobIndex = pipeline.jobs.indexOf(gate.afterJob);
@@ -1419,6 +1432,22 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
       if (process.platform === "win32" && child.pid) spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { shell: true });
       else child.kill("SIGTERM");
     } catch {}
+  }
+
+  const DEPLOY_TARGETS = ["cf-pages", "cf-workers", "vercel", "gh-pages"];
+
+  /** troca o alvo de deploy DESTE run (sem recomeçar). Ex.: run travado por VERCEL_TOKEN ausente. */
+  function setTarget(target, subdomain) {
+    if (!pipeline) return { ok: false, error: "nenhuma pipeline" };
+    if (!DEPLOY_TARGETS.includes(target)) {
+      return { ok: false, error: `alvo inválido: ${target} — use ${DEPLOY_TARGETS.join(" | ")}` };
+    }
+    pipeline.deploy.target = target;
+    pipeline.deploy.autoTarget = false; // escolha explícita do dono manda no profile
+    if (subdomain) pipeline.deploy.subdomain = slugify(subdomain);
+    log(`✔ alvo de deploy: ${target} → ${pipeline.deploy.subdomain}.${pipeline.deploy.baseUrl}`);
+    save();
+    return { ok: true, deploy: pipeline.deploy };
   }
 
   /** kill direto: mata o executor e encerra o run — funciona SEM gate pendente (running/blocked/paused) */
@@ -1495,7 +1524,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
     } catch {}
   }
 
-  return { start, startFeedback, decide, stop, kill, resume, snapshot };
+  return { start, startFeedback, decide, stop, kill, resume, snapshot, setTarget };
 }
 
 /**
@@ -1583,6 +1612,9 @@ export function createEngineManager({ root, emitLog, emitPipeline }) {
     },
     kill(appId) {
       return target(appId).kill();
+    },
+    setTarget(appId, deployTarget, subdomain) {
+      return target(appId).setTarget(deployTarget, subdomain);
     },
     resume(appId) {
       return target(appId).resume();

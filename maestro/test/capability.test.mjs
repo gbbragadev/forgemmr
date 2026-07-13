@@ -65,7 +65,7 @@ test("capability auto: P0 propõe 'chat' (da ideia), gate mostra, GO aplica jobs
   assert.equal(snap2.capability, "chat");
   assert.deepEqual(snap2.jobs, JOBS_BY_CAPABILITY.chat);
   assert.ok(snap2.jobs.includes("L1/B4"), "GO deveria ter aplicado a sequência chat (com B4)");
-  assert.equal(snap2.deploy.target, "vercel"); // serverHost default do profile
+  assert.equal(snap2.deploy.target, "cf-workers"); // serverHost default: app com API vai pro Cloudflare (Workers/OpenNext)
   // deixa o run seguir sozinho até o próximo gate antes do tmp sumir (evita ruído de job órfão)
   await waitFor(() => mgr.snapshot()["cap-chat"].status === "paused_gate", 30000, "gate seguinte");
   mgr.stop("cap-chat");

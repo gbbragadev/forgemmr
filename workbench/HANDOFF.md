@@ -793,5 +793,5 @@ aposta engagement/share-first.
 - **Branch:** pipeline/doki-call · checkpoints: 10
 - **⏸ GATE pendente:** `blocked-P3` — P3 bloqueado: VERCEL_TOKEN não está no ambiente. retry (zera tentativas) ou kill? → `forge decide blocked-P3 go|kill`
 - BLOCKED: VERCEL_TOKEN não está no ambiente
-_Atualizado 2026-07-13T03:07:55.443Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
+_Atualizado 2026-07-13T03:10:30.317Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->

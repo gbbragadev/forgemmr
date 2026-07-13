@@ -1622,6 +1622,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge attach")} [app]   TUI ao vivo (N pipelines: sem arg lista; com arg acompanha uma)
   ${bold("forge status")}    snapshot rápido de TODAS as pipelines
   ${bold("forge decide")} <gate> <go|kill|retry> [feedback…] [--app X]
+  ${bold("forge target")} <app> <cf-pages|cf-workers|vercel|gh-pages>   troca o alvo de deploy do run (sem recomeçar)
   ${bold("forge restart")} [--force]  reinicia o server (carrega código novo do maestro; recusa se houver job vivo)
   ${bold("forge kill")} [app]     mata o run agora (executor + pipeline) — funciona sem gate
   ${bold("forge stop")} [app]     pausa a pipeline (job atual é morto)
@@ -1755,6 +1756,22 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     await ensureServer();
     const r = await api("/api/pipeline/resume", { appId: rest[0] || flags.app });
     printStatus(r.pipeline);
+    return;
+  }
+
+  if (cmd === "target") {
+    const [appId, target] = rest;
+    if (!appId || !target) {
+      throw new Error("uso: forge target <app> <cf-pages|cf-workers|vercel|gh-pages> [--subdomain X]");
+    }
+    await ensureServer();
+    const r = await api("/api/pipeline/target", { appId, target, subdomain: flags.subdomain });
+    if (!r.ok) {
+      console.error(fg(RED, `✗ ${r.error}`));
+      return;
+    }
+    console.log(fg(GREEN, `✔ ${appId} → deploy ${r.deploy.target}`) + dim(`  ${r.deploy.subdomain}.${r.deploy.baseUrl}`));
+    console.log(dim("  agora: forge decide <gate> retry --app " + appId));
     return;
   }
 

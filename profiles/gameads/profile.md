@@ -16,7 +16,7 @@
   "deploy": {
     "baseUrl": "gbbragadev.com",
     "staticHost": "cf-pages",
-    "serverHost": "vercel"
+    "serverHost": "cf-workers"
   },
   "git": {
     "targetBranch": "master",

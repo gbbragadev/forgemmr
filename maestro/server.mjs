@@ -691,6 +691,8 @@ const server = http.createServer(async (req, res) => {
         }
         sendJson(res, 200, { ok: true, killed: running.map((p) => p.appId) });
         setTimeout(() => process.exit(0), 150);
+      } else if (action === "target") {
+        sendJson(res, 200, engine.setTarget(body.appId, body.target, body.subdomain));
       } else if (action === "kill") {
         sendJson(res, 200, engine.kill(body.appId));
       } else if (action === "remove") {
