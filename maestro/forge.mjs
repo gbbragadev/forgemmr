@@ -18,6 +18,7 @@ import readline from "node:readline";
 import { buildProfileMd, composeTeam, TEAM_ROLES, slugify, listProfiles, activateProfile, importActiveProfile, JOB_SHORT } from "./engine.mjs";
 import { loadBlueprint } from "./blueprint-loader.mjs";
 import { recordDecision } from "./decisions.mjs";
+import { aggregateRuns, formatStats, loadRuns } from "./stats.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -1639,6 +1640,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge remove")} <app> [--force]   apaga o app: repo, estado do run, propostas e workbench
   ${bold("forge attach")} [app]   TUI ao vivo (N pipelines: sem arg lista; com arg acompanha uma)
   ${bold("forge status")}    snapshot rápido de TODAS as pipelines
+  ${bold("forge stats")}     PASS por player/job, duração por job/app e mortes nos runs persistidos
   ${bold("forge decide")} <gate> <go|kill|retry> [feedback…] [--app X]
   ${bold("forge target")} <app> <cf-pages|cf-workers|vercel|gh-pages>   troca o alvo de deploy do run (sem recomeçar)
   ${bold("forge restart")} [--force]  reinicia o server (carrega código novo do maestro; recusa se houver job vivo)
@@ -1746,6 +1748,11 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
   }
 
   if (cmd === "attach") return attachTUI(rest[0]);
+
+  if (cmd === "stats") {
+    console.log(formatStats(aggregateRuns(loadRuns(ROOT))));
+    return;
+  }
 
   if (cmd === "status") {
     await ensureServer();
