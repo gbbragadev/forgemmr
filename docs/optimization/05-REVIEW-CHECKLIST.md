@@ -10,9 +10,10 @@
 
 ## 0. Antes de olhar o diff
 
-- [ ] Confirmar **commit-base** (`0423528`) e o **head** entregue. Se o base divergir, o resto da
-      revisão é sobre outra coisa.
-- [ ] `git log --oneline 0423528..HEAD` — os commits batem com as tarefas do contrato?
+- [ ] Confirmar os dois commits: **auditado** `0423528` (onde os findings apontam, e contra o qual
+      um teste novo tem de falhar) e **partida** `759bb99` (código idêntico + docs + caracterização).
+      Se o head do GPT não descender de `759bb99`, o resto da revisão é sobre outra coisa.
+- [ ] `git log --oneline 759bb99..HEAD` — os commits batem com as tarefas do contrato?
 - [ ] Rodar **eu mesmo**: `npm test`, `npm run build:all`, `npm run typecheck`, dry-run E2E.
       **Não aceitar "os testes passaram" sem a saída.**
 - [ ] Comparar com o baseline de `01-FABLE-AUDIT.md` §1 (59 testes + 4 de caracterização = 63 mínimo).

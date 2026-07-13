@@ -2,7 +2,14 @@
 
 **De:** Claude Fable 5 (arquiteto/auditor, Modo A)
 **Para:** GPT-5.6 Sol Ultra (implementador)
-**Data:** 13/07/2026 · **Commit-base:** `0423528` · **Branch:** `master` · **Repo:** `C:\Dev\forge`
+**Data:** 13/07/2026 · **Branch:** `master` · **Repo:** `C:\Dev\forge`
+
+| | commit | o que é |
+|---|---|---|
+| **Auditado** | `0423528` | o código que eu li e medi. Todo finding aponta para linhas **deste** commit. É contra ele que um teste novo tem de falhar. |
+| **Parta daqui** | `759bb99` | o mesmo código + `docs/optimization/` + `characterization.test.mjs`. **Não faça checkout de `0423528`** — você perderia o contrato. |
+
+O código de produção é **idêntico** nos dois: entre eles só entraram docs e testes.
 
 ---
 
@@ -30,8 +37,8 @@ um app que saiu daqui, ela não pertence a este pacote.
 
 ```bash
 cd C:\Dev\forge
-git log -1 --format=%H          # deve ser 0423528…
-npm test                        # baseline: 63 PASS (59 + 4 de caracterização), ~60s
+git log -1 --format=%h          # deve ser 759bb99 (NÃO faça checkout de 0423528)
+npm test                        # baseline: 63 PASS (59 + 4 de caracterização), ~16s
 npm run typecheck               # exit 0 (~3 min)
 npm run build:all               # HOJE FALHA — é a tarefa T-01
 npm run forge -- new "probe" --team dry-run --dry-run   # E2E sem quota; depois: forge remove probe --force
