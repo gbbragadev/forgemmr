@@ -8,6 +8,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Backlog
 
+
+- [ ] **L0/P4** Measure anima-deck (5–7d) — **humano** · https://anima-deck.gbbragadev.com
 - [ ] **L1/B5** doki-call — ship check (health + free path + paywall CTA)
 - [ ] **L0/P4** Measure anima-deck (5–7d) — **humano** · https://anima-deck.gbbragadev.com
 - [ ] **L0/P4** Measure anime-quiz (5–7d) — **humano** · URL https://quiz.gbbragadev.com (+ Pages antiga) · hooks `docs/content-hooks-anime-quiz.md`
@@ -17,9 +19,12 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
-- [ ] **L1/B5** anima-deck — forge autopilot
 ## Done
 
+- [x] **L1/B5** doki-call — forge/ggg-gemini3 (2026-07-13)
+- [x] **L1/B5** anima-deck — forge/opussonnet-claude2 (2026-07-13)
+- [x] **L1/B5** anima-deck — forge/opussonnet-claude2 (2026-07-13) · ship check: fix domínio do share (`deck.` → `anima-deck.gbbragadev.com`) · build EXIT 0 · core smoke PASS
+- [x] **L1/B4** doki-call — forge/ggg-grok1 (2026-07-13)
 - [x] **L1/B4** doki-call — forge/ggg-grok1 (2026-07-13) · chat AI + TTS + entitlement/checkout stub · build EXIT 0
 - [x] **L1/B3** doki-call — forge/ggg-glm2 (2026-07-13)
 - [x] **ITERATE** anima-deck — forge/opussonnet-claude1 (2026-07-13)

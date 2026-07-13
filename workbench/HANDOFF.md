@@ -430,14 +430,22 @@ _Atualizado 2026-07-13T00:16:12.372Z pelo forge (maestro/engine.mjs). Estado com
 <!-- forge:begin:anima-deck -->
 ## Forge autopilot — anima-deck
 - **Ideia:** feedback fb1: Revise o app como um todo, leve ele a um nivel superior
-- **Team:** opussonnet · **Status:** paused_gate
-- **Job atual:** L1/B5 (2/3)
+- **Team:** opussonnet · **Status:** done
+- **Job atual:** — (4/3)
 - **Branch:** pipeline/anima-deck-fb1 · checkpoints: 1
-- **⏸ GATE pendente:** `iterate-visual` — Feedback aplicado. Preview: http://127.0.0.1:8799/preview/anima-deck/ (ou npm run dev). Aprova a iteração? → `forge decide iterate-visual go|kill`
-_Atualizado 2026-07-13T02:31:09.069Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/anima-deck.json_
+- **URL:** https://anima-deck.gbbragadev.com
+- DONE. Próximo: P4 measure (humano, 5–7d) — postar hooks de apps/anima-deck/docs/content-hooks.md
+_Atualizado 2026-07-13T03:08:40.019Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/anima-deck.json_
 <!-- forge:end:anima-deck -->
 
-## Last iteration — FEEDBACK fb1 iter 3 anima-deck (2026-07-12 · GLM ITERATE, skill /frontend-fable)
+## Last iteration — L1/B5 ship check anima-deck (2026-07-13 · Claude Opus, opussonnet-claude2)
+- **1 quebra REAL corrigida:** o texto de share mandava todo mundo pra `deck.gbbragadev.com` (link morto) — o deploy real é **`anima-deck.gbbragadev.com`** (`maestro/pipelines/anima-deck.json`: subdomain+baseUrl). Num app share-first isso vazava 100% do tráfego de volta. Fix em `AnimaDeckApp.tsx:328`; bundle agora só contém o domínio certo. ⚠ **O HANDOFF antigo (iter 1) tem a prosa errada `deck.gbbragadev.com` — não reintroduzir.**
+- **Checklist B5:** build EXIT 0 · disclaimer PT no HTML + EN no bundle · selo @otaku_sincero69 · core smoke PASS (pesos raridade=100, fronteiras de `rollRarity` corretas, card coerente, 12 personas bilíngues, 216 combos) · API/paywall = **N-A** (static, sem créditos/backend).
+- **Docs:** `.env.example` agora documenta anima-deck (static, sem key, **porta dev 3002**) + root `npm run dev:deck` / `build:deck` (era o único app sem atalho).
+- **Não construí:** `og.png` (`seo.ogImage` aponta p/ arquivo inexistente, mas o metadata NÃO referencia → sem 404; share primário manda o PNG do card, não preview de link) → backlog.
+- **Sem git** (orquestrador). **Próximo:** gate humano `iterate-visual` segue pendente → `forge decide iterate-visual go|kill`, depois P3 deploy cf-pages (token CF ainda read-only).
+
+## Iteration anterior — FEEDBACK fb1 iter 3 anima-deck (2026-07-12 · GLM ITERATE, skill /frontend-fable)
 Gate do dono desta rodada: *"Aumentar a variedade de personas tipo cabeça corpo e tal"*.
 - **Gap fechado = "corpo"**: a silhueta de ombros/busto era um path FIXO em `AvatarSvg` (zero variação de corpo). Nova dimensão **`body`** (sleek/atlético/robusto) via `bodyBuild(body)` → 3 silhuetas com largura de ombro 40/52/64px.
 - **Variedade multiplicada**: +face `round`, +cabelos `twin`(rabo duplo)/`ponytail`, +3 builds de corpo → **36 → 216 personagens visuais distintos** (4 face × 6 cabelo × 3 olho × 3 corpo). Botão **Aleatório** agora sorteia `body` também (`randomDraft`).
@@ -780,9 +788,10 @@ no CTA de R\$ 4,90.
 Este conceito deve ser registrado como a primeira aposta
 monetização-first do portfólio, enquanto o ANIMA//DECK permanece como
 aposta engagement/share-first.
-- **Team:** ggg · **Status:** paused_gate
-- **Job atual:** L1/B4 (8/10)
-- **Branch:** pipeline/doki-call · checkpoints: 7
-- **⏸ GATE pendente:** `b3-visual` — UI polida. Preview: http://127.0.0.1:8799/preview/doki-call/ (ou npm run dev). Aprova o visual? → `forge decide b3-visual go|kill`
-_Atualizado 2026-07-13T02:33:29.698Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
+- **Team:** ggg · **Status:** blocked
+- **Job atual:** P3 (10/10)
+- **Branch:** pipeline/doki-call · checkpoints: 10
+- **⏸ GATE pendente:** `blocked-P3` — P3 bloqueado: VERCEL_TOKEN não está no ambiente. retry (zera tentativas) ou kill? → `forge decide blocked-P3 go|kill`
+- BLOCKED: VERCEL_TOKEN não está no ambiente
+_Atualizado 2026-07-13T03:07:55.443Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->
