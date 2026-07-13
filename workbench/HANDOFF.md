@@ -374,14 +374,3 @@ aposta engagement/share-first.
 _Atualizado 2026-07-13T00:16:12.372Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/o-anima-deck.json_
 <!-- forge:end:o-anima-deck -->
 
-<!-- forge:begin:doki-call -->
-## Forge autopilot — doki-call
-- **Ideia:** "C:\Dev\anime-forge\ideas\DOKI_CALL_Produto_e_Estrategia.md"
-- **Team:** frontier-cxb · **Status:** blocked
-- **Job atual:** L0/P0 (1/10)
-- **Branch:** pipeline/doki-call · checkpoints: 0
-- **⏸ GATE pendente:** `stopped` — pipeline parada manualmente — retry (recomeça o job atual) ou kill? → `forge decide stopped go|kill`
-- BLOCKED: todos os players do preset esgotados
-_Atualizado 2026-07-12T23:53:31.844Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
-<!-- forge:end:doki-call -->
-

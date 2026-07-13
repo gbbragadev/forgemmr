@@ -17,7 +17,6 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 ## Doing
 
 
-- [ ] **L0/P0** doki-call — forge autopilot
 ## Done
 
 

@@ -113,9 +113,15 @@ function parseArgs(argv) {
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--dry-run") flags.dryRun = true;
-    else if (a.startsWith("--")) flags[a.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = argv[++i];
-    else rest.push(a);
+    if (!a.startsWith("--")) {
+      rest.push(a);
+      continue;
+    }
+    const key = a.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    const next = argv[i + 1];
+    // flag booleana = sem valor à frente (fim dos args ou outra flag) — antes, --force virava undefined
+    if (next === undefined || next.startsWith("--")) flags[key] = true;
+    else flags[key] = argv[++i];
   }
   return { flags, rest };
 }
