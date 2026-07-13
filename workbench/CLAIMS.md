@@ -6,7 +6,6 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 |------|-------|------|-----|------------|-------|-------|
 
 | — | — | — | — | — | — | livre |
-| F | ggg-glm2 | L1 | ITERATE | anima-deck | 01:18 | forge autopilot |
 _(FOUNDATION doki-call liberado 2026-07-13 — Grok 4.5 / ggg-grok1 · system-design.md)_
 
 ## Protocolo

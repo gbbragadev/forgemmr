@@ -8,6 +8,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Backlog
 
+
+- [ ] **L0/P4** Measure anima-deck (5–7d) — **humano** · https://anima-deck.gbbragadev.com
 - [ ] **L0/P1** Content hooks + brief fake-door DOKI//CALL (`doki-call`) — 15 hooks PT-BR+EN, CTA R$ 4,90, métrica áudio→clique · `docs/prompts/L0-P1-content-hooks.md` → `apps/doki-call/docs/content-hooks.md`
 - [ ] **L0/P4** Measure anime-quiz (5–7d) — **humano** · URL https://quiz.gbbragadev.com (+ Pages antiga) · hooks `docs/content-hooks-anime-quiz.md`
 - [ ] **L0/P0** Próxima ideia via autopilot: `.\forge` (tela de setup) ou `forge new "<ideia>" --team grok-glm-front`
@@ -18,10 +20,15 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 - [ ] **L0/P1** doki-call — forge autopilot
 - [ ] **L0/P1** doki-call — forge autopilot
+
 - [ ] **L0/P1** doki-call — forge autopilot
-- [ ] **ITERATE** anima-deck — forge autopilot
+- [ ] **L0/P1** doki-call — forge autopilot
+- [ ] **L0/P1** doki-call — forge autopilot
+
 ## Done
 
+- [x] **L1/B5** anima-deck — forge/ggg-gemini3 (2026-07-13)
+- [x] **ITERATE** anima-deck — forge/ggg-glm2 (2026-07-13)
 - [x] **DS-GEN** doki-call — forge/ggg-glm2 (2026-07-13)
 - [x] **ITERATE** anima-deck — forge/ggg-glm2 (2026-07-13)
 - [x] **ITERATE** anima-deck — forge/ggg-glm2 (2026-07-13)

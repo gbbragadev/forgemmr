@@ -404,11 +404,12 @@ _Atualizado 2026-07-13T00:16:12.372Z pelo forge (maestro/engine.mjs). Estado com
 <!-- forge:begin:anima-deck -->
 ## Forge autopilot — anima-deck
 - **Ideia:** feedback fb1: Loop para melhoria de design, estetica dos personagens, qualidade geral de design. Facilidade na criação do card e do co
-- **Team:** ggg · **Status:** paused_gate
-- **Job atual:** L1/B5 (2/3)
-- **Branch:** pipeline/anima-deck-fb1 · checkpoints: 2
-- **⏸ GATE pendente:** `iterate-visual` — Feedback aplicado. Preview: http://127.0.0.1:8799/preview/anima-deck/ (ou npm run dev). Aprova a iteração? → `forge decide iterate-visual go|kill`
-_Atualizado 2026-07-13T01:17:15.996Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/anima-deck.json_
+- **Team:** ggg · **Status:** done
+- **Job atual:** — (4/3)
+- **Branch:** pipeline/anima-deck-fb1 · checkpoints: 4
+- **URL:** https://anima-deck.gbbragadev.com
+- DONE. Próximo: P4 measure (humano, 5–7d) — postar hooks de apps/anima-deck/docs/content-hooks.md
+_Atualizado 2026-07-13T01:44:05.573Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/anima-deck.json_
 <!-- forge:end:anima-deck -->
 
 ## Last iteration — FEEDBACK fb1 iter 3 anima-deck (2026-07-12 · GLM ITERATE, skill /frontend-fable)
@@ -759,5 +760,5 @@ aposta engagement/share-first.
 - **Branch:** pipeline/doki-call · checkpoints: 3
 - **⏸ GATE pendente:** `blocked-L0-P1` — L0/P1 bloqueado: todos os players do preset esgotados. retry (zera tentativas) ou kill? → `forge decide blocked-L0-P1 go|kill`
 - BLOCKED: todos os players do preset esgotados
-_Atualizado 2026-07-13T01:19:51.465Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
+_Atualizado 2026-07-13T01:38:47.489Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->
