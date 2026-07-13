@@ -5,7 +5,7 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 | slot | agent | loop | job | app / area | since | notes |
 |------|-------|------|-----|------------|-------|-------|
 
-| — | — | — | — | — | — | livre |
+| A | GPT-5.6 | L2 | C-1/C-2 pós-revisão Fable | ForgeMMR | 2026-07-13 | cooldown restart + NUL stats |
 _(META GPT56 optimization contract liberado 2026-07-13 — GPT-5.6 Sol · implementação verificada, sem deploy/push)_
 _(L1/B5 anima-deck liberado 2026-07-13 — Claude Opus / opussonnet-claude2 · ship check + fix domínio do share)_
 _(L1/B4 doki-call liberado 2026-07-13 — Grok 4.5 / ggg-grok1 · chat+TTS+entitlement stub)_

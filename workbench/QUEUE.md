@@ -19,6 +19,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
+- [ ] **L2/META** Correções pós-revisão Fable C-1/C-2 — GPT-5.6 (2026-07-13)
+
 ## Done
 
 - [x] **META** Contrato GPT56 optimization — implementação local + relatórios + verificação global (2026-07-13) · próximo: revisão Fable

@@ -89,3 +89,27 @@ test("rate-limit de app A bloqueia p1 globalmente para app B", async () => {
     cleanup(manager, root, ["app-a", "app-b"]);
   }
 });
+
+test("cooldown persistido continua global depois de recriar o manager", async () => {
+  const root = tmpRoot();
+  const previousEcho = process.env.FORGE_FAKE_ECHO;
+  let manager;
+  process.env.FORGE_FAKE_ECHO = "1";
+
+  try {
+    manager = createEngineManager({ root, emitLog: () => {}, emitPipeline: () => {} });
+    manager.start({ idea: "falha simulada\nAPI Error: 429 FORGE_FAKE_FAIL", team: "solo", appId: "app-a" });
+    await waitFor(() => manager.snapshot()["app-a"]?.status === "blocked", "app A bloqueado");
+
+    manager = createEngineManager({ root, emitLog: () => {}, emitPipeline: () => {} });
+    manager.start({ idea: "app B depois do restart", team: "fallback", appId: "app-b" });
+    await waitFor(() => manager.snapshot()["app-b"]?.status === "paused_gate", "app B no p0-go");
+
+    assert.equal(manager.snapshot()["app-b"].history.find((entry) => entry.job === "L0/P0")?.playerId, "p2");
+    assert.ok(manager.cooldowns().p1 > Date.now());
+  } finally {
+    if (previousEcho === undefined) delete process.env.FORGE_FAKE_ECHO;
+    else process.env.FORGE_FAKE_ECHO = previousEcho;
+    cleanup(manager, root, ["app-a", "app-b"]);
+  }
+});

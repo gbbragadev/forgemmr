@@ -1627,6 +1627,13 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
   if (fs.existsSync(PIPELINE_PATH)) {
     try {
       const saved = JSON.parse(fs.readFileSync(PIPELINE_PATH, "utf8"));
+      const now = Date.now();
+      for (const [playerId, until] of Object.entries(saved.cooldowns || {})) {
+        const untilMs = Date.parse(until);
+        if (Number.isFinite(untilMs) && untilMs > now) {
+          cooldowns.set(playerId, Math.max(cooldowns.get(playerId) || 0, untilMs));
+        }
+      }
       if (!["done", "killed"].includes(saved.status)) {
         pipeline = saved;
         if (pipeline.status === "running") {
