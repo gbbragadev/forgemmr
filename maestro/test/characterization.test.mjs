@@ -108,6 +108,12 @@ test("caracterização: 3 falhas do único player → rollback + BLOCKED com gat
   assert.equal(gate.id, "blocked-L0-P0");
   assert.deepEqual(gate.choices, ["retry", "kill"]);
   assert.ok(logs.some((l) => l.includes("rollback")), "rollback foi executado ao esgotar o player");
+  assert.equal(
+    logs.filter((line) => line.includes("✎ prompt-improver") && line.includes("L0/P0")).length,
+    1,
+    "o improver roda uma vez e retries reutilizam a reescrita"
+  );
+  assert.ok(logs.some((line) => line.includes("prompt-improver: cache hit")));
 
   // T-07: o motivo continua gravado no disco e o snapshot devolve apenas seu sufixo seguro.
   const disco = JSON.parse(fs.readFileSync(path.join(root, "maestro", "pipelines", "fail-app.json"), "utf8"));

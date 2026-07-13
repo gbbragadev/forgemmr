@@ -12,6 +12,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { spawn, execFileSync, execSync } from "node:child_process";
 import { buildSpawn, createStreamSanitizer, detectRateLimit, makeRedactor } from "./adapters.mjs";
 import * as workbench from "./workbench.mjs";
@@ -492,6 +493,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
   let pipeline = null;
   let child = null;
   let looping = false;
+  const improvedPromptCache = new Map();
 
   // ---------- util ----------
 
@@ -593,7 +595,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
   // ---------- prompt ----------
 
-  function buildPrompt(job, player, attempt, extraFeedback) {
+  function buildPrompt(job, player, extraFeedback) {
     const p = pipeline;
     const spec = p.jobSpecs && p.jobSpecs[job];
     const template = spec ? spec.templateRef : JOB_TEMPLATES[job];
@@ -654,14 +656,6 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     }
     const prev = p.history.filter((h) => h.pass).slice(-1)[0];
     if (prev) lines.splice(6, 0, `Job anterior concluído: ${prev.job} por ${prev.playerId}.`);
-    if (attempt > 1) {
-      const lastFail = p.history.filter((h) => h.job === job && !h.pass).slice(-1)[0];
-      lines.push(
-        "",
-        `TENTATIVA ${attempt} — a anterior FALHOU no verify. Corrija a causa raiz.`,
-        untrustedBlock("TRECHO DO ERRO", (lastFail?.errorTail || "sem detalhe").slice(-3000))
-      );
-    }
     if (extraFeedback) lines.push("", untrustedBlock("FEEDBACK DO GATE", extraFeedback));
     // inputs declarados pelo jobSpec (artefatos anteriores desta campanha)
     if (spec && spec.inputs) {
@@ -886,25 +880,43 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
       let rateLimited = false;
       const maxAttempts = profile.limits.maxAttemptsPerPlayer;
+      const rawPrompt = buildPrompt(job, player, feedback);
+      feedback = null;
+      const promptHash = createHash("sha256").update(rawPrompt).digest("hex");
+      const cacheKey = `${p.runId}|${job}|${player.id}|${promptHash}`;
+
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        const rawPrompt = buildPrompt(job, player, attempt, feedback);
-        feedback = null;
-        // prompt-improver: reescreve o prompt e escolhe skills/subagentes (falha → prompt original)
-        const imp = await improvePrompt({
-          root,
-          job,
-          appId: p.appId,
-          runId: p.runId,
-          player,
-          prompt: rawPrompt,
-          // dry-run / executor fake → improver fake também (zero quota, fluxo E2E idêntico)
-          cfg:
-            p.dryRun || player.cli === "fake"
-              ? { ...profile.promptImprover, cli: "fake", model: "default" }
-              : profile.promptImprover,
-          log,
-        });
-        const prompt = imp.prompt;
+        let improved = improvedPromptCache.get(cacheKey);
+        if (!improved) {
+          // prompt-improver: reescreve a base uma vez; retries só anexam o erro novo.
+          const imp = await improvePrompt({
+            root,
+            job,
+            appId: p.appId,
+            runId: p.runId,
+            player,
+            prompt: rawPrompt,
+            // dry-run / executor fake → improver fake também (zero quota, fluxo E2E idêntico)
+            cfg:
+              p.dryRun || player.cli === "fake"
+                ? { ...profile.promptImprover, cli: "fake", model: "default" }
+                : profile.promptImprover,
+            log,
+          });
+          improved = imp.prompt;
+          improvedPromptCache.set(cacheKey, improved);
+        } else {
+          log(`✎ prompt-improver: cache hit (tentativa ${attempt}) — reusando reescrita`);
+        }
+
+        const lastFail = p.history.filter((entry) => entry.job === job && !entry.pass).slice(-1)[0];
+        const prompt =
+          attempt > 1
+            ? `${improved}\n\nTENTATIVA ${attempt} — a anterior FALHOU no verify. Corrija a causa raiz.\n${untrustedBlock(
+                "TRECHO DO ERRO",
+                (lastFail?.errorTail || "sem detalhe").slice(-3000)
+              )}`
+            : improved;
         if (!pipeline || pipeline.status !== "running") return { pass: false, detail: "pipeline parada" };
         const started = new Date().toISOString();
         const res = await runExecutor(player, prompt, job);
