@@ -423,7 +423,7 @@ export function composeTeam(name, musicians, emoji = "🎼") {
   return { teamId, team, players };
 }
 
-export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId }) {
+export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, cooldowns = new Map() }) {
   // com appId (via manager): estado por app em maestro/pipelines/<appId>.json; sem = legado single-file
   const PIPELINE_PATH = boundAppId
     ? path.join(root, "maestro", "pipelines", `${boundAppId}.json`)
@@ -529,8 +529,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
     const now = Date.now();
     for (const id of chain) {
       if (excluded.includes(id)) continue;
-      const cd = pipeline.cooldowns[id];
-      if (cd && new Date(cd).getTime() > now) continue;
+      if ((cooldowns.get(id) || 0) > now) continue;
       const player = roster.players.find((p) => p.id === id);
       if (player) return player;
     }
@@ -864,7 +863,9 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
         const res = await runExecutor(player, prompt, job);
 
         if (res.exitCode !== 0 && detectRateLimit(res.tail)) {
-          p.cooldowns[player.id] = new Date(Date.now() + profile.limits.cooldownMs).toISOString();
+          const untilMs = Date.now() + profile.limits.cooldownMs;
+          cooldowns.set(player.id, untilMs);
+          p.cooldowns[player.id] = new Date(untilMs).toISOString();
           log(`⏳ rate-limit em ${player.id} — cooldown ${Math.round(profile.limits.cooldownMs / 60000)}min, tentando fallback (L2 automático)`);
           workbench.handoffUpdate(paths, p, `L2: rate-limit em ${player.id}, redispatch automático`);
           rateLimited = true;
@@ -1542,6 +1543,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
 export function createEngineManager({ root, emitLog, emitPipeline }) {
   const PIPES_DIR = path.join(root, "maestro", "pipelines");
   const engines = new Map(); // appId → engine
+  const cooldowns = new Map(); // playerId → epoch ms; compartilhado apenas neste manager
 
   // migração: maestro/pipeline.json legado (single-pipeline) vira maestro/pipelines/<appId>.json
   const legacy = path.join(root, "maestro", "pipeline.json");
@@ -1573,6 +1575,7 @@ export function createEngineManager({ root, emitLog, emitPipeline }) {
         createEngine({
           root,
           appId,
+          cooldowns,
           emitLog: (line) => emitLog(`[${appId}] ${line}`),
           emitPipeline: () => emitPipeline(snapshotAll()),
         })
@@ -1631,6 +1634,12 @@ export function createEngineManager({ root, emitLog, emitPipeline }) {
     },
     snapshot() {
       return snapshotAll();
+    },
+    setCooldown(playerId, untilMs) {
+      cooldowns.set(playerId, untilMs);
+    },
+    cooldowns() {
+      return Object.fromEntries(cooldowns);
     },
     snapshotFor(appId) {
       return engines.has(appId) ? engines.get(appId).snapshot() : { status: "idle" };
