@@ -12,7 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { buildSpawn, makeRedactor, stripAnsi, detectRateLimit } from "./adapters.mjs";
+import { buildSpawn, detectRateLimit, makeRedactor, stripAnsi, writePrivateFile } from "./adapters.mjs";
 import { listAgents, listSkills, defaultAgentDirs, defaultSkillDirs, supportsToolbox } from "./toolbox.mjs";
 
 const OPEN = "<<<PROMPT_ORIGINAL>>>";
@@ -212,7 +212,7 @@ async function runImprover({ root, job, appId, runId, player, prompt, cfg, log, 
   });
 
   try {
-    fs.writeFileSync(rawPath, out, "utf8"); // auditoria: dá pra ver o que o improver respondeu
+    writePrivateFile(rawPath, out); // auditoria: dá pra ver o que o improver respondeu
   } catch {}
 
   let improved = null;

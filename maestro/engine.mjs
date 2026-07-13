@@ -14,7 +14,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { spawn, execFileSync, execSync } from "node:child_process";
-import { buildSpawn, createStreamSanitizer, detectRateLimit, makeRedactor } from "./adapters.mjs";
+import {
+  buildSpawn,
+  cleanupExternalizedPrompts,
+  createStreamSanitizer,
+  detectRateLimit,
+  makeRedactor,
+  openPrivateFile,
+  writePrivateFile,
+} from "./adapters.mjs";
 import * as workbench from "./workbench.mjs";
 import { loadBlueprint, interpolate } from "./blueprint-loader.mjs";
 import { improvePrompt } from "./improver.mjs";
@@ -833,9 +841,9 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       const runDir = path.join(RUNS_DIR, pipeline.runId);
       fs.mkdirSync(runDir, { recursive: true });
       const rawPath = path.join(runDir, `${job.replace("/", "-")}-${Date.now()}.raw.log`);
-      const rawFd = fs.openSync(rawPath, "w");
+      const rawFd = openPrivateFile(rawPath);
 
-      fs.writeFileSync(path.join(root, "maestro", ".run-goal.txt"), prompt, "utf8");
+      writePrivateFile(path.join(root, "maestro", ".run-goal.txt"), prompt);
       const mlabel = player.modelLabel ? ` · ${player.modelLabel}${player.effort ? " " + String(player.effort).toUpperCase() : ""}` : "";
       log(`▶ ${job} → ${player.name}${mlabel} (${player.cli}${player.env ? "/" + player.env : ""})`);
       log(`  raw → ${path.relative(root, rawPath)}`);
@@ -1234,6 +1242,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     pipeline.endedAt = new Date().toISOString();
     pipeline.currentJob = null;
     if (status === "done") {
+      cleanupExternalizedPrompts(root);
       log(`🎉 pipeline done — ${pipeline.deploy.url || "sem URL (ver HANDOFF)"}`);
       workbench.handoffUpdate(
         paths,

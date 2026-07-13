@@ -12,6 +12,24 @@ import { fileURLToPath } from "node:url";
 
 const MAESTRO_DIR = path.dirname(fileURLToPath(import.meta.url));
 
+/** Grava conteúdo sensível com permissão restrita, inclusive ao sobrescrever arquivo existente. */
+export function writePrivateFile(file, content) {
+  fs.writeFileSync(file, content, { encoding: "utf8", mode: 0o600 });
+  fs.chmodSync(file, 0o600);
+}
+
+/** Abre log sensível truncando-o e garantindo permissão 0600. */
+export function openPrivateFile(file) {
+  const fd = fs.openSync(file, "w", 0o600);
+  fs.chmodSync(file, 0o600);
+  return fd;
+}
+
+/** Prompts externalizados são temporários e não sobrevivem a um run bem-sucedido. */
+export function cleanupExternalizedPrompts(root) {
+  fs.rmSync(path.join(root, "maestro", ".prompts"), { recursive: true, force: true });
+}
+
 /** Strip ANSI / OSC / TUI control codes */
 export function stripAnsi(input) {
   let s = String(input);
@@ -172,7 +190,7 @@ export function externalizePrompt(goal, root) {
   const dir = path.join(root, "maestro", ".prompts");
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.md`);
-  fs.writeFileSync(file, text, "utf8");
+  writePrivateFile(file, text);
   const short = [
     `PROMPT_FILE: ${file}`,
     "",
