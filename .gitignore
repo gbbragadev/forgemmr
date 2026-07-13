@@ -47,3 +47,6 @@ apps/
 # estado/arquivo de runs do maestro (a fábrica não participa dos runs)
 maestro/pipelines/
 maestro/runs/
+
+# prompts externalizados (>6k chars) — passados por arquivo ao CLI
+maestro/.prompts/

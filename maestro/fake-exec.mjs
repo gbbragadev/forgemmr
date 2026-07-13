@@ -19,7 +19,11 @@ function docPath(appId, kind) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
   return p;
 }
-const goal = process.argv[2] || "";
+// prompt grande vem por arquivo (externalizePrompt) — o argv carrega só a referência
+const goal =
+  process.env.FORGE_PROMPT_FILE && fs.existsSync(process.env.FORGE_PROMPT_FILE)
+    ? fs.readFileSync(process.env.FORGE_PROMPT_FILE, "utf8")
+    : process.argv[2] || "";
 
 const job = (goal.match(/^Job:\s*(\S+)/m) || [])[1] || "?";
 const appId = (goal.match(/^App:\s*(\S+)/m) || [])[1] || "fake-app";
@@ -27,6 +31,27 @@ const appId = (goal.match(/^App:\s*(\S+)/m) || [])[1] || "fake-app";
 console.log(`▶ fake-exec: job=${job} app=${appId}`);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// modo prompt-improver (dry-run / teste): devolve o prompt original + 1 linha, escolhe ferramentas fake
+const improveOut = process.env.FORGE_IMPROVE_OUTFILE;
+if (improveOut) {
+  const m = goal.match(/<<<PROMPT_ORIGINAL>>>\r?\n([\s\S]*?)\r?\n<<<FIM_PROMPT_ORIGINAL>>>/);
+  const original = m ? m[1] : goal;
+  fs.mkdirSync(path.dirname(improveOut), { recursive: true });
+  fs.writeFileSync(
+    improveOut,
+    JSON.stringify({
+      prompt: original + "\n\n[dry-run: prompt-improver simulado — nada foi reescrito]",
+      skills: ["frontend-fable"],
+      agents: ["agency-mobile"],
+      notes: "dry-run: improver fake",
+    }),
+    "utf8"
+  );
+  console.log("✓ fake-exec: prompt-improver simulado");
+  process.exit(0);
+}
+
 await sleep(800);
 
 if (/FORGE_FAKE_FAIL/.test(goal)) {

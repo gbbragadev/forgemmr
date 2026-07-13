@@ -155,8 +155,33 @@ const EMPTY_MCP = path.join(HOME, ".claude", "empty-mcp.json");
  * @param {string} goal prompt completo do job
  * @param {{ root: string, maxTurns?: number, model?: string, effort?: string }} opts
  */
+/**
+ * Windows limita a linha de comando a ~32767 chars — prompt grande (ideia longa + system design +
+ * design system colados) estourava com `spawn ENAMETOOLONG`, exit 1 em 0s e log vazio.
+ * Acima do limite seguro, o prompt vai pra um arquivo e o CLI recebe só a referência.
+ */
+const ARG_SAFE_LIMIT = 6000;
+
+export function externalizePrompt(goal, root) {
+  const text = String(goal);
+  if (text.length <= ARG_SAFE_LIMIT) return { goal: text, file: null };
+  const dir = path.join(root, "maestro", ".prompts");
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.md`);
+  fs.writeFileSync(file, text, "utf8");
+  const short = [
+    `PROMPT_FILE: ${file}`,
+    "",
+    "Esse arquivo contém o SEU prompt completo deste job (não coube na linha de comando).",
+    "LEIA o arquivo AGORA (primeira ação) e execute exatamente o que está nele. Não peça confirmação.",
+  ].join("\n");
+  return { goal: short, file };
+}
+
 export function buildSpawn(cli, goal, opts) {
   const { root, maxTurns = 30, model, effort } = opts;
+  const ext = externalizePrompt(goal, root);
+  goal = ext.goal;
   // effort é REAL onde o CLI expõe (grok --effort · codex -c model_reasoning_effort);
   // em claude/glm/gemini (-p sem flag de effort) fica como etiqueta. Sanitiza p/ argv.
   const safeEffort = effort && /^[a-z]+$/.test(effort) && effort !== "default" ? effort : null;
@@ -278,7 +303,7 @@ export function buildSpawn(cli, goal, opts) {
     return {
       cmd: process.execPath,
       args: [path.join(MAESTRO_DIR, "fake-exec.mjs"), goal],
-      env: { ...base, FORGE_ROOT: root },
+      env: { ...base, FORGE_ROOT: root, ...(ext.file ? { FORGE_PROMPT_FILE: ext.file } : {}) },
     };
   }
 

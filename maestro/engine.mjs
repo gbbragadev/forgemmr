@@ -16,6 +16,7 @@ import { spawn, execFileSync, execSync } from "node:child_process";
 import { buildSpawn, createStreamSanitizer, detectRateLimit, makeRedactor } from "./adapters.mjs";
 import * as workbench from "./workbench.mjs";
 import { loadBlueprint, interpolate } from "./blueprint-loader.mjs";
+import { improvePrompt } from "./improver.mjs";
 import { recordDecision, writeApproval } from "./decisions.mjs";
 
 // porta do Maestro HQ (server.mjs) — usada nos prompts de gate visual (preview)
@@ -165,6 +166,15 @@ const PROFILE_DEFAULTS = {
   git: { targetBranch: "master", commitPrefix: "forge" },
   legal: { ipRules: [] },
   capabilities: ["static", "quiz", "chat"],
+  // todo prompt de job passa por um improver antes do executor (escolhe skills/subagentes também)
+  promptImprover: {
+    enabled: true,
+    cli: "codex",
+    model: "gpt-5.6-terra",
+    effort: "high",
+    maxTurns: 12,
+    timeoutMs: 5 * 60 * 1000,
+  },
   limits: {
     maxAttemptsPerPlayer: 3,
     cooldownMs: 60 * 60 * 1000,
@@ -208,6 +218,7 @@ export function loadProfile(root) {
     deploy: { ...d.deploy, ...(knobs.deploy || {}) },
     git: { ...d.git, ...(knobs.git || {}) },
     legal: { ...d.legal, ...(knobs.legal || {}) },
+    promptImprover: { ...d.promptImprover, ...(knobs.promptImprover || {}) },
     limits: {
       ...d.limits,
       ...(knobs.limits || {}),
@@ -821,8 +832,25 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
       let rateLimited = false;
       const maxAttempts = profile.limits.maxAttemptsPerPlayer;
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        const prompt = buildPrompt(job, player, attempt, feedback);
+        const rawPrompt = buildPrompt(job, player, attempt, feedback);
         feedback = null;
+        // prompt-improver: reescreve o prompt e escolhe skills/subagentes (falha → prompt original)
+        const imp = await improvePrompt({
+          root,
+          job,
+          appId: p.appId,
+          runId: p.runId,
+          player,
+          prompt: rawPrompt,
+          // dry-run / executor fake → improver fake também (zero quota, fluxo E2E idêntico)
+          cfg:
+            p.dryRun || player.cli === "fake"
+              ? { ...profile.promptImprover, cli: "fake", model: "default" }
+              : profile.promptImprover,
+          log,
+        });
+        const prompt = imp.prompt;
+        if (!pipeline || pipeline.status !== "running") return { pass: false, detail: "pipeline parada" };
         const started = new Date().toISOString();
         const res = await runExecutor(player, prompt, job);
 

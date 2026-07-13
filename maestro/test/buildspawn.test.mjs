@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { buildSpawn } from "../adapters.mjs";
 
 const ROOT = process.cwd();
@@ -27,4 +30,34 @@ test("claude: model é repassado como --model (Fable 5 = claude-fable-5)", () =>
   const i = spec.args.indexOf("--model");
   assert.ok(i >= 0);
   assert.equal(spec.args[i + 1], "claude-fable-5");
+});
+
+test("prompt gigante vai por ARQUIVO (Windows: >32k chars em argv = spawn ENAMETOOLONG)", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-arg-"));
+  const huge = "Job: L0/P1\nApp: demo\n" + "conteúdo enorme da ideia. ".repeat(2000); // ~50k chars
+  assert.ok(huge.length > 32767, "pré-condição: prompt maior que o limite do Windows");
+
+  const spec = buildSpawn("grok", huge, { root });
+  const argv = spec.args.join(" ");
+  assert.ok(argv.length < 4000, `linha de comando deveria ficar curta (ficou ${argv.length})`);
+  assert.ok(argv.includes("PROMPT_FILE:"), "o CLI precisa receber a referência ao arquivo");
+
+  const file = (argv.match(/PROMPT_FILE: (\S+\.md)/) || [])[1];
+  assert.ok(file && fs.existsSync(file), "o arquivo do prompt precisa existir em disco");
+  assert.equal(fs.readFileSync(file, "utf8"), huge, "o arquivo carrega o prompt ORIGINAL inteiro");
+});
+
+test("prompt pequeno continua inline (sem arquivo)", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-arg2-"));
+  const spec = buildSpawn("grok", "prompt curto", { root });
+  assert.ok(spec.args.includes("prompt curto"));
+  assert.ok(!spec.args.join(" ").includes("PROMPT_FILE:"));
+  assert.ok(!fs.existsSync(path.join(root, "maestro", ".prompts")), "não deveria criar arquivo à toa");
+});
+
+test("fake-exec recebe FORGE_PROMPT_FILE quando o prompt é externalizado (dry-run não quebra)", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-arg3-"));
+  const huge = "Job: L0/P0\nApp: demo\n" + "x".repeat(40000);
+  const spec = buildSpawn("fake", huge, { root });
+  assert.ok(spec.env.FORGE_PROMPT_FILE && fs.existsSync(spec.env.FORGE_PROMPT_FILE));
 });
