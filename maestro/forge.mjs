@@ -827,6 +827,159 @@ async function wizard() {
   await attachTUI(r.pipeline.appId);
 }
 
+// ---------- feedback wizard (forge feedback sem args — app → feedback → time) ----------
+async function feedbackWizard() {
+  await ensureServer();
+  let roster = null;
+  let pipes = {};
+  try {
+    roster = await api("/api/roster");
+  } catch {}
+  try {
+    pipes = (await api("/api/pipeline")) || {};
+  } catch {}
+  const teams = Object.entries(roster?.teams || {});
+  if (!teams.length) throw new Error("roster sem teams — confira maestro/roster.json");
+
+  // apps disponíveis = diretórios em apps/ (o feedback itera sobre app existente)
+  const appsDir = path.join(ROOT, "apps");
+  const apps = (fs.existsSync(appsDir) ? fs.readdirSync(appsDir) : [])
+    .filter((d) => fs.statSync(path.join(appsDir, d)).isDirectory())
+    .map((id) => ({ id, status: pipes[id]?.status || "—", url: pipes[id]?.deploy?.url || null }));
+  if (!apps.length) throw new Error("nenhum app em apps/ — rode `forge` para criar o primeiro");
+
+  const ACTIVE_ST = ["running", "paused_gate", "blocked"];
+  const st = { phase: "app", appIdx: 0, text: "", teamIdx: 0, dry: false, err: "" };
+
+  process.stdout.write(`${ESC}?1049h${ESC}?25l`);
+  const restore = () => process.stdout.write(`${ESC}?25h${ESC}?1049l`);
+  enableKeys();
+
+  const stepNames = ["app", "feedback", "time", "confirmar"];
+  const stepOf = { app: 0, text: 1, team: 2, confirm: 3 };
+
+  function render() {
+    const cols = Math.max(64, Math.min(process.stdout.columns || 100, 100));
+    const W = cols - 2;
+    const out = [];
+    const row = (s) => fg(PURPLE, "│") + padTo(" " + truncTo(s, W - 2), W) + fg(PURPLE, "│");
+    const blank = () => row("");
+    out.push(fg(PURPLE, "┌─ ") + bold(fg(PURPLE, "🔁 FORGE · FEEDBACK (iterar app pronto)")) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - 42)) + "┐"));
+    out.push(row(stepNames.map((n, i) => (i === stepOf[st.phase] ? bold(fg(CYAN, `● ${n}`)) : i < stepOf[st.phase] ? fg(GREEN, `✓ ${n}`) : dim(`○ ${n}`))).join(dim(" ─ "))));
+    out.push(blank());
+
+    if (st.phase === "app") {
+      out.push(row(bold("Qual app quer melhorar?")));
+      out.push(blank());
+      apps.forEach((a, i) => {
+        const sel = i === st.appIdx;
+        const busy = ACTIVE_ST.includes(a.status);
+        const tag = busy ? fg(YELLOW, `  ⚠ run ativo (${a.status})`) : a.url ? fg(GREEN, "  🌐 no ar") : "";
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${sel ? bold(a.id) : a.id}${tag}`));
+      });
+      out.push(blank());
+      out.push(row(dim("  o feedback aplica ITERATE → gate visual → ship-check → redeploy")));
+    } else if (st.phase === "text") {
+      out.push(row(bold(`O que melhorar em ${apps[st.appIdx].id}?`)));
+      out.push(blank());
+      const words = st.text.split(" ");
+      let line = "  ";
+      const lines = [];
+      for (const w of words) {
+        if (visibleLen(line + w) > W - 6) { lines.push(line); line = "  "; }
+        line += w + " ";
+      }
+      lines.push(line + "▌");
+      for (const l of lines.slice(-8)) out.push(row(fg(CYAN, l)));
+      out.push(blank());
+      out.push(row(dim(`  ${st.text.length}/800 · ex.: melhorar design dos personagens, facilitar criar/compartilhar cartas`)));
+    } else if (st.phase === "team") {
+      out.push(row(bold("Quem toca esta iteração?")));
+      out.push(blank());
+      teams.forEach(([id, t], i) => {
+        const sel = i === st.teamIdx;
+        out.push(row(`${sel ? bold(fg(CYAN, "▸ ")) : "  "}${t.emoji || "·"} ${sel ? bold(id) : id}  ${dim(t.label || "")}`));
+        if (sel) out.push(row(dim(`      ${Object.entries(t.dispatch || {}).map(([k, v]) => `${k}→${v}`).join("  ")}`)));
+      });
+    } else {
+      const a = apps[st.appIdx];
+      const [teamId, team] = teams[st.teamIdx];
+      out.push(row(bold("Iteração pronta:")));
+      out.push(blank());
+      out.push(row(`  app       ${fg(CYAN, a.id)}${a.url ? dim("  " + a.url) : ""}`));
+      out.push(row(`  feedback  ${fg(CYAN, truncTo(st.text, W - 16))}`));
+      out.push(row(`  time      ${team.emoji || "·"} ${fg(CYAN, teamId)} ${dim(team.label || "")}`));
+      out.push(row(`  dry-run   ${st.dry ? fg(YELLOW, "SIM (não gasta limite)") : dim("não")}   ${dim("← tecla [d] alterna")}`));
+      out.push(blank());
+      out.push(row(bold(fg(GREEN, "  Enter = iterar ▶"))));
+    }
+
+    out.push(blank());
+    if (st.err) out.push(row(fg(RED, st.err)));
+    const hints = st.phase === "text" ? "Enter continua · ← volta · Esc sai" : st.phase === "confirm" ? "Enter inicia · d dry-run · ← volta · Esc sai" : "↑↓ escolhe · Enter continua · ← volta · Esc sai";
+    out.push(fg(PURPLE, "└─ ") + dim(hints) + fg(PURPLE, " " + "─".repeat(Math.max(0, W - visibleLen(hints) - 5)) + "┘"));
+
+    let frame = `${ESC}H`;
+    for (const line of out) frame += line + `${ESC}K\n`;
+    frame += `${ESC}J`;
+    process.stdout.write(frame);
+  }
+
+  const payload = await new Promise((resolve) => {
+    const bootAt = Date.now();
+    const onKey = (str, key) => {
+      if (Date.now() - bootAt < 350) return;
+      st.err = "";
+      if ((key.ctrl && key.name === "c") || key.name === "escape") return finish(null);
+
+      if (st.phase === "app") {
+        const n = apps.length;
+        if (key.name === "up") st.appIdx = (st.appIdx + n - 1) % n;
+        else if (key.name === "down") st.appIdx = (st.appIdx + 1) % n;
+        else if (key.name === "return") {
+          const a = apps[st.appIdx];
+          if (ACTIVE_ST.includes(a.status)) st.err = `${a.id} tem run ativo (${a.status}) — decida/pare esse run antes de iterar`;
+          else st.phase = "text";
+        }
+      } else if (st.phase === "text") {
+        if (key.name === "return") {
+          if (st.text.trim().length >= 8) st.phase = "team";
+          else st.err = "descreva o que melhorar (mínimo 8 caracteres)";
+        } else if (key.name === "backspace") st.text = st.text.slice(0, -1);
+        else if (key.name === "left" && !st.text) st.phase = "app";
+        else if (str && !key.ctrl && str >= " " && st.text.length < 800) st.text += str;
+      } else if (st.phase === "team") {
+        const n = teams.length;
+        if (key.name === "up") st.teamIdx = (st.teamIdx + n - 1) % n;
+        else if (key.name === "down") st.teamIdx = (st.teamIdx + 1) % n;
+        else if (key.name === "return") st.phase = "confirm";
+        else if (key.name === "left") st.phase = "text";
+      } else {
+        if (key.name === "return")
+          return finish({ appId: apps[st.appIdx].id, feedbackText: st.text.trim(), team: teams[st.teamIdx][0], dryRun: st.dry });
+        if (key.name === "left") st.phase = "team";
+        if (str === "d") st.dry = !st.dry;
+      }
+      render();
+    };
+    const finish = (v) => {
+      process.stdin.removeListener("keypress", onKey);
+      resolve(v);
+    };
+    process.stdin.on("keypress", onKey);
+    render();
+  });
+
+  restore();
+  if (!payload) {
+    console.log(dim("feedback cancelado"));
+    process.exit(0);
+  }
+  const r = await api("/api/pipeline/feedback", payload);
+  console.log(fg(GREEN, `🔁 iteração iniciada: ${r.pipeline.appId} (fb${r.pipeline.iterationNum}) · team ${r.pipeline.team}`));
+  await attachTUI(r.pipeline.appId);
+}
+
 // ---------- profile init wizard (forge profile init — autora .forge/profile.md) ----------
 async function profileWizard() {
   const profilePath = path.join(ROOT, ".forge", "profile.md");
@@ -1407,8 +1560,10 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
             vai inteira pro prompt de todos os jobs; mais contexto = app melhor)
   ${bold("forge new --blueprint gameads")} "<campanha>" [--slug X]   scaffold de projeto por blueprint
   ${bold("forge onboard")} <slug>       wizard INTAKE + DISCOVERY → brief + gate brief-review
+  ${bold("forge feedback")}   TUI de iteração (escolhe app → feedback → time) · sem args
   ${bold("forge feedback")} <app> "<feedback geral>" [--team X] [--dry-run]
             loop de melhoria: aplica seu feedback no app pronto e redeploya
+  ${bold("forge remove")} <app> [--force]   apaga o app: repo, estado do run, propostas e workbench
   ${bold("forge attach")} [app]   TUI ao vivo (N pipelines: sem arg lista; com arg acompanha uma)
   ${bold("forge status")}    snapshot rápido de TODAS as pipelines
   ${bold("forge decide")} <gate> <go|kill|retry> [feedback…] [--app X]
@@ -1434,16 +1589,24 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     }
     // ideia grande/estruturada: forge new --idea-file ideia.md (markdown livre, multi-linha)
     let idea = rest.join(" ").trim();
+    let appId = flags.appId;
     if (flags.ideaFile) {
-      idea = fs.readFileSync(path.resolve(flags.ideaFile), "utf8").trim();
+      const f = path.resolve(flags.ideaFile);
+      idea = fs.readFileSync(f, "utf8").trim();
       if (!idea) throw new Error(`arquivo de ideia vazio: ${flags.ideaFile}`);
+      // nome do APP vem do NOME DO ARQUIVO, não do conteúdo: um doc que começa falando de outro
+      // produto gerava slug errado ("O ANIMA//DECK ficou…" → o-anima-deck num doc do DOKI//CALL)
+      if (!appId) {
+        appId = slugify(path.basename(f).replace(/\.[^.]+$/, ""));
+        console.log(dim(`· app-id derivado do arquivo: ${appId}   (use --app-id para outro nome)`));
+      }
     }
     if (!idea) return wizard();
     await ensureServer();
     const r = await api("/api/pipeline/start", {
       idea,
       team: flags.team,
-      appId: flags.appId,
+      appId,
       capability: flags.capability,
       subdomain: flags.subdomain,
       target: flags.target,
@@ -1457,7 +1620,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
   if (cmd === "feedback") {
     const [appId, ...fb] = rest;
     const feedbackText = fb.join(" ").trim();
-    if (!appId || !feedbackText) throw new Error('uso: forge feedback <app> "<feedback geral>" [--team X] [--dry-run]');
+    if (!appId || !feedbackText) return feedbackWizard(); // sem args = TUI (app → feedback → time)
     await ensureServer();
     const r = await api("/api/pipeline/feedback", {
       appId,
@@ -1535,6 +1698,15 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     await ensureServer();
     const r = await api("/api/pipeline/resume", { appId: rest[0] || flags.app });
     printStatus(r.pipeline);
+    return;
+  }
+
+  if (cmd === "remove" || cmd === "rm") {
+    const appId = rest[0];
+    if (!appId) throw new Error("uso: forge remove <app> [--force]   (apaga app, repo, estado, propostas e workbench)");
+    await ensureServer();
+    const r = await api("/api/pipeline/remove", { appId, force: !!flags.force });
+    console.log(fg(GREEN, `🗑 ${appId} removido`) + (r.removed?.length ? dim(`  — ${r.removed.join(" · ")}`) : dim("  (nada em disco)")));
     return;
   }
 

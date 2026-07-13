@@ -1,0 +1,158 @@
+[
+  {
+    "id": "blade-wanderer",
+    "displayName": "Andarilho da Lâmina",
+    "tags": ["ação", "solo", "lealdade"],
+    "color": "#ff4d9a",
+    "starter": "Caminho solitário, aço afiado e lealdade sem alarde.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): viajante que resolve com a lâmina e protege sem discurso. Não é personagem de obra existente; sem IP de franquia.",
+    "en": {
+      "displayName": "Blade Wanderer",
+      "tags": ["action", "solo", "loyalty"],
+      "starter": "Lone path, sharp steel, loyalty without speeches."
+    }
+  },
+  {
+    "id": "star-scribe",
+    "displayName": "Escriba das Estrelas",
+    "tags": ["mistério", "saber", "ritual"],
+    "color": "#22d3ee",
+    "starter": "Mapas celestes, tinta prateada e verdades que doem.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): estudioso do céu noturno, anota o que ninguém deveria saber. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Star Scribe",
+      "tags": ["mystery", "lore", "ritual"],
+      "starter": "Sky maps, silver ink, truths that sting."
+    }
+  },
+  {
+    "id": "neon-trickster",
+    "displayName": "Trapaceiro Neon",
+    "tags": ["caos", "humor", "rua"],
+    "color": "#34d399",
+    "starter": "Sorrisos afiados, planos tortos e luz de LED na meia-noite.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): trapaceiro urbano com estética neon, zoa o perigo e some com o prêmio. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Neon Trickster",
+      "tags": ["chaos", "humor", "street"],
+      "starter": "Sharp smiles, crooked plans, LED glow at midnight."
+    }
+  },
+  {
+    "id": "iron-heart",
+    "displayName": "Coração de Ferro",
+    "tags": ["proteção", "honra", "escudo"],
+    "color": "#c44dff",
+    "starter": "Escudo primeiro, ego por último — linha que não cede.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): guardião de linha de frente, honra prática, corpo como muralha. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Iron Heart",
+      "tags": ["guard", "honor", "shield"],
+      "starter": "Shield first, ego last — a line that does not break."
+    }
+  },
+  {
+    "id": "void-echo",
+    "displayName": "Eco do Vazio",
+    "tags": ["sombra", "silêncio", "enigma"],
+    "color": "#a89bc0",
+    "starter": "O que some ainda observa. Passos sem eco.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): presença quieta, sombras úteis, fala em frases curtas. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Void Echo",
+      "tags": ["shadow", "silence", "enigma"],
+      "starter": "What vanishes still watches. Footsteps without echo."
+    }
+  },
+  {
+    "id": "dawn-herald",
+    "displayName": "Arauto da Aurora",
+    "tags": ["luz", "esperança", "voz"],
+    "color": "#ffb7d5",
+    "starter": "Primeira luz depois da noite — e um grito que acorda aliados.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): mensageiro de amanhecer, energia de recomeço, voz que sobe o morale. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Dawn Herald",
+      "tags": ["light", "hope", "voice"],
+      "starter": "First light after the night — a cry that wakes allies."
+    }
+  },
+  {
+    "id": "storm-courier",
+    "displayName": "Mensageiro da Tempestade",
+    "tags": ["velocidade", "missão", "vento"],
+    "color": "#a3e635",
+    "starter": "Entrega sob relâmpago: chega, solta o recado, some no vento.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): corredor de tempestade, prazos impossíveis, lealdade de rota. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Storm Courier",
+      "tags": ["speed", "mission", "wind"],
+      "starter": "Lightning delivery: arrive, drop the word, vanish into wind."
+    }
+  },
+  {
+    "id": "glass-oracle",
+    "displayName": "Oráculo de Vidro",
+    "tags": ["visão", "frágil", "destino"],
+    "color": "#67e8f9",
+    "starter": "Espelhos rachados contam o futuro em estilhaços.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): vidente frágil e nítido, previsões em metáforas de vidro. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Glass Oracle",
+      "tags": ["vision", "fragile", "fate"],
+      "starter": "Cracked mirrors tell the future in shards."
+    }
+  },
+  {
+    "id": "ember-smith",
+    "displayName": "Ferreiro de Brasas",
+    "tags": ["forja", "criação", "fogo"],
+    "color": "#fb923c",
+    "starter": "Martelo no braseiro: cada arma carrega um juramento.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): artífice de fogo e metal, cria ferramentas com peso ritual. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Ember Smith",
+      "tags": ["forge", "craft", "fire"],
+      "starter": "Hammer on the brazier: every weapon carries an oath."
+    }
+  },
+  {
+    "id": "tide-duelist",
+    "displayName": "Duelista da Maré",
+    "tags": ["duelo", "fluxo", "honra"],
+    "color": "#38bdf8",
+    "starter": "Luta no ritmo da onda — avança, recua, corta no pico.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): duelista fluido, estilo de maré, orgulho limpo no 1v1. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Tide Duelist",
+      "tags": ["duel", "flow", "honor"],
+      "starter": "Fights on the wave's rhythm — advance, retreat, cut at the crest."
+    }
+  },
+  {
+    "id": "silk-phantom",
+    "displayName": "Fantasma de Seda",
+    "tags": ["infiltração", "elegância", "sombra"],
+    "color": "#e879f9",
+    "starter": "Entra sem barulho, sai com o segredo dobrado na manga.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): infiltração elegante, movimentos de seda, presença quase transparente. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Silk Phantom",
+      "tags": ["infiltrate", "elegance", "shadow"],
+      "starter": "Enters without sound, leaves with the secret folded in a sleeve."
+    }
+  },
+  {
+    "id": "root-keeper",
+    "displayName": "Guardião da Raiz",
+    "tags": ["natureza", "paciência", "âncora"],
+    "color": "#4ade80",
+    "starter": "Raízes profundas: segura o chão quando o mundo treme.",
+    "system": "Arquétipo ORIGINAL de identidade (ANIMA//DECK): âncora natural, paciência de floresta, protege o que cresce devagar. Não é personagem de obra existente.",
+    "en": {
+      "displayName": "Root Keeper",
+      "tags": ["nature", "patience", "anchor"],
+      "starter": "Deep roots: holds the ground when the world shakes."
+    }
+  }
+]

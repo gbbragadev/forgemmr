@@ -87,6 +87,9 @@ export function claimFree(paths, appId) {
 }
 
 // blocos por app: N pipelines concorrentes têm cada uma sua seção no HANDOFF.md
+/** escapa um valor para uso literal dentro de RegExp */
+const reEsc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const BEGIN = (appId) => `<!-- forge:begin:${appId} -->`;
 const END = (appId) => `<!-- forge:end:${appId} -->`;
 const LEGACY_BLOCK = /<!-- forge:begin -->[\s\S]*?<!-- forge:end -->\n?/;
@@ -117,7 +120,7 @@ export function handoffUpdate(paths, pipeline, extra = "") {
     const b = BEGIN(pipeline.appId);
     const e = END(pipeline.appId);
     if (md.includes(b) && md.includes(e)) {
-      md = md.replace(new RegExp(`${b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), block);
+      md = md.replace(new RegExp(`${reEsc(b)}[\\s\\S]*?${reEsc(e)}`), block);
     } else {
       md = md.trimEnd() + "\n\n" + block + "\n";
     }
@@ -125,4 +128,23 @@ export function handoffUpdate(paths, pipeline, extra = "") {
   } catch {
     /* best-effort */
   }
+}
+
+/** Apaga do workbench todo rastro de um app (usado por `forge remove`). */
+export function purgeApp(paths, appId) {
+  const id = reEsc(appId);
+  try {
+    const p = section(paths, "HANDOFF.md");
+    write(p, read(p).replace(new RegExp(`${reEsc(BEGIN(appId))}[\\s\\S]*?${reEsc(END(appId))}\\n?`, "g"), ""));
+  } catch {
+    /* best-effort */
+  }
+  try {
+    const p = section(paths, "QUEUE.md");
+    const keep = (l) => !new RegExp(`^- \\[[ x]\\] \\*\\*[^*]+\\*\\* ${id}\\b`).test(l);
+    write(p, read(p).split("\n").filter(keep).join("\n"));
+  } catch {
+    /* best-effort */
+  }
+  claimFree(paths, appId); // solta o claim deste app (restaura a linha "livre" se preciso)
 }

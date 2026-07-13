@@ -402,6 +402,72 @@
       "color": "#22d3ee",
       "blurb": "Grok 4.5 · Revisor",
       "generated": true
+    },
+    {
+      "id": "sonnetopus-claude1",
+      "face": "🎨",
+      "name": "Claude Opus",
+      "cli": "claude",
+      "model": "opus",
+      "modelLabel": "Claude Opus",
+      "effort": "xhigh",
+      "roles": [
+        "Estrategista",
+        "Engenheiro",
+        "Revisor"
+      ],
+      "color": "#f59e0b",
+      "blurb": "Claude Opus · Estrategista/Engenheiro/Revisor",
+      "generated": true
+    },
+    {
+      "id": "sonnetopus-claude2",
+      "face": "🎨",
+      "name": "Claude Sonnet",
+      "cli": "claude",
+      "model": "sonnet",
+      "modelLabel": "Claude Sonnet",
+      "effort": "high",
+      "roles": [
+        "Designer",
+        "QA"
+      ],
+      "color": "#f59e0b",
+      "blurb": "Claude Sonnet · Designer/QA",
+      "generated": true
+    },
+    {
+      "id": "opussonnet-claude1",
+      "face": "🎨",
+      "name": "Claude Sonnet",
+      "cli": "claude",
+      "model": "sonnet",
+      "modelLabel": "Claude Sonnet",
+      "effort": "high",
+      "roles": [
+        "Estrategista",
+        "Engenheiro",
+        "Designer"
+      ],
+      "color": "#f59e0b",
+      "blurb": "Claude Sonnet · Estrategista/Engenheiro/Designer",
+      "generated": true
+    },
+    {
+      "id": "opussonnet-claude2",
+      "face": "🎨",
+      "name": "Claude Opus",
+      "cli": "claude",
+      "model": "opus",
+      "modelLabel": "Claude Opus",
+      "effort": "xhigh",
+      "roles": [
+        "QA",
+        "Revisor"
+      ],
+      "color": "#f59e0b",
+      "blurb": "Claude Opus · QA/Revisor",
+      "generated": true
     }
   ],
   "teams": {
@@ -539,6 +605,56 @@
           "L1/B4"
         ],
         "player": "ggg-grok4"
+      }
+    },
+    "sonnetopus": {
+      "label": "SonnetOpus",
+      "emoji": "🎨",
+      "dispatch": {
+        "L0/P0": "sonnetopus-claude1",
+        "FOUNDATION": "sonnetopus-claude1",
+        "L0/P1": "sonnetopus-claude1",
+        "L1/B2": "sonnetopus-claude1",
+        "L1/B1": "sonnetopus-claude1",
+        "L1/B4": "sonnetopus-claude1",
+        "L1/B3": "sonnetopus-claude2",
+        "ITERATE": "sonnetopus-claude2",
+        "DS-GEN": "sonnetopus-claude2",
+        "L1/B5": "sonnetopus-claude2",
+        "default": "sonnetopus-claude1"
+      },
+      "fallbacks": {},
+      "review": {
+        "after": [
+          "L1/B1",
+          "L1/B4"
+        ],
+        "player": "sonnetopus-claude1"
+      }
+    },
+    "opussonnet": {
+      "label": "opussonnet",
+      "emoji": "🎨",
+      "dispatch": {
+        "L0/P0": "opussonnet-claude1",
+        "FOUNDATION": "opussonnet-claude1",
+        "L0/P1": "opussonnet-claude1",
+        "L1/B2": "opussonnet-claude1",
+        "L1/B1": "opussonnet-claude1",
+        "L1/B4": "opussonnet-claude1",
+        "L1/B3": "opussonnet-claude1",
+        "ITERATE": "opussonnet-claude1",
+        "DS-GEN": "opussonnet-claude1",
+        "L1/B5": "opussonnet-claude2",
+        "default": "opussonnet-claude1"
+      },
+      "fallbacks": {},
+      "review": {
+        "after": [
+          "L1/B1",
+          "L1/B4"
+        ],
+        "player": "opussonnet-claude2"
       }
     }
   },

@@ -1162,10 +1162,14 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
 
     // repo-por-app: cria/valida o repo do app e roda a branch do run DENTRO dele (fábrica intocada)
     ensureAppRepo(appId);
+    // parte sempre do targetBranch: um run morto antes pode ter deixado o repo numa branch de pipeline
+    try {
+      gitApp(appId, ["checkout", profile.git.targetBranch]);
+    } catch {}
     const baseRef = gitApp(appId, ["rev-parse", "HEAD"]);
-    const branch = `pipeline/${appId}`;
-    const existing = gitApp(appId, ["branch", "--list", branch]);
-    if (existing) throw new Error(`branch ${branch} já existe em apps/${appId} — apague ou use outro --app-id`);
+    // branch livre: re-run do mesmo app (após kill) vira pipeline/<app>-2, -3… em vez de travar
+    let branch = `pipeline/${appId}`;
+    for (let n = 2; gitApp(appId, ["branch", "--list", branch]); n++) branch = `pipeline/${appId}-${n}`;
     gitApp(appId, ["checkout", "-b", branch]);
 
     // DS gerado por projeto: pula DS-GEN se este app já tem design system (só generic)
@@ -1378,6 +1382,13 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
   }
 
   function stop() {
+    if (pipeline && pipeline.status === "blocked") {
+      const g = (pipeline.gates || []).find((x) => !x.decision);
+      return {
+        ok: false,
+        error: `${pipeline.appId} já está parado (blocked${g ? ` · gate ${g.id}` : ""}) — decida: forge decide ${g ? g.id : "<gate>"} <retry|kill> --app ${pipeline.appId}`,
+      };
+    }
     if (!pipeline || !["running", "paused_gate"].includes(pipeline.status)) {
       return { ok: false, error: "nenhuma pipeline rodando" };
     }
@@ -1532,6 +1543,42 @@ export function createEngineManager({ root, emitLog, emitPipeline }) {
     },
     snapshotFor(appId) {
       return engines.has(appId) ? engines.get(appId).snapshot() : { status: "idle" };
+    },
+    /**
+     * Apaga TUDO de um app: repo (apps/<app>, com .git), estado do run, propostas do DS-GEN
+     * e rastros no workbench. Run ativo só sai com force (mata o executor antes).
+     */
+    removeApp(appId, opts = {}) {
+      // regex fecha path traversal: appId vira caminho de fs (rm -rf) logo abaixo
+      if (!/^[a-z0-9-]+$/.test(String(appId || ""))) throw new Error(`appId inválido: ${appId}`);
+      const e = engines.get(appId);
+      if (e) {
+        const st = e.snapshot().status;
+        if (ACTIVE.includes(st)) {
+          if (!opts.force) {
+            throw new Error(`app ${appId} tem run ativo (${st}) — decida/pare antes (forge decide … --app ${appId}) ou use --force`);
+          }
+          try {
+            e.stop(); // mata o executor em andamento
+          } catch {}
+        }
+        engines.delete(appId);
+      }
+      const removed = [];
+      for (const t of [
+        path.join(root, "apps", appId),
+        path.join(root, "maestro", "pipelines", `${appId}.json`),
+        path.join(root, "maestro", "proposals", appId),
+      ]) {
+        if (fs.existsSync(t)) {
+          fs.rmSync(t, { recursive: true, force: true });
+          removed.push(path.relative(root, t));
+        }
+      }
+      workbench.purgeApp({ root }, appId);
+      emitLog(`🗑 removido: ${appId}${removed.length ? " — " + removed.join(" · ") : " (nada em disco)"}`);
+      emitPipeline(snapshotAll());
+      return { ok: true, removed };
     },
   };
 }
