@@ -94,6 +94,40 @@ export function untrustedBlock(label, content) {
   ].join("\n");
 }
 
+/** Retorna seções ausentes ou com menos de minChars de conteúdo entre headings H2. */
+export function thinMarkdownSections(markdown, expected, minChars = 80) {
+  const sections = String(markdown)
+    .split(/^##\s+/m)
+    .slice(1)
+    .map((section) => {
+      const newline = section.indexOf("\n");
+      return {
+        heading: (newline < 0 ? section : section.slice(0, newline)).trim(),
+        body: (newline < 0 ? "" : section.slice(newline + 1)).trim(),
+      };
+    });
+  return expected
+    .filter(([, headingPattern]) => {
+      const section = sections.find((candidate) => headingPattern.test(candidate.heading));
+      return !section || section.body.replace(/\s+/g, " ").length < minChars;
+    })
+    .map(([label]) => label);
+}
+
+/** Proposta visual precisa ser substancial e conter CSS inline ou em bloco. */
+export function isSubstantialHtml(html) {
+  const source = String(html);
+  return Buffer.byteLength(source, "utf8") >= 500 && /<style\b|style\s*=/i.test(source);
+}
+
+/** Artefato textual precisa conter corpo útil além de headings/whitespace. */
+export function hasSubstantialText(text, minChars = 80) {
+  return String(text)
+    .replace(/^#{1,6}\s+.*$/gm, "")
+    .replace(/\s+/g, " ")
+    .trim().length >= minChars;
+}
+
 export const JOBS_BY_CAPABILITY = {
   static: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
   quiz: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
@@ -701,8 +735,12 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${spec.verify.path}` };
       if (spec.verify.sections && spec.verify.sections.length) {
         const txt = fs.readFileSync(f, "utf8");
-        const missing = spec.verify.sections.filter((s) => !new RegExp(`##\\s*${s}`, "i").test(txt));
-        if (missing.length) return { pass: false, detail: `seções faltando: ${missing.join(", ")}` };
+        const expected = spec.verify.sections.map((section) => [
+          section,
+          new RegExp(`^${String(section).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
+        ]);
+        const thin = thinMarkdownSections(txt, expected);
+        if (thin.length) return { pass: false, detail: `seções ausentes ou vazias: ${thin.join(", ")}` };
       }
       return { pass: true, detail: `${spec.verify.path} ok` };
     }
@@ -719,26 +757,33 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     }
     if (job === "L0/P1") {
       const f = path.join(root, runDocRel(p.appId, "content-hooks"));
-      return fs.existsSync(f)
-        ? { pass: true, detail: "hooks ok" }
-        : { pass: false, detail: `faltou ${path.relative(root, f)}` };
+      if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${path.relative(root, f)}` };
+      return hasSubstantialText(fs.readFileSync(f, "utf8"))
+        ? { pass: true, detail: "hooks com conteúdo útil" }
+        : { pass: false, detail: "content-hooks.md sem conteúdo útil" };
     }
     if (job === "FOUNDATION") {
       const f = path.join(root, runDocRel(p.appId, "system-design"));
       if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${path.relative(root, f)}` };
-      const txt = fs.readFileSync(f, "utf8");
-      const hasSections = /##\s*(Arquitetura|Architecture)/i.test(txt) && /##\s*(Decis|Decision)/i.test(txt);
-      return hasSections
-        ? { pass: true, detail: "system design com seções ok" }
-        : { pass: false, detail: "system design sem as seções esperadas (Arquitetura/Decisões)" };
+      const thin = thinMarkdownSections(fs.readFileSync(f, "utf8"), [
+        ["Arquitetura", /^(Arquitetura|Architecture)\b/i],
+        ["Decisões", /^(Decisões|Decisions)\b/i],
+      ]);
+      return thin.length
+        ? { pass: false, detail: `system design com seções ausentes ou vazias: ${thin.join(", ")}` }
+        : { pass: true, detail: "system design com seções substanciais" };
     }
     if (job === "DS-GEN") {
       const propDir = path.join(root, "maestro", "proposals", p.appId);
       const md = path.join(root, runDocRel(p.appId, "design-system"));
-      const missing = [1, 2, 3].filter((n) => !fs.existsSync(path.join(propDir, `proposal-${n}.html`)));
-      if (missing.length) return { pass: false, detail: `faltam propostas: ${missing.map((n) => `proposal-${n}.html`).join(", ")}` };
+      const invalid = [1, 2, 3].filter((n) => {
+        const proposal = path.join(propDir, `proposal-${n}.html`);
+        return !fs.existsSync(proposal) || !isSubstantialHtml(fs.readFileSync(proposal, "utf8"));
+      });
+      if (invalid.length) return { pass: false, detail: `propostas ausentes ou ocas: ${invalid.map((n) => `proposal-${n}.html`).join(", ")}` };
       if (!fs.existsSync(md)) return { pass: false, detail: `faltou ${path.relative(root, md)}` };
-      return { pass: true, detail: "3 propostas de DS + design-system.md ok" };
+      if (!hasSubstantialText(fs.readFileSync(md, "utf8"))) return { pass: false, detail: "design-system.md sem conteúdo útil" };
+      return { pass: true, detail: "3 propostas substanciais + design-system.md útil" };
     }
     if (p.dryRun) return { pass: true, detail: "dry-run: verify de build pulado" };
     // appId nasce do slugify(), mas revalida aqui: é interpolado em shell (npm.cmd exige shell no Windows)
