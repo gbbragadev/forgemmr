@@ -1,18 +1,28 @@
 # HANDOFF
 
 ## Loop ativo
-**L0** — DOKI//CALL (`doki-call`) — P0 GO + **FOUNDATION done**; próximo = **L0/P1** content hooks + fake-door  
+**L1** — DOKI//CALL (`doki-call`) — **B1 Scaffold DONE** · próximo = B3 (prompt GLM Neon Y2K) e/ou B4 wire API  
 *(slug legado `o-anima-deck` superado — canônico = `doki-call`)*
 
 ## Last agent
-GLM 5.2 (ggg-glm2) | 2026-07-13 · DS-GEN 3 propostas visuais doki-call
+Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B1 scaffold doki-call
 
-## Last iteration — DS-GEN doki-call (2026-07-13)
-- **Job:** DS-GEN (gate `ds-pick`) · 3 propostas visuais DISTINTAS p/ dono escolher
-- **Artefatos:** `maestro/proposals/doki-call/proposal-{1,2,3}.html` (self-contained, **zero CDN/fonte remota**) + `apps/doki-call/docs/design-system.md` (tokens `--af-*` prontos p/ B3)
-- **3 direções:** (1) **Signal Soft** minimal/clean — grafite+rosa único, confiança/impulso; (2) **Neon Y2K Late Night** vibrante — ARCANA forte, roxo/neon+scanlines+glow+condensed; (3) **Velvet Editorial** — vinho+champagne, serifa (Georgia), premium/privativo
-- **Pendente do dono:** escolher 1/2/3. Bilíngue PT/EN, selo @otaku_sincero69, disclaimer não-afiliação, personagens 21+ originais, aquisição SFW em **todas**
-- **Sem código de app** neste job · **Sem git/build** (orquestrador cuida)
+## Last iteration — L1/B1 doki-call (2026-07-13)
+- **Job:** L1/B1 scaffold app (`@forge/doki-call`)
+- **Entrega:** funil create→free_text(3)→voice_note→paywall R$4,90→fake-door+lead; 3 personas originais 21+; i18n PT+EN; age gate After Dark; `RealtimeVoiceProvider` stub; API health/telemetry/interest/voice/session (402 sem entitlement); tokens Neon Y2K (`--af-*`)
+- **VERIFY:** `npm run build -w @forge/doki-call` **EXIT 0**
+- **Sem git** (orquestrador) · **Sem Realtime/checkout real** (B4)
+- **Próximo:** B3 prompt GLM denso OU B4 chat AI + TTS + entitlement
+
+## Iteration anterior — L0/P1 doki-call (2026-07-13)
+- **Job:** L0/P1 content hooks + brief fake-door
+- **Artefato:** `apps/doki-call/docs/content-hooks.md`
+- **Entrega:** 15 hooks PT-BR+EN (SFW); copy paywall R$ 4,90; brief fake-door (mock criação + áudio pré + CTA → “em breve” + lead); telemetria `visit→…→audio_play→buy_click`; métrica norte **áudio→clique Atender**
+- **Sem código de app** · **Sem Realtime/checkout** · **Sem git** (orquestrador)
+
+## Iteration anterior — DS-GEN doki-call (2026-07-13)
+- **Job:** DS-GEN (gate `ds-pick`) · 3 propostas visuais · `maestro/proposals/doki-call/proposal-{1,2,3}.html` + `apps/doki-call/docs/design-system.md`
+- **Pendente do dono:** escolher direção visual 1/2/3
 
 ## Iteration anterior — FOUNDATION doki-call (2026-07-13)
 - **Job:** FOUNDATION (contrato de arquitetura)
@@ -49,7 +59,7 @@ GLM 5.2 (ggg-glm2) | 2026-07-13 · DS-GEN 3 propostas visuais doki-call
 | **waifu-chat** | MVP + smoke OpenRouter + UI B3 GLM |
 | **anime-quiz** | P0→B5 + **live** https://gbbragadev.github.io/anime-forge/ |
 | **anima-deck** | ship/iterate em curso (engagement/share-first) |
-| **doki-call** | L0/P0 GO + **FOUNDATION** · próximo **L0/P1** hooks |
+| **doki-call** | L0/P0–P1 + FOUNDATION + **B1 scaffold** · fake-door no app · próximo B3/B4 |
 
 ## Done (harness)
 - Loops L0/L1/L2 multi-sub (Claude/Codex/Grok/Gemini + GLM B3)
@@ -58,10 +68,11 @@ GLM 5.2 (ggg-glm2) | 2026-07-13 · DS-GEN 3 propostas visuais doki-call
 - OpenRouter: `OPEN_ROUTER_API_KEY` env sistema (não pedir no chat)
 
 ## Next
-1. **L0/P1** DOKI//CALL (`doki-call`): 15 hooks PT-BR+EN + brief fake-door (CTA R$ 4,90, áudio demo, captura interesse) — **sem** Realtime ainda → `apps/doki-call/docs/content-hooks.md`
-2. **Humano P4** anime-quiz: hooks + bio → URL Pages (5–7d) — `docs/content-hooks-anime-quiz.md`
-3. **Token Cloudflare**: Pages:Edit + DNS:Edit → deploy automático `<app>.gbbragadev.com`
-4. Pós-P1 com sinal de clique: L1/B1 (scaffold conforme `apps/doki-call/docs/system-design.md`) — **não** antes
+1. **L1/B3** doki-call: prompt GLM denso (Prop. 2 Neon Y2K já escolhida) — polish UI sem implementar B3 aqui
+2. **L1/B4** wire chat AI real + TTS + entitlement/checkout (Realtime só pós-pago)
+3. **Content:** postar hooks batch 1,2,3,5,8 + medir `audio_play→buy_click` no app scaffold
+4. **Humano P4** anime-quiz / anima-deck measure
+5. **Token CF** Pages:Edit + DNS:Edit; Vercel quando ship server doki-call
 
 ## Blockers
 - P4 measure = humano
@@ -71,6 +82,7 @@ GLM 5.2 (ggg-glm2) | 2026-07-13 · DS-GEN 3 propostas visuais doki-call
 ## Links
 - Scorecard doki-call: `apps/doki-call/docs/scorecard.md`
 - System design doki-call: `apps/doki-call/docs/system-design.md`
+- Content hooks doki-call: `apps/doki-call/docs/content-hooks.md`
 - Handoff sessão: `docs/HANDOFF-SESSAO.md`
 - Quiz: https://gbbragadev.github.io/anime-forge/
 - Repo: https://github.com/gbbragadev/anime-forge
@@ -755,10 +767,8 @@ no CTA de R\$ 4,90.
 Este conceito deve ser registrado como a primeira aposta
 monetização-first do portfólio, enquanto o ANIMA//DECK permanece como
 aposta engagement/share-first.
-- **Team:** ggg · **Status:** blocked
-- **Job atual:** L0/P1 (4/10)
-- **Branch:** pipeline/doki-call · checkpoints: 3
-- **⏸ GATE pendente:** `blocked-L0-P1` — L0/P1 bloqueado: todos os players do preset esgotados. retry (zera tentativas) ou kill? → `forge decide blocked-L0-P1 go|kill`
-- BLOCKED: todos os players do preset esgotados
-_Atualizado 2026-07-13T01:38:47.489Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
+- **Team:** ggg · **Status:** running
+- **Job atual:** L1/B1 (5/10)
+- **Branch:** pipeline/doki-call · checkpoints: 4
+_Atualizado 2026-07-13T01:52:57.757Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->

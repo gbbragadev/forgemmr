@@ -173,7 +173,9 @@ const PROFILE_DEFAULTS = {
     model: "gpt-5.6-terra",
     effort: "high",
     maxTurns: 12,
-    timeoutMs: 5 * 60 * 1000,
+    timeoutMs: 8 * 60 * 1000, // -p headless só imprime no fim: timeout curto matava o improver trabalhando
+    // se o primário falhar (rate-limit/limite da conta/erro), tenta este antes de usar o prompt original
+    fallback: { cli: "claude", model: "haiku", effort: "max", maxTurns: 12, timeoutMs: 8 * 60 * 1000 },
   },
   limits: {
     maxAttemptsPerPlayer: 3,

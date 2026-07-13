@@ -39,7 +39,17 @@ export const appConfigSchema = z.object({
   niche: z.string().default("anime"),
   locale: z.string().default("pt-BR"),
   capabilities: z
-    .array(z.enum(["chat", "image", "face-swap", "gallery", "quiz", "static"]))
+    .array(
+      z.enum([
+        "chat",
+        "image",
+        "face-swap",
+        "gallery",
+        "quiz",
+        "static",
+        "realtime-voice",
+      ])
+    )
     .min(1),
   ai: aiConfigSchema,
   monetization: monetizationSchema,

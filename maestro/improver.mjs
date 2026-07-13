@@ -12,7 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { buildSpawn, makeRedactor, stripAnsi } from "./adapters.mjs";
+import { buildSpawn, makeRedactor, stripAnsi, detectRateLimit } from "./adapters.mjs";
 import { listAgents, listSkills, defaultAgentDirs, defaultSkillDirs, supportsToolbox } from "./toolbox.mjs";
 
 const OPEN = "<<<PROMPT_ORIGINAL>>>";
@@ -50,11 +50,31 @@ export function buildImproverPrompt({ original, job, player, appId, outFile, age
     original,
     CLOSE,
     "",
-    "SAÍDA (obrigatória): escreva UM arquivo JSON válido em:",
-    outFile,
-    'Formato exato: {"prompt": "<prompt melhorado, completo>", "skills": ["nome"], "agents": ["nome"], "notes": "<1 linha do que mudou>"}',
-    "Não imprima o prompt no stdout — grave o arquivo. Depois responda só 'ok'.",
+    "SAÍDA — FAÇA AS DUAS COISAS, NESTA ORDEM:",
+    `1) GRAVE (ferramenta de escrita de arquivo) um JSON válido, sozinho no arquivo, no caminho EXATO:`,
+    `   ${outFile}`,
+    "2) DEPOIS imprima o MESMO JSON no stdout, entre as marcas abaixo (fallback caso a escrita falhe):",
+    "   <<<FORGE_JSON>>>",
+    "   {...}",
+    "   <<<FIM_FORGE_JSON>>>",
+    "",
+    'Formato exato do JSON: {"prompt": "<prompt melhorado, completo>", "skills": ["nome"], "agents": ["nome"], "notes": "<1 linha do que mudou>"}',
+    "O campo prompt precisa conter o PROMPT INTEIRO (não um resumo, não um diff, não instruções sobre o prompt).",
+    "Escape corretamente quebras de linha (\\n) e aspas. Não use markdown fence.",
   ].join("\n");
+}
+
+/** Extrai o JSON de uma saída suja (marcas <<<FORGE_JSON>>>, fence markdown ou objeto solto). */
+export function extractJson(text) {
+  const s = String(text || "");
+  const marked = s.match(/<<<FORGE_JSON>>>\s*([\s\S]*?)\s*<<<FIM_FORGE_JSON>>>/);
+  if (marked) return marked[1].trim();
+  const fenced = s.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  if (fenced) return fenced[1];
+  const first = s.indexOf("{");
+  const last = s.lastIndexOf("}");
+  if (first >= 0 && last > first) return s.slice(first, last + 1);
+  return null;
 }
 
 /** Valida a saída do improver. Devolve null se inválida (→ fallback pro original). */
@@ -63,7 +83,14 @@ export function parseImproved(raw, original) {
   try {
     obj = typeof raw === "string" ? JSON.parse(raw) : raw;
   } catch {
-    return null;
+    // saída suja (o CLI imprimiu texto em volta do JSON) → tenta extrair
+    const inner = typeof raw === "string" ? extractJson(raw) : null;
+    if (!inner) return null;
+    try {
+      obj = JSON.parse(inner);
+    } catch {
+      return null;
+    }
   }
   if (!obj || typeof obj.prompt !== "string") return null;
   const prompt = obj.prompt.trim();
@@ -96,17 +123,36 @@ export function mergeToolbox(improved, executorSupports) {
  * @returns {Promise<{prompt: string, improved: boolean, skills?: string[], agents?: string[], notes?: string}>}
  */
 export async function improvePrompt({ root, job, appId, runId, player, prompt, cfg, log = () => {} }) {
-  const fallback = { prompt, improved: false, skills: [], agents: [] };
-  if (!cfg || !cfg.enabled) return fallback;
+  const original = { prompt, improved: false, skills: [], agents: [] };
+  if (!cfg || !cfg.enabled) return original;
+
+  const sup = supportsToolbox(player);
+  const attempt = async (c, label) => runImprover({ root, job, appId, runId, player, prompt, cfg: c, log, sup, label });
+
+  const first = await attempt(cfg, "");
+  if (first.improved) return first;
+
+  // fallback (ex.: limite do codex estourou) → segundo modelo antes de desistir do improve
+  if (cfg.fallback && cfg.fallback.cli) {
+    log(`· improver primário falhou (${first.reason}) — tentando fallback ${cfg.fallback.cli}/${cfg.fallback.model || "default"}`);
+    const second = await attempt({ ...cfg.fallback, enabled: true }, "fallback");
+    if (second.improved) return second;
+    log(`· fallback também falhou (${second.reason}) — usando o prompt ORIGINAL`);
+  }
+  return original;
+}
+
+/** Uma tentativa de improve com um CLI/modelo. Nunca lança — devolve {improved, reason}. */
+async function runImprover({ root, job, appId, runId, player, prompt, cfg, log, sup, label }) {
+  const fallback = (reason) => ({ prompt, improved: false, skills: [], agents: [], reason });
 
   const dir = path.join(root, "maestro", "runs", String(runId || "improve"));
-  const stamp = `${job.replace("/", "-")}-${Date.now()}`;
+  const stamp = `${job.replace("/", "-")}-${Date.now()}${label ? "-" + label : ""}`;
   const outFile = path.join(dir, `${stamp}.improved.json`);
   try {
     fs.mkdirSync(dir, { recursive: true });
   } catch {}
 
-  const sup = supportsToolbox(player);
   const meta = buildImproverPrompt({
     original: prompt,
     job,
@@ -127,54 +173,60 @@ export async function improvePrompt({ root, job, appId, runId, player, prompt, c
       effort: cfg.effort,
     });
   } catch (e) {
-    log(`· prompt-improver indisponível (${String(e).slice(0, 80)}) — usando prompt original`);
-    return fallback;
+    return fallback(`CLI indisponível: ${String(e).slice(0, 60)}`);
   }
   // o fake-exec (dry-run/teste) escreve o JSON a partir do meta-prompt, sem gastar quota
   spec.env = { ...spec.env, FORGE_IMPROVE_OUTFILE: outFile };
 
   const t0 = Date.now();
-  log(`✎ prompt-improver (${cfg.cli}${cfg.model ? " · " + cfg.model : ""}${cfg.effort ? " " + String(cfg.effort).toUpperCase() : ""}) → ${job}`);
+  log(`✎ prompt-improver${label ? " [" + label + "]" : ""} (${cfg.cli}${cfg.model ? " · " + cfg.model : ""}${cfg.effort ? " " + String(cfg.effort).toUpperCase() : ""}) → ${job}`);
 
-  const exitCode = await new Promise((resolve) => {
+  const rawPath = path.join(dir, `${stamp}.improve.raw.log`);
+  const { exitCode, out } = await new Promise((resolve) => {
     let proc;
     try {
       proc = spawn(spec.cmd, spec.args, { cwd: root, env: spec.env, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
     } catch (e) {
-      resolve(-1);
+      resolve({ exitCode: -1, out: String(e) });
       return;
     }
     const redact = makeRedactor();
-    let tail = "";
+    let buf = "";
     const onChunk = (b) => {
-      tail = (tail + redact(stripAnsi(String(b)))).slice(-2000);
+      buf = (buf + redact(stripAnsi(String(b)))).slice(-200000); // grande: o JSON de fallback vem aqui
     };
     proc.stdout?.on("data", onChunk);
     proc.stderr?.on("data", onChunk);
-    proc.on("error", () => resolve(-1));
+    proc.on("error", () => resolve({ exitCode: -1, out: buf }));
     const timer = setTimeout(() => {
       try {
         if (process.platform === "win32" && proc.pid) spawn("taskkill", ["/pid", String(proc.pid), "/T", "/F"], { shell: true });
         else proc.kill("SIGTERM");
       } catch {}
-      resolve(-2);
+      resolve({ exitCode: -2, out: buf });
     }, cfg.timeoutMs || 5 * 60 * 1000);
     proc.on("close", (code) => {
       clearTimeout(timer);
-      resolve(code ?? 0);
+      resolve({ exitCode: code ?? 0, out: buf });
     });
   });
 
-  if (exitCode === -2) log("· prompt-improver: timeout — usando prompt original");
+  try {
+    fs.writeFileSync(rawPath, out, "utf8"); // auditoria: dá pra ver o que o improver respondeu
+  } catch {}
 
   let improved = null;
   try {
     if (fs.existsSync(outFile)) improved = parseImproved(fs.readFileSync(outFile, "utf8"), prompt);
   } catch {}
+  // o CLI não gravou o arquivo mas imprimiu o JSON no stdout
+  if (!improved && out) improved = parseImproved(out, prompt);
 
   if (!improved) {
-    log(`· prompt-improver não produziu prompt válido (exit ${exitCode}) — usando o original`);
-    return fallback;
+    const reason =
+      exitCode === -2 ? "timeout" : detectRateLimit(out) ? "rate-limit/limite da conta" : `sem JSON válido (exit ${exitCode})`;
+    log(`· prompt-improver${label ? " [" + label + "]" : ""} falhou: ${reason} · saída em ${path.relative(root, rawPath)}`);
+    return fallback(reason);
   }
 
   const finalPrompt = mergeToolbox(improved, sup);

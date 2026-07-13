@@ -6,6 +6,8 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 |------|-------|------|-----|------------|-------|-------|
 
 | — | — | — | — | — | — | livre |
+_(L1/B1 doki-call liberado 2026-07-13 — Grok 4.5 / ggg-grok1 · scaffold + fake-door)_
+_(L0/P1 doki-call liberado 2026-07-13 — Grok 4.5 / ggg-grok1 · content-hooks.md)_
 _(FOUNDATION doki-call liberado 2026-07-13 — Grok 4.5 / ggg-grok1 · system-design.md)_
 
 ## Protocolo

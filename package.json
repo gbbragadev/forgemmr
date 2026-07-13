@@ -10,9 +10,11 @@
   "scripts": {
     "dev": "npm run dev -w @forge/waifu-chat",
     "dev:quiz": "npm run dev -w @forge/anime-quiz",
+    "dev:doki": "npm run dev -w @forge/doki-call",
     "build": "npm run build -w @forge/waifu-chat",
     "build:quiz": "npm run build -w @forge/anime-quiz",
-    "build:all": "npm run build -w @forge/waifu-chat ; npm run build -w @forge/anime-quiz",
+    "build:doki": "npm run build -w @forge/doki-call",
+    "build:all": "npm run build -w @forge/waifu-chat ; npm run build -w @forge/anime-quiz ; npm run build -w @forge/doki-call",
     "lint": "npm run lint -w @forge/waifu-chat",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "node --test maestro/test/*.test.mjs",
