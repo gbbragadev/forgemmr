@@ -255,13 +255,20 @@ export function buildSpawn(cli, goal, opts) {
     // Codex CLI (OpenAI, subscription/OAuth). Modelo + effort são REAIS aqui:
     // -m escolhe o tier (gpt-5.6-sol/terra/luna); model_reasoning_effort vai via -c.
     // Default do projeto = gpt-5.6-sol · medium (setado no roster.json).
-    // sandbox OFF: o helper do sandbox do Windows (codex-windows-sandbox-setup.exe) não existe nesta
-    // máquina — com --full-auto o codex não conseguia ler NEM escrever arquivo (exit 0 sem fazer nada).
+    // Sandbox: o helper do Windows (codex-windows-sandbox-setup.exe) não existe nesta máquina — com
+    // --full-auto o codex não conseguia ler NEM escrever arquivo (exit 0 sem fazer nada). Default =
+    // sem sandbox, alinhado aos demais executores (grok/claude/glm/gemini já rodam com permissões
+    // bypassadas — é o contrato do autopilot). Com o helper instalado, religue o sandbox por env:
+    //   FORGE_CODEX_SANDBOX=workspace-write  (ou read-only)
+    const codexSandbox = process.env.FORGE_CODEX_SANDBOX;
+    const codexPolicy = /^[a-z-]+$/.test(codexSandbox || "")
+      ? ["--sandbox", codexSandbox, "--ask-for-approval", "never"]
+      : ["--dangerously-bypass-approvals-and-sandbox"];
     return {
       cmd: "codex",
       args: [
         "exec",
-        "--dangerously-bypass-approvals-and-sandbox",
+        ...codexPolicy,
         ...(model && model !== "default" ? ["-m", model] : []),
         ...(safeEffort ? ["-c", `model_reasoning_effort=${safeEffort}`] : []),
         goal.replace(/\r?\n/g, " "),

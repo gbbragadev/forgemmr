@@ -19,6 +19,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
+- [ ] **L1/B2** doki-call — forge autopilot
+- [ ] **ITERATE** anima-deck — forge autopilot
 ## Done
 
 - [x] **L1/B1** doki-call — forge/ggg-grok1 (2026-07-13)

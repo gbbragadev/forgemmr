@@ -32,6 +32,21 @@ test("claude: model é repassado como --model (Fable 5 = claude-fable-5)", () =>
   assert.equal(spec.args[i + 1], "claude-fable-5");
 });
 
+test("codex: sandbox religável por env (FORGE_CODEX_SANDBOX) — default é sem sandbox (helper do Windows ausente)", () => {
+  const semEnv = buildSpawn("codex", "goal", { root: ROOT });
+  assert.ok(semEnv.args.includes("--dangerously-bypass-approvals-and-sandbox"));
+
+  process.env.FORGE_CODEX_SANDBOX = "workspace-write";
+  const comSandbox = buildSpawn("codex", "goal", { root: ROOT });
+  assert.ok(!comSandbox.args.includes("--dangerously-bypass-approvals-and-sandbox"), "com a env, nada de bypass");
+  assert.ok(comSandbox.args.includes("--sandbox") && comSandbox.args.includes("workspace-write"));
+  assert.ok(comSandbox.args.includes("never"), "aprovação never (headless)");
+
+  process.env.FORGE_CODEX_SANDBOX = "modo inválido; rm -rf /"; // injeção não passa pelo regex
+  assert.ok(buildSpawn("codex", "g", { root: ROOT }).args.includes("--dangerously-bypass-approvals-and-sandbox"));
+  delete process.env.FORGE_CODEX_SANDBOX;
+});
+
 test("prompt gigante vai por ARQUIVO (Windows: >32k chars em argv = spawn ENAMETOOLONG)", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-arg-"));
   const huge = "Job: L0/P1\nApp: demo\n" + "conteúdo enorme da ideia. ".repeat(2000); // ~50k chars

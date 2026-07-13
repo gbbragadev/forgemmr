@@ -415,13 +415,11 @@ _Atualizado 2026-07-13T00:16:12.372Z pelo forge (maestro/engine.mjs). Estado com
 
 <!-- forge:begin:anima-deck -->
 ## Forge autopilot — anima-deck
-- **Ideia:** feedback fb1: Loop para melhoria de design, estetica dos personagens, qualidade geral de design. Facilidade na criação do card e do co
-- **Team:** ggg · **Status:** done
-- **Job atual:** — (4/3)
-- **Branch:** pipeline/anima-deck-fb1 · checkpoints: 4
-- **URL:** https://anima-deck.gbbragadev.com
-- DONE. Próximo: P4 measure (humano, 5–7d) — postar hooks de apps/anima-deck/docs/content-hooks.md
-_Atualizado 2026-07-13T01:44:05.573Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/anima-deck.json_
+- **Ideia:** feedback fb1: Revise o app como um todo, leve ele a um nivel superior
+- **Team:** opussonnet · **Status:** running
+- **Job atual:** — (1/3)
+- **Branch:** pipeline/anima-deck-fb1 · checkpoints: 0
+_Atualizado 2026-07-13T02:10:19.941Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/anima-deck.json_
 <!-- forge:end:anima-deck -->
 
 ## Last iteration — FEEDBACK fb1 iter 3 anima-deck (2026-07-12 · GLM ITERATE, skill /frontend-fable)
@@ -768,7 +766,7 @@ Este conceito deve ser registrado como a primeira aposta
 monetização-first do portfólio, enquanto o ANIMA//DECK permanece como
 aposta engagement/share-first.
 - **Team:** ggg · **Status:** running
-- **Job atual:** L1/B1 (5/10)
-- **Branch:** pipeline/doki-call · checkpoints: 4
-_Atualizado 2026-07-13T01:52:57.757Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
+- **Job atual:** L1/B2 (6/10)
+- **Branch:** pipeline/doki-call · checkpoints: 5
+_Atualizado 2026-07-13T02:11:44.589Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->
