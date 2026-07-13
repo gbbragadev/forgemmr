@@ -367,19 +367,21 @@ no CTA de R\$ 4,90.
 Este conceito deve ser registrado como a primeira aposta
 monetização-first do portfólio, enquanto o ANIMA//DECK permanece como
 aposta engagement/share-first.
-- **Team:** grok-solo · **Status:** paused_gate
-- **Job atual:** FOUNDATION (2/9)
-- **Branch:** pipeline/o-anima-deck · checkpoints: 1
-- **⏸ GATE pendente:** `p0-go` — Scorecard pronto (apps/o-anima-deck/docs/scorecard.md). GO ou KILL? → `forge decide p0-go go|kill`
-_Atualizado 2026-07-12T22:38:47.962Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/o-anima-deck.json_
+- **Team:** grok-solo · **Status:** killed
+- **Job atual:** — (2/9)
+- **Branch:** pipeline/o-anima-deck · checkpoints: 2
+- pipeline encerrada: killed
+_Atualizado 2026-07-13T00:16:12.372Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/o-anima-deck.json_
 <!-- forge:end:o-anima-deck -->
 
 <!-- forge:begin:doki-call -->
 ## Forge autopilot — doki-call
 - **Ideia:** "C:\Dev\anime-forge\ideas\DOKI_CALL_Produto_e_Estrategia.md"
-- **Team:** frontier-cxb · **Status:** running
-- **Job atual:** — (1/10)
+- **Team:** frontier-cxb · **Status:** blocked
+- **Job atual:** L0/P0 (1/10)
 - **Branch:** pipeline/doki-call · checkpoints: 0
-_Atualizado 2026-07-12T23:20:32.470Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
+- **⏸ GATE pendente:** `stopped` — pipeline parada manualmente — retry (recomeça o job atual) ou kill? → `forge decide stopped go|kill`
+- BLOCKED: todos os players do preset esgotados
+_Atualizado 2026-07-12T23:53:31.844Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->
 
