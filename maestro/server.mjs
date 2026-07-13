@@ -679,6 +679,18 @@ const server = http.createServer(async (req, res) => {
         sendJson(res, 200, engine.stop(body.appId));
       } else if (action === "resume") {
         sendJson(res, 200, { ok: true, pipeline: engine.resume(body.appId) });
+      } else if (action === "shutdown") {
+        // usado por `forge restart` (que recarrega o código do maestro). O CLI sobe o server de novo.
+        const running = Object.values(engine.snapshot()).filter((p) => p && p.status === "running");
+        if (running.length && !body.force) {
+          sendJson(res, 409, {
+            ok: false,
+            error: `job vivo em ${running.map((p) => `${p.appId}/${p.currentJob}`).join(", ")} — espere o gate ou use --force (perde o job em andamento)`,
+          });
+          return;
+        }
+        sendJson(res, 200, { ok: true, killed: running.map((p) => p.appId) });
+        setTimeout(() => process.exit(0), 150);
       } else if (action === "kill") {
         sendJson(res, 200, engine.kill(body.appId));
       } else if (action === "remove") {

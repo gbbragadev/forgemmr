@@ -5,8 +5,8 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 | slot | agent | loop | job | app / area | since | notes |
 |------|-------|------|-----|------------|-------|-------|
 
-| F | ggg-grok1 | L1 | L1/B4 | doki-call | 02:34 | forge autopilot |
 | F | opussonnet-claude2 | L1 | L1/B5 | anima-deck | 02:33 | forge autopilot |
+_(L1/B4 doki-call liberado 2026-07-13 — Grok 4.5 / ggg-grok1 · chat+TTS+entitlement stub)_
 _(L1/B2 doki-call liberado 2026-07-13 — Grok 4.5 / ggg-grok1 · doki-pack-v2)_
 _(L1/B1 doki-call liberado 2026-07-13 — Grok 4.5 / ggg-grok1 · scaffold + fake-door)_
 _(L0/P1 doki-call liberado 2026-07-13 — Grok 4.5 / ggg-grok1 · content-hooks.md)_

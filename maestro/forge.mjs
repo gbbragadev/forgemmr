@@ -10,7 +10,7 @@
  * O server (maestro/server.mjs :8799) é iniciado automaticamente se não estiver de pé.
  */
 
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -21,7 +21,33 @@ import { recordDecision } from "./decisions.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const API = `http://127.0.0.1:${process.env.MAESTRO_PORT || 8799}`;
+const PORT = Number(process.env.MAESTRO_PORT || 8799);
+const API = `http://127.0.0.1:${PORT}`;
+
+/** encerra o server pela porta — usado pelo `forge restart` quando o server no ar é antigo (sem /shutdown) */
+function killServerByPort(port) {
+  // execFileSync (sem shell) + pid validado: nada aqui é interpolado em linha de comando
+  try {
+    if (process.platform === "win32") {
+      const out = execFileSync("netstat", ["-ano", "-p", "tcp"], { encoding: "utf8" });
+      const pids = [
+        ...new Set(
+          out
+            .split(/\r?\n/)
+            .filter((l) => l.includes("LISTENING") && l.includes(`:${port} `))
+            .map((l) => l.trim().split(/\s+/).pop())
+            .filter((p) => /^\d+$/.test(p))
+        ),
+      ];
+      for (const pid of pids) execFileSync("taskkill", ["/PID", pid, "/F"], { stdio: "ignore" });
+      return pids.length > 0;
+    }
+    execFileSync("pkill", ["-f", "maestro/server.mjs"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // ---------- ANSI ----------
 const ESC = "\x1b[";
@@ -1596,6 +1622,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge attach")} [app]   TUI ao vivo (N pipelines: sem arg lista; com arg acompanha uma)
   ${bold("forge status")}    snapshot rápido de TODAS as pipelines
   ${bold("forge decide")} <gate> <go|kill|retry> [feedback…] [--app X]
+  ${bold("forge restart")} [--force]  reinicia o server (carrega código novo do maestro; recusa se houver job vivo)
   ${bold("forge kill")} [app]     mata o run agora (executor + pipeline) — funciona sem gate
   ${bold("forge stop")} [app]     pausa a pipeline (job atual é morto)
   ${bold("forge resume")} [app]   retoma após stop/restart do server
@@ -1728,6 +1755,29 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     await ensureServer();
     const r = await api("/api/pipeline/resume", { appId: rest[0] || flags.app });
     printStatus(r.pipeline);
+    return;
+  }
+
+  if (cmd === "restart") {
+    // recarrega o código do maestro sem perder estado (pipelines vivem em maestro/pipelines/)
+    await ensureServer();
+    // guarda no CLIENTE: funciona mesmo com um server antigo, que não conhece a rota de shutdown
+    const snap0 = await api("/api/pipeline");
+    const vivos = Object.values(snap0 || {}).filter((p) => p && p.status === "running");
+    if (vivos.length && !flags.force) {
+      console.error(fg(RED, `✗ job vivo em ${vivos.map((p) => `${p.appId}/${p.currentJob}`).join(", ")}`));
+      console.error(dim("  espere o próximo gate, ou: forge restart --force  (perde o job em andamento)"));
+      return;
+    }
+    try {
+      await api("/api/pipeline/shutdown", { force: !!flags.force });
+    } catch {
+      killServerByPort(PORT); // server antigo (sem a rota) → encerra pela porta
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+    await ensureServer(); // sobe de novo, já com o código novo
+    console.log(fg(GREEN, "✓ server reiniciado") + dim(vivos.length ? ` (jobs perdidos: ${vivos.map((p) => p.appId).join(", ")})` : ""));
+    printStatus(await api("/api/pipeline"));
     return;
   }
 

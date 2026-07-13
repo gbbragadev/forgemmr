@@ -1,13 +1,20 @@
 # HANDOFF
 
 ## Loop ativo
-**L1** — DOKI//CALL (`doki-call`) — **B2 Personas DONE** · próximo = B3 (prompt GLM Neon Y2K) e/ou B4 wire API  
+**L1** — DOKI//CALL (`doki-call`) — **B4 Wire API DONE** · próximo = B5 ship check  
 *(slug legado `o-anima-deck` superado — canônico = `doki-call`)*
 
 ## Last agent
-Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B2 personas doki-call
+Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B4 wire API doki-call
 
-## Last iteration — L1/B2 doki-call (2026-07-13)
+## Last iteration — L1/B4 doki-call (2026-07-13)
+- **Job:** L1/B4 wire chat AI + TTS + entitlement/checkout stub
+- **Entrega:** `POST /api/chat` (@forge/ai + cookie free quota 3 → 402); `GET /api/credits`; `POST /api/tts` (1/dia + browser speech); `POST /api/checkout` stub → entitlement server; `GET /api/entitlement`; `POST /api/voice/session` com `assertCallAllowed`; UI free chat → API real + fallback mock; paywall → checkout → call_stub
+- **VERIFY:** `npm run build -w @forge/doki-call` **EXIT 0**
+- **Sem git** (orquestrador) · Realtime live / PSP real = ship (não B4)
+- **Próximo:** B5 ship check (health + free path + paywall CTA)
+
+## Iteration anterior — L1/B2 doki-call (2026-07-13)
 - **Job:** L1/B2 personas pack (`content/personas/doki-pack-v2.json`)
 - **Entrega:** 3 OCs 21+ (Mika/Rena/Yuki) com system prompts densos p/ telefone+guardrails IP/idade; starters PT+EN; tags voz; `app.config` → v2; voice-note free path por persona em `mock-chat.ts`
 - **VERIFY:** `npm run build -w @forge/doki-call` **EXIT 0**
@@ -66,7 +73,7 @@ Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B2 personas doki-call
 | **waifu-chat** | MVP + smoke OpenRouter + UI B3 GLM |
 | **anime-quiz** | P0→B5 + **live** https://gbbragadev.github.io/anime-forge/ |
 | **anima-deck** | ship/iterate em curso (engagement/share-first) |
-| **doki-call** | L0/P0–P1 + FOUNDATION + B1 scaffold + **B2 personas v2** · fake-door · próximo B3/B4 |
+| **doki-call** | L0/P0–P1 + FOUNDATION + B1–B3 + **B4 wire API** (chat/TTS/entitlement stub) · próximo B5 |
 
 ## Done (harness)
 - Loops L0/L1/L2 multi-sub (Claude/Codex/Grok/Gemini + GLM B3)
@@ -75,11 +82,11 @@ Grok 4.5 (ggg-grok1) | 2026-07-13 · L1/B2 personas doki-call
 - OpenRouter: `OPEN_ROUTER_API_KEY` env sistema (não pedir no chat)
 
 ## Next
-1. **L1/B3** doki-call: prompt GLM denso (Prop. 2 Neon Y2K já escolhida) — polish UI sem implementar B3 aqui
-2. **L1/B4** wire chat AI real (system do pack v2) + TTS + entitlement/checkout (Realtime só pós-pago)
-3. **Content:** postar hooks batch 1,2,3,5,8 + medir `audio_play→buy_click` no app scaffold
-4. **Humano P4** anime-quiz / anima-deck measure
-5. **Token CF** Pages:Edit + DNS:Edit; Vercel quando ship server doki-call
+1. **L1/B5** doki-call: ship check (health + free path + paywall CTA)
+2. **Content:** postar hooks batch 1,2,3,5,8 + medir `audio_play→buy_click`
+3. **Humano P4** anime-quiz / anima-deck measure
+4. **Token CF** Pages:Edit + DNS:Edit; Vercel + PSP real quando ship server doki-call
+5. **Realtime live** xAI/OpenAI quando keys + VOICE_PROVIDER no ship
 
 ## Blockers
 - P4 measure = humano
