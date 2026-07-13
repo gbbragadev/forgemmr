@@ -1,7 +1,7 @@
 # L0 / P0 — Scorecard (1 iteração)
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: raiz atual do Forge
 Leia AGENTS.md + workbench/HANDOFF.md + docs/PLAYBOOK.md.
 Loop: L0 Product · Step: P0 Scorecard
 Claim: L0 / P0 / ideia.
@@ -18,8 +18,17 @@ Responda e SALVE em apps/<app-id>/docs/scorecard.md:
 - Tabela critérios 1–5
 - 3 bullets de porquê
 - Se GO: próximo = L0/P1 hooks (default). B1 só após P1 ou user “pode decidir e seguir”
-- Se NO-GO: o que testar em conteúdo sem código
+- Se NO-GO: próximo passo = conversar com comprador, não construir
 - Riscos legais (IP / arquétipos)
+
+## Mercado (OBRIGATÓRIO — sem isto o job reprova)
+
+- **Comprador:** quem exatamente paga? (papel + contexto, não “público jovem”)
+- **Canal:** onde essa pessoa é alcançada sem gastar dinheiro que não temos?
+- **Preço-alvo:** R$ __/mês (ou por uso) — e por que essa pessoa acha isso barato?
+- **Recorrência:** por que ela usaria de novo mês que vem? (se não usar, diga: compra única)
+
+Se os quatro não puderem ser preenchidos, veredito NO-GO e o próximo passo é conversar com comprador, não construir.
 
 Não escreva código de app.
 Atualize HANDOFF (Next) e QUEUE; libere claim.

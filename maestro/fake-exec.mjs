@@ -82,7 +82,7 @@ if (job === "L0/P0") {
   const tipo = /\bchat\b/i.test(idea) ? "chat" : /\bquiz\b/i.test(idea) ? "quiz" : "static";
   fs.writeFileSync(
     p,
-    `# Scorecard — ${appId} (dry-run)\n\n**GO**\n\nTipo: ${tipo}\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
+    `# Scorecard — ${appId} (dry-run)\n\n**GO**\n\nTipo: ${tipo}\n\n## Mercado\n\n- **Comprador:** fãs de anime que organizam sessões semanais com amigos\n- **Canal:** comunidades de Discord e vídeos orgânicos no TikTok\n- **Preço-alvo:** R$ 9,90/mês — custa menos que um lanche da sessão\n- **Recorrência:** novos quizzes e rankings semanais trazem o grupo de volta\n\n| critério | nota |\n|---|---|\n| hook / valor | 4 |\n| custo | 5 |\n| fit ao nicho | 4 |\n\n- gerado pelo fake-exec para teste da pipeline\n`,
     "utf8"
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);

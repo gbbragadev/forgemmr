@@ -21,6 +21,11 @@ P5 kill|scale ◄── P4 measure (5–7 dias) ◄─────────�
 | Risco legal OK (arquétipos &gt; IP) | alto |
 
 Capability **não** existe e score baixo → só conteúdo, **sem** L1.  
+
+### Gate de mercado obrigatório
+
+Todo scorecard P0 declara **Comprador**, **Canal**, **Preço-alvo** e **Recorrência** com respostas concretas. Sem os quatro campos preenchidos, o job reprova antes do gate. Isso valida estrutura, não mérito: um NO-GO completo continua até o gate humano, que decide GO, retry ou kill.
+
 Sempre salvar: `docs/scorecard-<app-id>.md`.
 
 ## P1 Content

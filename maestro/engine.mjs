@@ -47,6 +47,35 @@ export function parseCapabilityFromScorecard(txt) {
   return m ? m[1].toLowerCase() : null;
 }
 
+/** Valida o preenchimento mínimo do mercado; o mérito continua no gate humano. */
+export function validateP0Market(txt) {
+  const normalized = String(txt).normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const heading = normalized.match(/^##\s*mercado\b.*$/im);
+  if (!heading) return { pass: false, detail: "mercado ausente" };
+  const remainder = normalized.slice(heading.index + heading[0].length);
+  const nextHeading = remainder.search(/^##\s+/im);
+  const section = remainder.slice(0, nextHeading < 0 ? undefined : nextHeading);
+
+  const fields = ["Comprador", "Canal", "Preço-alvo", "Recorrência"];
+  const values = new Map();
+  for (const line of section.split("\n")) {
+    const plain = line.replace(/\*/g, "");
+    const match = plain.match(/^\s*[-+]?\s*(comprador|canal|preco(?:-alvo)?|recorrencia)\s*:\s*(.*)$/i);
+    if (!match) continue;
+    const field = { comprador: "Comprador", canal: "Canal", preco: "Preço-alvo", "preco-alvo": "Preço-alvo", recorrencia: "Recorrência" }[match[1].toLowerCase()];
+    values.set(field, match[2]);
+  }
+
+  const invalid = fields.filter((field) => {
+    const value = values.get(field);
+    if (!value) return true;
+    const plain = value.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+    if (/^(todo|tbd|n\/?a|a definir|nao sei|placeholder)\b/.test(plain)) return true;
+    return plain.replace(/[\s_*\-–—]/g, "").length < 8;
+  });
+  return invalid.length ? { pass: false, detail: `mercado inválido: ${invalid.join(", ")}` } : { pass: true, detail: "mercado declarado" };
+}
+
 export const JOBS_BY_CAPABILITY = {
   static: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
   quiz: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
@@ -673,8 +702,10 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       const f = path.join(root, runDocRel(p.appId, "scorecard"));
       if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${path.relative(root, f)}` };
       const txt = fs.readFileSync(f, "utf8");
+      const market = validateP0Market(txt);
+      if (!market.pass) return market;
       const go = /\bGO\b/.test(txt) && !/\bNO-?GO\b/.test(txt.split("\n").slice(0, 10).join("\n"));
-      return { pass: true, detail: go ? "scorecard: GO" : "scorecard: revisar GO/NO-GO no gate" };
+      return { pass: true, detail: go ? "scorecard: GO; mercado declarado" : "scorecard: revisar GO/NO-GO no gate; mercado declarado" };
     }
     if (job === "L0/P1") {
       const f = path.join(root, runDocRel(p.appId, "content-hooks"));

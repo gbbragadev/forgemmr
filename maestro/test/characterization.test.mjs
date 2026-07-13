@@ -15,7 +15,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { createEngineManager } from "../engine.mjs";
+import { createEngineManager, validateP0Market } from "../engine.mjs";
 
 /** Root temporário com o mínimo que a engine precisa: roster com team fake. */
 function tmpRoot({ fallback = false } = {}) {
@@ -63,30 +63,25 @@ const gitApp = (root, appId, args) =>
   execFileSync("git", args, { cwd: path.join(root, "apps", appId), encoding: "utf8" }).trim();
 
 /**
- * CARACTERIZAÇÃO 1 — verify de P0 passa com QUALQUER scorecard, inclusive NO-GO.
+ * CARACTERIZAÇÃO 1 — T-08 muda a estrutura exigida, não a decisão humana.
  *
- * O verify de L0/P0 (engine.mjs) só checa que o arquivo EXISTE; o veredito GO/NO-GO vira
- * texto no prompt do gate. Ou seja: o "kill barato" NÃO é automático — depende 100% do humano
- * ler o scorecard e apertar kill. Um scorecard NO-GO avança até o gate exatamente como um GO.
+ * NO-GO sem Mercado agora reprova; NO-GO completo continua elegível ao gate p0-go.
  */
-test("caracterização: verify de L0/P0 passa mesmo com scorecard NO-GO (o kill é do humano, não do verify)", async () => {
+test("caracterização: NO-GO sem Mercado reprova, mas NO-GO completo segue ao gate humano", async () => {
+  assert.equal(validateP0Market("# Scorecard\n\n**NO-GO**\n\nTipo: static\n").pass, false);
+  assert.equal(validateP0Market(`# Scorecard\n\n**NO-GO**\n\n## Mercado\n- **Comprador:** moderadores de comunidades de anime locais\n- **Canal:** grupos públicos de Discord\n- **Preço-alvo:** R$ 9,90/mês para organizar eventos\n- **Recorrência:** agenda semanal exige divulgação recorrente\n`).pass, true);
+
   const root = tmpRoot();
-  const mgr = makeManager(root);
-  mgr.start({ idea: "ideia ruim que deveria morrer", team: "dry-run", capability: "static", appId: "nogo-app" });
-  await waitFor(() => mgr.snapshot()["nogo-app"].status === "paused_gate", 30000, "gate p0-go");
-
-  const scorecard = path.join(root, "apps", "nogo-app", "docs", "scorecard.md");
-  // sobrescreve com um NO-GO explícito e re-verifica pelo mesmo caminho (retry re-roda o job)
-  fs.writeFileSync(scorecard, "# Scorecard\n\n**NO-GO**\n\nTipo: static\n", "utf8");
-
-  const snap = mgr.snapshot()["nogo-app"];
-  const p0 = snap.history.filter((h) => h.job === "L0/P0");
-  assert.equal(p0.length, 1);
-  assert.equal(p0[0].pass, true, "P0 passou no verify (existência do arquivo), não pelo mérito");
-  assert.equal(snap.gates.find((g) => !g.decision).id, "p0-go", "a decisão de matar fica com o humano");
-
-  mgr.decide("nogo-app", "p0-go", "kill");
-  assert.equal(mgr.snapshot()["nogo-app"].status, "killed");
+  try {
+    const mgr = makeManager(root);
+    mgr.start({ idea: "ideia ruim que deveria morrer", team: "dry-run", capability: "static", appId: "nogo-app" });
+    await waitFor(() => mgr.snapshot()["nogo-app"].status === "paused_gate", 30000, "gate p0-go");
+    assert.equal(mgr.snapshot()["nogo-app"].gates.find((g) => !g.decision).id, "p0-go");
+    mgr.decide("nogo-app", "p0-go", "kill");
+    assert.equal(mgr.snapshot()["nogo-app"].status, "killed");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 /**
