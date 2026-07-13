@@ -14,4 +14,8 @@ jobs:
           node-version: "24"
           cache: npm
       - run: npm ci
+      # os testes do engine fazem git commit reais nos repos de app — o runner precisa de identidade
+      - run: |
+          git config --global user.email "ci@forge.local"
+          git config --global user.name "Forge CI"
       - run: npm test
