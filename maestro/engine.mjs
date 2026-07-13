@@ -442,8 +442,10 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
 
   function save() {
     if (!pipeline) return;
+    const tempPath = `${PIPELINE_PATH}.tmp`;
     fs.mkdirSync(path.dirname(PIPELINE_PATH), { recursive: true });
-    fs.writeFileSync(PIPELINE_PATH, JSON.stringify(pipeline, null, 2), "utf8");
+    fs.writeFileSync(tempPath, JSON.stringify(pipeline, null, 2), "utf8");
+    fs.renameSync(tempPath, PIPELINE_PATH);
     emitPipeline(snapshot());
   }
 
@@ -1521,7 +1523,10 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
           });
         }
       }
-    } catch {}
+    } catch (error) {
+      const relativePath = path.relative(root, PIPELINE_PATH);
+      log(`⚠ recovery falhou para ${relativePath}: ${String(error.message || error).slice(0, 300)} — arquivo preservado`);
+    }
   }
 
   return { start, startFeedback, decide, stop, kill, resume, snapshot, setTarget };
@@ -1547,7 +1552,10 @@ export function createEngineManager({ root, emitLog, emitPipeline }) {
         if (!fs.existsSync(dest)) fs.renameSync(legacy, dest);
         else fs.rmSync(legacy);
       }
-    } catch {}
+    } catch (error) {
+      const relativePath = path.relative(root, legacy);
+      emitLog(`⚠ recovery da migração falhou para ${relativePath}: ${String(error.message || error).slice(0, 300)} — arquivo preservado`);
+    }
   }
 
   function snapshotAll() {
