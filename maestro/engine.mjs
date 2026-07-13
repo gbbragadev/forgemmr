@@ -859,7 +859,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId })
         const started = new Date().toISOString();
         const res = await runExecutor(player, prompt, job);
 
-        if (detectRateLimit(res.tail)) {
+        if (res.exitCode !== 0 && detectRateLimit(res.tail)) {
           p.cooldowns[player.id] = new Date(Date.now() + profile.limits.cooldownMs).toISOString();
           log(`⏳ rate-limit em ${player.id} — cooldown ${Math.round(profile.limits.cooldownMs / 60000)}min, tentando fallback (L2 automático)`);
           workbench.handoffUpdate(paths, p, `L2: rate-limit em ${player.id}, redispatch automático`);

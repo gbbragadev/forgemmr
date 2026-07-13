@@ -54,6 +54,8 @@ if (improveOut) {
 
 await sleep(800);
 
+if (process.env.FORGE_FAKE_ECHO) console.log(goal.slice(0, 2000));
+
 if (/FORGE_FAKE_FAIL/.test(goal)) {
   console.error("✗ fake-exec: falha simulada (FORGE_FAKE_FAIL)");
   process.exit(1);
