@@ -1,16 +1,31 @@
-import { COMMANDS, GATES, STAGES, TEAMS, filterCommands, resolveGate } from "./guide-data.js";
+import { GATES, STAGES, resolveGate } from "./guide-data.js";
 
-const categoryLabels = {
-  all: "Todos",
-  start: "Começar",
-  observe: "Acompanhar",
-  decide: "Decidir",
-  iterate: "Iterar",
-  recover: "Recuperar",
-  danger: "Risco",
-};
-
-let activeCategory = "all";
+const MEMORY_STATES = Object.freeze({
+  unconfigured: {
+    label: "NÃO CONFIGURADA",
+    title: "Instale quando quiser contexto durável",
+    copy: "A fábrica já funciona sem memória. Clique em Configurar memória para baixar a release verificada e iniciar o serviço somente nesta máquina.",
+    action: "Instalar memória",
+    note: "Até lá, cada pipeline segue normalmente sem briefing recuperado.",
+    tone: "warning",
+  },
+  healthy: {
+    label: "SAUDÁVEL",
+    title: "Briefing, busca e histórico estão disponíveis",
+    copy: "Escolha Fábrica ou um app, revise as fontes recuperadas e promova regras apenas quando a evidência justificar.",
+    action: "Importar histórico",
+    note: "Backup, busca, reindexação e regras ficam disponíveis na mesma área.",
+    tone: "verified",
+  },
+  degraded: {
+    label: "DEGRADADA",
+    title: "A pipeline continua; a memória fica isolada",
+    copy: "Novos registros entram na outbox privada e sobrevivem ao restart. Leia o erro sanitizado e tente recuperar quando for conveniente.",
+    action: "Tentar novamente",
+    note: "Continuar sem memória é seguro: nenhum job perde o trabalho por causa do índice.",
+    tone: "danger",
+  },
+});
 
 function renderJourney() {
   const list = document.querySelector("#journey-list");
@@ -32,68 +47,36 @@ function renderJourney() {
   list.replaceChildren(fragment);
 }
 
-function renderTeams() {
-  const list = document.querySelector("#team-list");
-  const template = document.querySelector("#team-template");
-  const fragment = document.createDocumentFragment();
+function renderMemoryState(stateId = "unconfigured") {
+  const state = MEMORY_STATES[stateId] || MEMORY_STATES.unconfigured;
+  const output = document.querySelector("#memory-state-output");
+  const header = document.createElement("div");
+  const status = document.createElement("span");
+  const title = document.createElement("strong");
+  const copy = document.createElement("p");
+  const action = document.createElement("b");
+  const note = document.createElement("small");
 
-  TEAMS.forEach((team, index) => {
-    const node = template.content.cloneNode(true);
-    node.querySelector("[data-team-rank]").textContent = String(index + 1).padStart(2, "0");
-    node.querySelector("[data-team-id]").textContent = team.id;
-    node.querySelector("[data-team-title]").textContent = team.title;
-    node.querySelector("[data-team-use]").textContent = team.use;
-    node.querySelector("[data-team-quota]").textContent = team.quota;
-    node.querySelector("[data-team-signal]").textContent = team.signal;
-    fragment.append(node);
+  status.className = `memory-status ${state.tone}`;
+  status.textContent = state.label;
+  title.textContent = state.title;
+  header.append(status, title);
+  copy.textContent = state.copy;
+  action.textContent = state.action;
+  note.textContent = state.note;
+  output.replaceChildren(header, copy, action, note);
+}
+
+function setupMemoryLab() {
+  const controls = document.querySelector(".memory-state-tabs");
+  controls.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-memory-state]");
+    if (!button) return;
+    for (const item of controls.querySelectorAll("[data-memory-state]")) {
+      item.setAttribute("aria-pressed", String(item === button));
+    }
+    renderMemoryState(button.dataset.memoryState);
   });
-
-  list.replaceChildren(fragment);
-}
-
-function renderFilters() {
-  const filters = document.querySelector("#command-filters");
-  const fragment = document.createDocumentFragment();
-
-  for (const [category, label] of Object.entries(categoryLabels)) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.category = category;
-    button.setAttribute("aria-pressed", String(category === activeCategory));
-    button.textContent = label;
-    fragment.append(button);
-  }
-
-  filters.replaceChildren(fragment);
-}
-
-function renderCommands(query = "", category = activeCategory) {
-  const results = document.querySelector("#command-results");
-  const template = document.querySelector("#command-template");
-  const matches = filterCommands(query, category);
-
-  if (matches.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "command-empty";
-    empty.textContent = "Nenhum comando encontrado. Tente ‘status’, ‘deploy’ ou limpe o filtro.";
-    results.replaceChildren(empty);
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  for (const item of matches) {
-    const node = template.content.cloneNode(true);
-    node.querySelector("[data-command-category]").textContent = categoryLabels[item.category];
-    node.querySelector("[data-command-intent]").textContent = item.intent;
-    node.querySelector("[data-command-code]").textContent = item.command;
-    node.querySelector("[data-command-note]").textContent = item.note;
-    const button = node.querySelector("[data-command-copy]");
-    button.dataset.copy = item.command;
-    button.setAttribute("aria-label", `Copiar comando: ${item.intent}`);
-    fragment.append(node);
-  }
-
-  results.replaceChildren(fragment);
 }
 
 function setGateOutput(gateId, decision) {
@@ -101,11 +84,11 @@ function setGateOutput(gateId, decision) {
   const outcome = resolveGate(gateId, decision);
   const title = document.createElement("strong");
   const effect = document.createElement("span");
-  const command = document.createElement("code");
+  const next = document.createElement("small");
   title.textContent = GATES[gateId][decision].label;
   effect.textContent = outcome.effect;
-  command.textContent = outcome.command;
-  output.replaceChildren(title, effect, command);
+  next.textContent = "Na central real, revise o escopo e confirme no cartão da decisão.";
+  output.replaceChildren(title, effect, next);
 }
 
 function renderGateDecisions(gateId = document.querySelector("#gate-select").value) {
@@ -129,52 +112,12 @@ function renderGateDecisions(gateId = document.querySelector("#gate-select").val
   decisions.replaceChildren(fragment);
 }
 
-async function copyCommand(text, button) {
-  try {
-    if (!navigator.clipboard?.writeText) throw new Error("clipboard indisponível");
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const input = document.createElement("textarea");
-    input.value = text;
-    input.setAttribute("readonly", "");
-    input.style.position = "fixed";
-    input.style.opacity = "0";
-    document.body.append(input);
-    input.select();
-    document.execCommand("copy");
-    input.remove();
-  }
-  button.dataset.copied = "true";
-  const previous = button.textContent;
-  button.textContent = "Copiado";
-  window.setTimeout(() => {
-    button.dataset.copied = "false";
-    button.textContent = previous;
-  }, 1600);
-}
-
-function setupCommandAtlas() {
-  const search = document.querySelector("#command-search");
-  const filters = document.querySelector("#command-filters");
-
-  search.addEventListener("input", () => renderCommands(search.value, activeCategory));
-  filters.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-category]");
-    if (!button) return;
-    activeCategory = button.dataset.category;
-    for (const filter of filters.querySelectorAll("[data-category]")) {
-      filter.setAttribute("aria-pressed", String(filter === button));
-    }
-    renderCommands(search.value, activeCategory);
-  });
-}
-
 function setupGateLab() {
   const select = document.querySelector("#gate-select");
   const decisions = document.querySelector("#gate-decisions");
   select.addEventListener("change", () => {
     renderGateDecisions(select.value);
-    document.querySelector("#gate-output").textContent = "Escolha uma decisão para ver efeito e comando.";
+    document.querySelector("#gate-output").textContent = "Escolha uma decisão para ver o efeito antes de agir.";
   });
   decisions.addEventListener("click", (event) => {
     const button = event.target.closest("[data-gate-decision]");
@@ -182,17 +125,12 @@ function setupGateLab() {
   });
 }
 
-function setupCopyButtons() {
-  document.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-copy]");
-    if (button) copyCommand(button.dataset.copy, button);
-  });
-}
-
 function setupScrollSpy() {
   const links = new Map([...document.querySelectorAll("[data-nav]")].map((link) => [link.dataset.nav, link]));
   const observer = new IntersectionObserver((entries) => {
-    const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    const visible = entries
+      .filter((entry) => entry.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
     if (!visible) return;
     for (const link of links.values()) link.removeAttribute("aria-current");
     links.get(visible.target.id)?.setAttribute("aria-current", "true");
@@ -201,7 +139,7 @@ function setupScrollSpy() {
 }
 
 function setupChecklist() {
-  const storageKey = "forge-onboarding-checklist-v1";
+  const storageKey = "forge-nexus-onboarding-checklist-v2";
   const checks = [...document.querySelectorAll("#ship-checks input[type='checkbox']")];
   const count = document.querySelector("#checklist-count");
   const progress = document.querySelector("#checklist-progress");
@@ -214,27 +152,22 @@ function setupChecklist() {
   }
 
   for (const check of checks) check.checked = saved.includes(check.value);
-
   const update = () => {
     const selected = checks.filter((check) => check.checked).map((check) => check.value);
     count.textContent = `${selected.length} / ${checks.length}`;
-    progress.style.width = `${(selected.length / checks.length) * 100}%`;
+    progress.style.width = `${checks.length ? (selected.length / checks.length) * 100 : 0}%`;
     try { localStorage.setItem(storageKey, JSON.stringify(selected)); } catch { /* storage pode estar bloqueado */ }
   };
-
   for (const check of checks) check.addEventListener("change", update);
   update();
 }
 
 function init() {
   renderJourney();
-  renderTeams();
-  renderFilters();
-  renderCommands();
+  renderMemoryState();
   renderGateDecisions();
-  setupCommandAtlas();
+  setupMemoryLab();
   setupGateLab();
-  setupCopyButtons();
   setupScrollSpy();
   setupChecklist();
 }

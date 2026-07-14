@@ -29,16 +29,20 @@ test("simulador de gate devolve efeito e comando sem executar nada", () => {
   assert.throws(() => resolveGate("inexistente", "go"), /gate desconhecido/);
 });
 
-test("página contém percurso completo, landmarks e regiões interativas acessíveis", () => {
+test("página ensina o Forge Nexus inteiro sem depender de terminal", () => {
   const html = fs.readFileSync(path.join(guideDir, "index.html"), "utf8");
+  const js = fs.readFileSync(path.join(guideDir, "guide.js"), "utf8");
   assert.match(html, /<html lang="pt-BR">/);
-  for (const id of ["journey", "quickstart", "gate-lab", "teams", "command-atlas", "operator", "recovery", "ship-checklist"]) {
+  for (const id of ["start", "journey", "memory", "gate-lab", "recovery", "privacy", "ship-checklist"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
-  assert.match(html, /id="command-results"[^>]*aria-live="polite"/);
   assert.match(html, /id="gate-output"[^>]*aria-live="polite"/);
-  assert.match(html, /remove meu-app --force/);
   assert.match(html, /destrutiv|irreversível/i);
+  for (const phrase of ["Forge Nexus", "Memória", "Instalar memória", "Importar histórico", "Continuar sem memória", "127.0.0.1:8799"]) {
+    assert.match(html + js, new RegExp(phrase, "i"));
+  }
+  assert.doesNotMatch(html + js, /AI_MEMORY_AUTH_TOKEN/);
+  assert.doesNotMatch(js, /fetch\s*\(\s*["'`]http:\/\/127\.0\.0\.1/);
 });
 
 test("CSS cobre tokens, foco, motion reduzido e quatro larguras", () => {
@@ -61,14 +65,11 @@ test("headers publicados bloqueiam sniffing e framing", () => {
   assert.match(headers, /Referrer-Policy: strict-origin-when-cross-origin/);
 });
 
-test("bindings conectam busca, gates, clipboard e navegação", () => {
+test("bindings conectam percurso, memória, gates, checklist e navegação", () => {
   const js = fs.readFileSync(path.join(guideDir, "guide.js"), "utf8");
-  for (const name of ["renderJourney", "renderTeams", "renderCommands", "renderGateDecisions", "copyCommand", "setupScrollSpy", "setupChecklist"]) {
+  for (const name of ["renderJourney", "renderMemoryState", "renderGateDecisions", "setGateOutput", "setupMemoryLab", "setupScrollSpy", "setupChecklist"]) {
     assert.match(js, new RegExp(`function ${name}`));
   }
-  assert.match(js, /navigator\.clipboard\.writeText/);
-  assert.match(js, /document\.execCommand\("copy"\)/);
-  assert.match(js, /filterCommands\(/);
   assert.match(js, /resolveGate\(/);
 });
 
