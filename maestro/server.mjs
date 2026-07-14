@@ -27,6 +27,8 @@ import {
   writePrivateFile,
 } from "./adapters.mjs";
 import { createEngineManager } from "./engine.mjs";
+import { buildControlSnapshot } from "./control/snapshot.mjs";
+import { createOperationStore } from "./control/store.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -575,6 +577,7 @@ export function createMaestroServer({
   host = "127.0.0.1",
   port = PORT,
   engineManager,
+  operationStore,
   spawnImpl = spawn,
 } = {}) {
   const engine =
@@ -584,6 +587,7 @@ export function createMaestroServer({
       emitLog: (line) => log(line),
       emitPipeline: broadcastPipeline,
     });
+  const operations = operationStore || createOperationStore({ root });
 
   const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${host}:${port}`);
@@ -628,6 +632,24 @@ export function createMaestroServer({
       logCount: state.logs.length,
       recentLogs: state.logs.slice(-40),
     });
+    return;
+  }
+
+  if (url.pathname === "/api/control/snapshot" && method === "GET") {
+    try {
+      sendJson(
+        res,
+        200,
+        buildControlSnapshot({
+          root,
+          engineManager: engine,
+          operations: operations.list(),
+          server: { host, port },
+        }),
+      );
+    } catch (error) {
+      sendJson(res, 500, { ok: false, error: `control_snapshot_failed: ${error instanceof Error ? error.message : String(error)}` });
+    }
     return;
   }
 
