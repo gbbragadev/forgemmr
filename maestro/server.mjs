@@ -217,7 +217,9 @@ function resolveBin(name) {
  * @param {string} goal
  * @param {{ executor?: string, playerId?: string, maxTurns?: number }} opts
  */
-function startRun(goal, opts = {}) {
+function startRun(goal, opts = {}, runtime = {}) {
+  const runRoot = runtime.root || ROOT;
+  const spawnRun = runtime.spawnImpl || spawn;
   if (state.status === "running") {
     return { ok: false, error: "Já existe uma run em andamento. Aguarde ou POST /api/stop." };
   }
@@ -243,7 +245,7 @@ function startRun(goal, opts = {}) {
     goal.trim() +
     "\n\n---\nMaestro HQ constraints:\n" +
     "- Repo: " +
-    ROOT +
+    runRoot +
     "\n- Surgical / YAGNI. Gate: npm run build if code changes.\n" +
     "- Do not commit secrets. Product AI = Z.AI (ZAI_API_KEY), not coding brain.\n" +
     "- Update workbench/HANDOFF.md when done.\n";
@@ -274,7 +276,7 @@ function startRun(goal, opts = {}) {
   // Matriz de executores unificada em adapters.mjs (mesma da engine autopilot)
   let spec;
   try {
-    spec = buildSpawn(executor, fullGoal, { root: ROOT, maxTurns });
+    spec = buildSpawn(executor, fullGoal, { root: runRoot, maxTurns });
   } catch (err) {
     state.status = "error";
     state.exitCode = 1;
@@ -298,8 +300,8 @@ function startRun(goal, opts = {}) {
   const quietUi = false; // grok agora roda via -p (headless real, output limpo) — ver adapters.mjs
 
   try {
-    child = spawn(cmd, args, {
-      cwd: ROOT,
+    child = spawnRun(cmd, args, {
+      cwd: runRoot,
       env: spec.env,
       shell: false,
       windowsHide: true,
@@ -391,7 +393,7 @@ function startRun(goal, opts = {}) {
       outSan.flush();
       errSan.flush();
     }
-    finishRun(code);
+    finishRun(code, runRoot);
   });
 
   // Heartbeat clean status
@@ -408,8 +410,8 @@ function startRun(goal, opts = {}) {
   const watched = new Map(); // path -> mtime
   const watchPaths = [
     path.join(__dirname, "e2e-result.md"),
-    path.join(ROOT, "workbench", "HANDOFF.md"),
-    path.join(ROOT, "workbench", "QUEUE.md"),
+    path.join(runRoot, "workbench", "HANDOFF.md"),
+    path.join(runRoot, "workbench", "QUEUE.md"),
   ];
   const fileWatch = setInterval(() => {
     if (state.status !== "running") {
@@ -423,7 +425,7 @@ function startRun(goal, opts = {}) {
         const st = fs.statSync(p);
         const prev = watched.get(p);
         if (prev && st.mtimeMs !== prev) {
-          log(`📝 atualizado: ${path.relative(ROOT, p)}`);
+          log(`📝 atualizado: ${path.relative(runRoot, p)}`);
         }
         watched.set(p, st.mtimeMs);
       } catch {
@@ -441,7 +443,7 @@ function startRun(goal, opts = {}) {
           clearInterval(heartbeat);
           stopRun();
           setTimeout(() => {
-            if (state.status === "running") finishRun(0);
+            if (state.status === "running") finishRun(0, runRoot);
             else if (state.exitCode !== 0) {
               state.status = "done";
               state.exitCode = 0;
@@ -470,11 +472,11 @@ function startRun(goal, opts = {}) {
     executor,
     playerId: player?.id || null,
     pid: state.pid,
-    rawLog: path.relative(ROOT, rawLogPath),
+    rawLog: path.relative(runRoot, rawLogPath),
   };
 }
 
-function finishRun(code) {
+function finishRun(code, runRoot = ROOT) {
   if (state.status !== "running" && state.status !== "error") {
     // already finalized
   }
@@ -483,7 +485,7 @@ function finishRun(code) {
   state.status = code === 0 ? "done" : "error";
   state.pid = null;
   child = null;
-  if (code === 0) cleanupExternalizedPrompts(ROOT);
+  if (code === 0) cleanupExternalizedPrompts(runRoot);
   log(code === 0 ? "✓ Run finished OK" : `✗ Run finished exit=${code}`);
   broadcastStatus();
   try {
@@ -544,12 +546,6 @@ function broadcastPipeline(snapMap) {
   }
 }
 
-const engine = createEngineManager({
-  root: ROOT,
-  emitLog: (line) => log(line),
-  emitPipeline: broadcastPipeline,
-});
-
 function sendJson(res, status, obj) {
   const body = JSON.stringify(obj);
   // sem Access-Control-Allow-Origin: UI é same-origin; CLI não é browser.
@@ -574,8 +570,23 @@ function readBody(req) {
   });
 }
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || "/", `http://127.0.0.1:${PORT}`);
+export function createMaestroServer({
+  root = ROOT,
+  host = "127.0.0.1",
+  port = PORT,
+  engineManager,
+  spawnImpl = spawn,
+} = {}) {
+  const engine =
+    engineManager ||
+    createEngineManager({
+      root,
+      emitLog: (line) => log(line),
+      emitPipeline: broadcastPipeline,
+    });
+
+  const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url || "/", `http://${host}:${port}`);
   const method = req.method || "GET";
 
   if (method === "OPTIONS") {
@@ -652,7 +663,7 @@ const server = http.createServer(async (req, res) => {
         executor: body.executor,
         playerId: body.playerId,
         maxTurns: body.maxTurns,
-      });
+      }, { root, spawnImpl });
       sendJson(res, result.ok ? 200 : 409, result);
     } catch (e) {
       sendJson(res, 400, { ok: false, error: String(e) });
@@ -718,7 +729,7 @@ const server = http.createServer(async (req, res) => {
   // Assets do Next export referenciam a raiz (/_next/*): resolve no out/ dos apps
   // (necessário pro /preview/<app>/ funcionar — gate visual da pipeline)
   if (url.pathname.startsWith("/_next/") || url.pathname === "/favicon.ico") {
-    const appsDir = path.join(ROOT, "apps");
+    const appsDir = path.join(root, "apps");
     try {
       for (const app of fs.readdirSync(appsDir)) {
         if (!/^[a-z0-9-]+$/.test(app)) continue;
@@ -738,7 +749,7 @@ const server = http.createServer(async (req, res) => {
 
   // Templates do kit IG (marketing/ig-kit): /ig-kit/<arquivo>?params
   if (url.pathname.startsWith("/ig-kit/")) {
-    const kitDir = path.join(ROOT, "marketing", "ig-kit");
+    const kitDir = path.join(root, "marketing", "ig-kit");
     const f = path.resolve(kitDir, "." + url.pathname.slice("/ig-kit".length));
     if (insideDir(kitDir, f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
       res.writeHead(200, { "Content-Type": contentType(f) });
@@ -752,7 +763,7 @@ const server = http.createServer(async (req, res) => {
 
   // docs/ read-only (cockpit renderiza scorecard/system-design/design-system nos gates)
   if (url.pathname.startsWith("/docs/")) {
-    const docsDir = path.join(ROOT, "docs");
+    const docsDir = path.join(root, "docs");
     const f = path.resolve(docsDir, "." + url.pathname.slice("/docs".length));
     if (insideDir(docsDir, f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
       res.writeHead(200, { "Content-Type": contentType(f) });
@@ -766,8 +777,8 @@ const server = http.createServer(async (req, res) => {
 
   // Docs de run do app (repo-por-app): /apps/<app>/docs/<file>.md|.html — read-only p/ os gates
   if (/^\/apps\/[a-z0-9-]+\/docs\//.test(url.pathname)) {
-    const appsDir = path.join(ROOT, "apps");
-    const f = path.resolve(ROOT, "." + url.pathname);
+    const appsDir = path.join(root, "apps");
+    const f = path.resolve(root, "." + url.pathname);
     if (insideDir(appsDir, f) && /\.(md|html)$/i.test(f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
       res.writeHead(200, { "Content-Type": contentType(f) });
       fs.createReadStream(f).pipe(res);
@@ -801,7 +812,7 @@ const server = http.createServer(async (req, res) => {
       res.end("app id inválido");
       return;
     }
-    const outDir = path.join(ROOT, "apps", appId, "out");
+    const outDir = path.join(root, "apps", appId, "out");
     const relPath = parts.slice(2).join("/") || "index.html";
     let f = path.resolve(outDir, relPath);
     if (relPath.split(/[\\/]/).includes("..") || !insideDir(outDir, f)) {
@@ -838,13 +849,20 @@ const server = http.createServer(async (req, res) => {
 
   res.writeHead(404);
   res.end("Not found");
-});
+  });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log("");
-  console.log(`  🎼  Maestro server  http://127.0.0.1:${PORT}`);
-  console.log(`  Run API            POST /api/run`);
-  console.log(`  Live logs          GET  /api/events (SSE)`);
-  console.log(`  CWD                ${ROOT}`);
-  console.log("");
-});
+  return server;
+}
+
+const invokedDirectly = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedDirectly) {
+  const server = createMaestroServer();
+  server.listen(PORT, "127.0.0.1", () => {
+    console.log("");
+    console.log(`  🎼  Maestro server  http://127.0.0.1:${PORT}`);
+    console.log(`  Run API            POST /api/run`);
+    console.log(`  Live logs          GET  /api/events (SSE)`);
+    console.log(`  CWD                ${ROOT}`);
+    console.log("");
+  });
+}
