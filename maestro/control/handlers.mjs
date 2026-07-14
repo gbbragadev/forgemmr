@@ -21,6 +21,9 @@ export function createEngineActionHandlers({ root, engineManager }) {
       engineManager.decide(appId, input.gateId, input.choice, input.feedback),
     "pipeline.stop": ({ appId }) => engineManager.stop(appId),
     "pipeline.resume": ({ appId }) => engineManager.resume(appId),
+    "pipeline.control_mode": ({ appId, input }) =>
+      engineManager.setControlMode(appId, input.mode),
+    "pipeline.continue": ({ appId }) => engineManager.continuePipeline(appId),
     "pipeline.target": ({ appId, input }) =>
       engineManager.setTarget(appId, input.target, input.subdomain),
     "pipeline.kill": ({ appId }) => engineManager.kill(appId),

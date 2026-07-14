@@ -46,6 +46,31 @@ const JOB_TEMPLATES = {
 
 // rótulos curtos por job (fonte única — TUI importa; index.html espelha em literal)
 export const JOB_SHORT = { "L0/P0": "P0", FOUNDATION: "Fundação", "DS-GEN": "Design", "L0/P1": "P1", "L1/B1": "B1", "L1/B2": "B2", "L1/B3": "B3", "L1/B4": "B4", "L1/B5": "B5", P3: "ship", ITERATE: "iterar" };
+export const CONTROL_MODES = ["autopilot_to_gate", "guided", "manual"];
+
+function normalizeControlMode(mode, { fallback = false } = {}) {
+  const normalized = mode || "autopilot_to_gate";
+  if (CONTROL_MODES.includes(normalized)) return normalized;
+  if (fallback) return "autopilot_to_gate";
+  throw new Error(`modo de controle inválido: ${mode} — use ${CONTROL_MODES.join(" | ")}`);
+}
+
+function controlPhase(job) {
+  if (job === "L0/P0") return "product";
+  if (job === "FOUNDATION") return "foundation";
+  if (job === "DS-GEN") return "design";
+  if (job === "L0/P1") return "acquisition";
+  if (job?.startsWith("L1/")) return "build";
+  if (job === "P3") return "ship";
+  if (job === "ITERATE") return "iterate";
+  return `blueprint:${job}`;
+}
+
+function shouldPauseForControl(pipeline, completedJob, nextJob) {
+  if (!nextJob || pipeline.controlMode === "autopilot_to_gate") return false;
+  if (pipeline.controlMode === "manual") return true;
+  return pipeline.controlMode === "guided" && controlPhase(completedJob) !== controlPhase(nextJob);
+}
 
 /**
  * Extrai o tipo de app declarado pelo P0 no scorecard (linha "Tipo: static|quiz|chat",
@@ -1205,6 +1230,19 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
             save();
             break;
           }
+          if (shouldPauseForControl(pipeline, job, pipeline.currentJob)) {
+            pipeline.controlPause = {
+              afterJob: job,
+              nextJob: pipeline.currentJob,
+              reason: pipeline.controlMode === "manual" ? "job_boundary" : "phase_boundary",
+              createdAt: new Date().toISOString(),
+            };
+            pipeline.status = "paused_control";
+            log(`⏸ CONTROLE ${pipeline.controlMode}: ${job} concluído · próximo ${pipeline.currentJob}`);
+            workbench.handoffUpdate(paths, pipeline);
+            save();
+            break;
+          }
           workbench.handoffUpdate(paths, pipeline);
           save();
         } else {
@@ -1239,6 +1277,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
   function finish(status) {
     pipeline.status = status;
+    pipeline.controlPause = null;
     pipeline.endedAt = new Date().toISOString();
     pipeline.currentJob = null;
     if (status === "done") {
@@ -1291,7 +1330,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
   // ---------- API pública ----------
 
   function start(params) {
-    if (pipeline && ["running", "paused_gate", "blocked"].includes(pipeline.status)) {
+    if (pipeline && ["running", "paused_gate", "paused_control", "blocked"].includes(pipeline.status)) {
       throw activeRunError();
     }
     profile = loadProfile(root);
@@ -1341,6 +1380,8 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       capability,
       dryRun,
       status: "running",
+      controlMode: normalizeControlMode(params.controlMode),
+      controlPause: null,
       profileName: profile.name,
       capabilityAuto,
       jobs,
@@ -1401,7 +1442,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
   /** Loop de melhoria: feedback geral do dono → ITERATE → gate visual → B5 → gate deploy → redeploy */
   function startFeedback(params) {
-    if (pipeline && ["running", "paused_gate", "blocked"].includes(pipeline.status)) {
+    if (pipeline && ["running", "paused_gate", "paused_control", "blocked"].includes(pipeline.status)) {
       throw activeRunError();
     }
     profile = loadProfile(root);
@@ -1438,6 +1479,8 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       capability,
       dryRun,
       status: "running",
+      controlMode: normalizeControlMode(params.controlMode),
+      controlPause: null,
       profileName: profile.name,
       jobs: ["ITERATE", "L1/B5", "P3"],
       jobIndex: 0,
@@ -1556,6 +1599,26 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
   const DEPLOY_TARGETS = ["cf-pages", "cf-workers", "vercel", "gh-pages"];
 
+  function setControlMode(mode) {
+    if (!pipeline) throw new Error("nenhuma pipeline");
+    pipeline.controlMode = normalizeControlMode(mode);
+    log(`✔ modo de controle: ${pipeline.controlMode}`);
+    save();
+    return snapshot();
+  }
+
+  function continuePipeline() {
+    if (!pipeline || pipeline.status !== "paused_control") {
+      throw new Error("pipeline não está pausada pelo controle");
+    }
+    pipeline.controlPause = null;
+    pipeline.status = "running";
+    log("▶ continuação autorizada pelo Control Center");
+    save();
+    advanceLoop();
+    return snapshot();
+  }
+
   /** troca o alvo de deploy DESTE run (sem recomeçar). Ex.: run travado por VERCEL_TOKEN ausente. */
   function setTarget(target, subdomain) {
     if (!pipeline) return { ok: false, error: "nenhuma pipeline" };
@@ -1616,6 +1679,9 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     }
     const gate = pipeline.gates.find((g) => !g.decision);
     if (gate) return snapshot(); // gate pendente: decisão via decide()
+    if (pipeline.status === "paused_control") {
+      throw new Error("pipeline pausada pelo controle — use continuePipeline");
+    }
     if (["done", "killed", "error"].includes(pipeline.status)) throw new Error(`pipeline ${pipeline.status} — nada a retomar`);
     pipeline.status = "running";
     save();
@@ -1627,6 +1693,8 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
   if (fs.existsSync(PIPELINE_PATH)) {
     try {
       const saved = JSON.parse(fs.readFileSync(PIPELINE_PATH, "utf8"));
+      saved.controlMode = normalizeControlMode(saved.controlMode, { fallback: true });
+      saved.controlPause = saved.controlPause || null;
       const now = Date.now();
       for (const [playerId, until] of Object.entries(saved.cooldowns || {})) {
         const untilMs = Date.parse(until);
@@ -1654,7 +1722,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     }
   }
 
-  return { start, startFeedback, decide, stop, kill, resume, snapshot, setTarget };
+  return { start, startFeedback, decide, stop, kill, resume, snapshot, setTarget, setControlMode, continuePipeline };
 }
 
 /**
@@ -1713,7 +1781,7 @@ export function createEngineManager({ root, emitLog, emitPipeline }) {
     }
   }
 
-  const ACTIVE = ["running", "paused_gate", "blocked"];
+  const ACTIVE = ["running", "paused_gate", "paused_control", "blocked"];
   const activeEntries = () => [...engines.entries()].filter(([, e]) => ACTIVE.includes(e.snapshot().status));
 
   /** resolve o alvo: appId explícito, ou fallback quando há exatamente 1 pipeline ativa (compat CLI) */
@@ -1750,6 +1818,12 @@ export function createEngineManager({ root, emitLog, emitPipeline }) {
     },
     setTarget(appId, deployTarget, subdomain) {
       return target(appId).setTarget(deployTarget, subdomain);
+    },
+    setControlMode(appId, mode) {
+      return target(appId).setControlMode(mode);
+    },
+    continuePipeline(appId) {
+      return target(appId).continuePipeline();
     },
     resume(appId) {
       return target(appId).resume();
