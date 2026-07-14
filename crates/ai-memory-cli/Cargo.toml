@@ -1,0 +1,58 @@
+[package]
+name = "ai-memory-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "`ai-memory` binary entry point."
+
+[[bin]]
+name = "ai-memory"
+path = "src/main.rs"
+
+[dependencies]
+ai-memory-consolidate.workspace = true
+ai-memory-core.workspace = true
+ai-memory-hooks.workspace = true
+ai-memory-llm.workspace = true
+ai-memory-mcp.workspace = true
+ai-memory-store.workspace = true
+ai-memory-web.workspace = true
+ai-memory-wiki.workspace = true
+reqwest.workspace = true
+secrecy.workspace = true
+subtle.workspace = true
+getrandom.workspace = true
+base64.workspace = true
+anyhow.workspace = true
+axum.workspace = true
+clap.workspace = true
+dirs.workspace = true
+figment.workspace = true
+flate2.workspace = true
+fs2.workspace = true
+rmcp.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml_edit.workspace = true
+sysinfo.workspace = true
+tar.workspace = true
+jiff.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+tracing-appender.workspace = true
+tracing-subscriber.workspace = true
+
+tempfile.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tower.workspace = true
+
+[lints]
+workspace = true
