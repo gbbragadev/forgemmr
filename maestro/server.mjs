@@ -33,6 +33,7 @@ import { createAuditLog } from "./control/audit.mjs";
 import { createConfirmationManager } from "./control/confirmations.mjs";
 import { ControlError, createControlDispatcher } from "./control/dispatcher.mjs";
 import { createEngineActionHandlers } from "./control/handlers.mjs";
+import { createFactoryAdmin } from "./control/factory-admin.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -609,6 +610,7 @@ export function createMaestroServer({
       emitPipeline: broadcastPipeline,
     });
   const operations = operationStore || createOperationStore({ root });
+  const factoryAdmin = createFactoryAdmin({ root, spawnImpl });
   const audit = createAuditLog({ root });
   const confirmations = createConfirmationManager();
   const controlSnapshot = () =>
@@ -616,6 +618,7 @@ export function createMaestroServer({
       root,
       engineManager: engine,
       operations: operations.list(),
+      providerHealth: factoryAdmin.listProviders(),
       server: { host, port },
     });
   const control = createControlDispatcher({
@@ -623,7 +626,7 @@ export function createMaestroServer({
     operations,
     audit,
     confirmations,
-    handlers: createEngineActionHandlers({ root, engineManager: engine }),
+    handlers: createEngineActionHandlers({ root, engineManager: engine, factoryAdmin }),
     emitEvent: (type, payload) => {
       const data = `data: ${JSON.stringify({ type, ...payload })}\n\n`;
       for (const client of sseClients) {

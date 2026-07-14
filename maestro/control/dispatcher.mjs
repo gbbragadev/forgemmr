@@ -70,6 +70,10 @@ function validateInput(action, input) {
       throw new ControlError(400, "input_required", `${field.label || field.name} é obrigatório.`);
     }
     if (value === undefined || value === null) continue;
+    if (field.type === "team-members") {
+      if (!Array.isArray(value)) throw new ControlError(400, "input_type", `${field.name} precisa ser uma lista.`);
+      continue;
+    }
     if (field.type === "checkbox" && typeof value !== "boolean") {
       throw new ControlError(400, "input_type", `${field.name} precisa ser booleano.`);
     }

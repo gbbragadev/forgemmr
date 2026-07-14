@@ -27,7 +27,7 @@ function pendingGate(pipeline) {
  * Catálogo state-driven. O browser renderiza estes descritores, mas nunca escolhe
  * comandos, executáveis ou caminhos de arquivo.
  */
-export function createActionCatalog({ pipelines = [], teams = [], profiles = [], blueprints = [] } = {}) {
+export function createActionCatalog({ pipelines = [], teams = [], profiles = [], blueprints = [], providers = [] } = {}) {
   const teamIds = teams.map((team) => team.id);
   const profileIds = profiles.map((profile) => profile.slug);
   const blueprintIds = blueprints.map((blueprint) => blueprint.id);
@@ -48,6 +48,78 @@ export function createActionCatalog({ pipelines = [], teams = [], profiles = [],
         field("target", "Target", "select", { options: ["auto", "cf-pages", "cf-workers", "vercel", "gh-pages"] }),
         field("dryRun", "Dry-run", "checkbox"),
         field("controlMode", "Modo de controle", "select", { options: ["autopilot_to_gate", "guided", "manual"] }),
+      ],
+    }),
+    action({
+      id: "profile.create",
+      scope: "factory",
+      label: "Criar profile",
+      description: "Cria uma configuração reutilizável de nicho, idioma e deploy e já a ativa.",
+      risk: "guarded",
+      expectedEffect: "Grava profiles/<slug>/profile.md e atualiza a cópia ativa em .forge/.",
+      fields: [
+        field("name", "Nome", "text", { required: true }),
+        field("niche", "Nicho", "text", { required: true }),
+        field("namespace", "Namespace", "text", { required: true }),
+        field("baseUrl", "Domínio base", "text", { required: true }),
+        field("i18nRule", "Idiomas", "select", { required: true, options: ["single", "bilingual"] }),
+        field("context", "Contexto e guardrails", "textarea"),
+      ],
+    }),
+    action({
+      id: "profile.activate",
+      scope: "factory",
+      label: "Ativar profile",
+      description: "Troca o profile usado pelas próximas pipelines.",
+      risk: "guarded",
+      enabled: profileIds.length > 0,
+      blockedReason: "Nenhum profile foi criado ainda.",
+      expectedEffect: "Atualiza .forge/profile.md e .forge/active.txt.",
+      fields: [field("slug", "Profile", "select", { required: true, options: profileIds })],
+    }),
+    action({
+      id: "profile.import",
+      scope: "factory",
+      label: "Importar profile ativo",
+      description: "Adiciona à biblioteca uma configuração .forge/profile.md ainda órfã.",
+      risk: "safe",
+      expectedEffect: "Cria uma entrada em profiles/ sem sobrescrever conteúdo existente.",
+    }),
+    action({
+      id: "team.save",
+      scope: "factory",
+      label: "Salvar time",
+      description: "Monta dispatch, fallbacks e revisor a partir dos músicos escolhidos.",
+      risk: "guarded",
+      expectedEffect: "Atualiza somente o time escolhido e preserva o restante do roster.",
+      fields: [
+        field("name", "Nome do time", "text", { required: true }),
+        field("emoji", "Símbolo", "text"),
+        field("members", "Músicos", "team-members", { required: true }),
+      ],
+    }),
+    action({
+      id: "providers.refresh",
+      scope: "factory",
+      label: "Atualizar providers",
+      description: "Refaz o diagnóstico local das CLIs conhecidas.",
+      risk: "safe",
+      expectedEffect: "Atualiza disponibilidade sem executar um coding agent.",
+    }),
+    action({
+      id: "provider.login",
+      scope: "factory",
+      label: "Conectar provider",
+      description: "Inicia o fluxo oficial de login da CLI escolhida.",
+      risk: "external",
+      enabled: providers.some((provider) => provider.installed && provider.loginSupported),
+      blockedReason: "Nenhuma CLI instalada possui login interativo disponível.",
+      expectedEffect: "Abre o fluxo de autenticação da CLI; nenhuma credencial passa pela central.",
+      fields: [
+        field("provider", "Provider", "select", {
+          required: true,
+          options: providers.filter((provider) => provider.installed && provider.loginSupported).map((provider) => provider.id),
+        }),
       ],
     }),
   ];

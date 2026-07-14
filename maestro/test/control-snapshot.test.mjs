@@ -77,6 +77,9 @@ test("snapshot reúne a fábrica, ordena pipelines e descreve somente ações v�
     assert.equal(start.risk, "safe");
     assert.equal(start.enabled, true);
     assert.ok(start.fields.find((field) => field.name === "team").options.includes("dry-run"));
+    for (const actionId of ["profile.create", "profile.activate", "team.save", "providers.refresh", "provider.login"]) {
+      assert.ok(snapshot.actions.some((action) => action.id === actionId), `ação de fábrica ausente: ${actionId}`);
+    }
 
     const decide = snapshot.actions.find((action) => action.id === "gate.decide" && action.scope === "pipeline:a-app");
     assert.equal(decide.risk, "guarded");

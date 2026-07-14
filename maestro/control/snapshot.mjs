@@ -94,18 +94,20 @@ function pendingDecisions(pipelines) {
   return decisions.sort((a, b) => a.appId.localeCompare(b.appId) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
 }
 
-export function buildControlSnapshot({ root, engineManager, operations = [], now = new Date(), server = {} }) {
+export function buildControlSnapshot({ root, engineManager, operations = [], now = new Date(), server = {}, providerHealth = null }) {
   const pipelineMap = engineManager?.snapshot?.() || {};
   const pipelines = Object.entries(pipelineMap)
     .map(([appId, pipeline]) => ({ appId, ...pipeline }))
     .sort((a, b) => a.appId.localeCompare(b.appId));
   const profiles = listProfiles(root);
-  const { providers, teams } = normalizeRoster(root);
+  const roster = normalizeRoster(root);
+  const providers = providerHealth || roster.providers;
+  const teams = roster.teams;
   const blueprints = listBlueprints(root);
   const decisions = pendingDecisions(pipelines);
   const lifecycle = listLifecycle(root);
   const stats = aggregateRuns(loadRuns(root));
-  const actions = createActionCatalog({ pipelines, profiles, teams, blueprints });
+  const actions = createActionCatalog({ pipelines, profiles, teams, blueprints, providers });
   const core = {
     server: {
       status: "online",
