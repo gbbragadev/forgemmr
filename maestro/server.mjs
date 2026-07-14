@@ -29,6 +29,10 @@ import {
 import { createEngineManager } from "./engine.mjs";
 import { buildControlSnapshot } from "./control/snapshot.mjs";
 import { createOperationStore } from "./control/store.mjs";
+import { createAuditLog } from "./control/audit.mjs";
+import { createConfirmationManager } from "./control/confirmations.mjs";
+import { ControlError, createControlDispatcher } from "./control/dispatcher.mjs";
+import { createEngineActionHandlers } from "./control/handlers.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -556,6 +560,23 @@ function sendJson(res, status, obj) {
   res.end(body);
 }
 
+function sendControlError(res, error) {
+  if (error instanceof ControlError) {
+    sendJson(res, error.status, {
+      ok: false,
+      code: error.code,
+      error: error.message,
+      ...(error.details ? { details: error.details } : {}),
+    });
+    return;
+  }
+  sendJson(res, 500, {
+    ok: false,
+    code: "control_internal",
+    error: error instanceof Error ? error.message : String(error),
+  });
+}
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -588,6 +609,32 @@ export function createMaestroServer({
       emitPipeline: broadcastPipeline,
     });
   const operations = operationStore || createOperationStore({ root });
+  const audit = createAuditLog({ root });
+  const confirmations = createConfirmationManager();
+  const controlSnapshot = () =>
+    buildControlSnapshot({
+      root,
+      engineManager: engine,
+      operations: operations.list(),
+      server: { host, port },
+    });
+  const control = createControlDispatcher({
+    getSnapshot: controlSnapshot,
+    operations,
+    audit,
+    confirmations,
+    handlers: createEngineActionHandlers({ root, engineManager: engine }),
+    emitEvent: (type, payload) => {
+      const data = `data: ${JSON.stringify({ type, ...payload })}\n\n`;
+      for (const client of sseClients) {
+        try {
+          client.write(data);
+        } catch {
+          sseClients.delete(client);
+        }
+      }
+    },
+  });
 
   const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${host}:${port}`);
@@ -637,19 +684,39 @@ export function createMaestroServer({
 
   if (url.pathname === "/api/control/snapshot" && method === "GET") {
     try {
-      sendJson(
-        res,
-        200,
-        buildControlSnapshot({
-          root,
-          engineManager: engine,
-          operations: operations.list(),
-          server: { host, port },
-        }),
-      );
+      sendJson(res, 200, controlSnapshot());
     } catch (error) {
       sendJson(res, 500, { ok: false, error: `control_snapshot_failed: ${error instanceof Error ? error.message : String(error)}` });
     }
+    return;
+  }
+
+  if (url.pathname === "/api/control/confirmations" && method === "POST") {
+    try {
+      sendJson(res, 201, control.issueConfirmation(await readBody(req)));
+    } catch (error) {
+      sendControlError(res, error);
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/control/actions/execute" && method === "POST") {
+    try {
+      sendJson(res, 200, await control.execute(await readBody(req)));
+    } catch (error) {
+      sendControlError(res, error);
+    }
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/control/operations/") && method === "GET") {
+    const id = decodeURIComponent(url.pathname.slice("/api/control/operations/".length));
+    const operation = /^[a-zA-Z0-9_-]+$/.test(id) ? control.getOperation(id) : null;
+    sendJson(
+      res,
+      operation ? 200 : 404,
+      operation || { ok: false, code: "operation_not_found", error: "Operação não encontrada." },
+    );
     return;
   }
 

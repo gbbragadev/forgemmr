@@ -25,6 +25,17 @@ export function openPrivateFile(file) {
   return fd;
 }
 
+/** Anexa uma linha a um arquivo sensível sem relaxar a permissão existente. */
+export function appendPrivateFile(file, content) {
+  const fd = fs.openSync(file, "a", 0o600);
+  try {
+    fs.writeFileSync(fd, content, "utf8");
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.chmodSync(file, 0o600);
+}
+
 /** Prompts externalizados são temporários e não sobrevivem a um run bem-sucedido. */
 export function cleanupExternalizedPrompts(root) {
   fs.rmSync(path.join(root, "maestro", ".prompts"), { recursive: true, force: true });

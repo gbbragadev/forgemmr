@@ -37,6 +37,9 @@ export function createOperationStore({ root }) {
     get(id) {
       return readState(file).operations.find((operation) => operation.id === id) || null;
     },
+    findByIdempotencyKey(key) {
+      return readState(file).operations.find((operation) => operation.idempotencyKey === key) || null;
+    },
     put(operation) {
       if (!operation || !/^[a-zA-Z0-9_-]+$/.test(String(operation.id || ""))) {
         throw new Error("operação precisa de id seguro");
