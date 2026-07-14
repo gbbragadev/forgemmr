@@ -1,354 +1,203 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Maestro HQ — Forge</title>
-  <style>
-    :root {
-      --bg: #0a0612; --surface: #161022; --surface2: #1f1730;
-      --ink: #f5f0ff; --muted: #a89bc0;
-      --pink: #ff4d9a; --purple: #c44dff; --cyan: #38bdf8; --green: #34d399; --amber: #fbbf24; --red: #fb7185;
-      --border: rgba(255,255,255,.08);
-      --font: "Segoe UI", system-ui, sans-serif;
-      --mono: ui-monospace, Consolas, monospace;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; font-family: var(--font); color: var(--ink); min-height: 100vh;
-      background:
-        radial-gradient(800px 400px at 15% -5%, #5b21b680, transparent 50%),
-        radial-gradient(700px 380px at 100% 0%, #9d174d55, transparent 45%),
-        var(--bg);
-    }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
-    .hero {
-      display: grid; grid-template-columns: 96px 1fr; gap: 18px; align-items: center;
-      padding: 18px 22px; border-radius: 22px;
-      border: 1px solid rgba(196,77,255,.35);
-      background: linear-gradient(145deg, #241834ee, #120c1cee);
-      box-shadow: 0 0 40px rgba(196,77,255,.22); margin-bottom: 18px;
-    }
-    @media (max-width: 640px) { .hero { grid-template-columns: 1fr; text-align: center; } }
-    .avatar {
-      width: 84px; height: 84px; border-radius: 22px; display: grid; place-items: center; font-size: 46px;
-      background: linear-gradient(145deg, #7c3aed, #db2777); box-shadow: 0 0 26px rgba(219,39,119,.45);
-    }
-    .hero h1 {
-      margin: 0 0 4px; font-size: clamp(1.4rem, 4vw, 2rem);
-      background: linear-gradient(90deg, #fff, #ffb7d5, #c44dff);
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-    }
-    .hero .tag { color: var(--muted); margin: 0 0 10px; font-size: 14px; }
-    .status-row { display: flex; flex-wrap: wrap; gap: 8px; }
-    @media (max-width: 640px) { .status-row { justify-content: center; } }
-    .pill {
-      font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px;
-      border: 1px solid var(--border); background: var(--surface2); color: var(--muted);
-    }
-    .pill.on { border-color: rgba(52,211,153,.45); color: var(--green); background: rgba(52,211,153,.1); }
-    .pill.off { border-color: rgba(251,113,133,.4); color: var(--red); }
-    .pill.warn { border-color: rgba(251,191,36,.45); color: var(--amber); background: rgba(251,191,36,.08); }
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#11110f">
+    <title>Maestro Control Center · Forge</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23171613'/%3E%3Cpath d='M8 23V9h4l4 7 4-7h4v14h-4v-7l-4 6-4-6v7Z' fill='%23f4efe6'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/control-center.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Ir para o conteúdo</a>
 
-    h2 { margin: 26px 0 12px; font-size: 1.05rem; color: #e9d5ff; letter-spacing: .02em; }
-    .panel { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 18px; }
-    .muted { color: var(--muted); }
-
-    /* pipeline progress */
-    .jobs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
-    .job {
-      font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 8px;
-      background: rgba(255,255,255,.05); color: var(--muted); border: 1px solid transparent;
-    }
-    .job.done { color: var(--green); background: rgba(52,211,153,.1); }
-    .job.now { color: var(--cyan); border-color: rgba(56,189,248,.5); background: rgba(56,189,248,.1); }
-    .job.gate { color: var(--amber); border-color: rgba(251,191,36,.5); background: rgba(251,191,36,.08); }
-
-    /* players strip */
-    .players { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-    .pchip {
-      display: flex; align-items: center; gap: 8px; padding: 7px 11px; border-radius: 12px;
-      border: 1px solid var(--border); background: var(--surface2); font-size: 12.5px;
-    }
-    .pchip .mdl { color: var(--muted); font-size: 11px; }
-    .pchip.active { border-color: rgba(56,189,248,.6); box-shadow: 0 0 16px rgba(56,189,248,.2); }
-
-    /* gate */
-    .gate { border: 1px solid rgba(251,191,36,.4); border-radius: 16px; background: rgba(251,191,36,.05); padding: 16px; margin-top: 14px; }
-    .gate h3 { margin: 0 0 4px; font-size: 1rem; color: var(--amber); }
-    .gate .prompt { color: var(--ink); font-size: 13.5px; margin: 0 0 12px; line-height: 1.5; }
-    .doc {
-      max-height: 360px; overflow: auto; background: #05030a; border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px; font-size: 13px; line-height: 1.55;
-    }
-    .doc h1, .doc h2, .doc h3 { color: #e9d5ff; margin: 12px 0 6px; }
-    .doc h1 { font-size: 1.15rem; } .doc h2 { font-size: 1rem; } .doc h3 { font-size: .92rem; }
-    .doc table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 12.5px; }
-    .doc th, .doc td { border: 1px solid var(--border); padding: 5px 8px; text-align: left; }
-    .doc th { background: var(--surface2); color: #e9d5ff; }
-    .doc code { color: #fbcfe8; font-family: var(--mono); }
-    .doc ul { margin: 6px 0; padding-left: 20px; }
-    .props { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 4px 0 6px; }
-    .props figure { margin: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface2); }
-    .props iframe { width: 100%; height: 280px; border: 0; background: #fff; display: block; }
-    .props figcaption { font-size: 12px; padding: 6px 10px; color: var(--muted); }
-    .preview-frame { width: 100%; height: 440px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
-    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center; }
-    .btn { border: 0; border-radius: 11px; padding: 11px 18px; font-weight: 700; font: inherit; cursor: pointer; }
-    .btn.go { background: linear-gradient(90deg, var(--green), #22c55e); color: #04120b; }
-    .btn.pick { background: linear-gradient(90deg, var(--cyan), var(--purple)); color: #fff; }
-    .btn.retry { background: var(--surface2); color: var(--ink); border: 1px solid var(--border); }
-    .btn.kill { background: rgba(251,113,133,.18); color: var(--red); border: 1px solid rgba(251,113,133,.4); }
-    .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .fb { flex: 1 1 200px; min-width: 160px; border-radius: 10px; border: 1px solid var(--border); background: #0a0610; color: var(--ink); padding: 9px 12px; font: inherit; }
-
-    .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    .links a { color: #f9a8d4; font-size: 13px; text-decoration: none; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--border); background: rgba(0,0,0,.25); }
-    .links a:hover { border-color: var(--pink); }
-    .logbox {
-      margin-top: 12px; background: #05030a; border: 1px solid var(--border); border-radius: 12px;
-      height: 260px; overflow: auto; padding: 12px; font-family: var(--mono); font-size: 11.5px;
-      color: #c4b5fd; white-space: pre-wrap; line-height: 1.45;
-    }
-    .logbox .err { color: var(--red); } .logbox .ok { color: var(--green); }
-    .toast {
-      position: fixed; bottom: 20px; right: 20px; background: #1f1730; border: 1px solid rgba(52,211,153,.5);
-      color: var(--green); padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600;
-      display: none; z-index: 50; max-width: 320px;
-    }
-    .toast.show { display: block; }
-    footer { margin-top: 30px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 14px; }
-    code { color: #fbcfe8; font-size: .9em; }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <header class="hero">
-      <div class="avatar" id="maestro-face">🎼</div>
-      <div>
-        <h1 id="maestro-name">Maestro</h1>
-        <p class="tag" id="maestro-tagline">Eu conduzo o ensaio. Você decide a obra.</p>
-        <div class="status-row" id="status-row">
-          <span class="pill" id="pill-api">API…</span>
-          <span class="pill" id="pill-pipe">sem pipeline</span>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Barra lateral">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <div>
+            <strong>Maestro</strong>
+            <span>Forge Control Center</span>
+          </div>
         </div>
+
+        <nav class="primary-nav" aria-label="Navegação principal">
+          <button class="nav-item is-active" type="button" data-section="overview" aria-current="page">
+            <span class="nav-index">01</span><span>Visão geral</span>
+          </button>
+          <button class="nav-item" type="button" data-section="new-pipeline">
+            <span class="nav-index">02</span><span>Nova pipeline</span>
+          </button>
+          <button class="nav-item" type="button" data-section="pipelines">
+            <span class="nav-index">03</span><span>Pipelines</span>
+          </button>
+          <button class="nav-item" type="button" data-section="decisions">
+            <span class="nav-index">04</span><span>Decisões</span>
+          </button>
+          <button class="nav-item" type="button" data-section="factory">
+            <span class="nav-index">05</span><span>Fábrica</span>
+          </button>
+          <button class="nav-item" type="button" data-section="metrics">
+            <span class="nav-index">06</span><span>Métricas</span>
+          </button>
+          <button class="nav-item" type="button" data-section="activity">
+            <span class="nav-index">07</span><span>Atividade</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-foot">
+          <span class="connection-dot" id="connection-dot" aria-hidden="true"></span>
+          <div>
+            <strong id="connection-label">Conectando</strong>
+            <span>somente nesta máquina</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="main-column">
+        <header class="topbar">
+          <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir navegação" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="topbar-title">
+            <span class="eyebrow">CENTRAL OPERACIONAL LOCAL</span>
+            <h1>Maestro Control Center</h1>
+          </div>
+          <div class="topbar-actions">
+            <span class="state-version" id="state-version">estado —</span>
+            <button class="icon-button" id="refresh-button" type="button" aria-label="Atualizar central" title="Atualizar central">↻</button>
+          </div>
+        </header>
+
+        <main id="workspace" class="workspace" tabindex="-1">
+          <div class="global-message" id="global-message" role="status" aria-live="polite"></div>
+          <div class="error-banner" id="error-banner" role="alert" hidden>
+            <div>
+              <strong>Não foi possível atualizar a central.</strong>
+              <span id="error-detail">Confira se o Maestro está disponível.</span>
+            </div>
+            <button class="button button-secondary" id="retry-button" type="button">Tentar novamente</button>
+          </div>
+
+          <section id="overview" class="work-area" aria-labelledby="overview-title">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">AGORA</span>
+                <h2 id="overview-title">Visão geral</h2>
+                <p>O estado da fábrica, as decisões e o próximo movimento seguro.</p>
+              </div>
+              <button class="button button-primary" type="button" data-go-section="new-pipeline">Criar pipeline</button>
+            </div>
+            <div id="overview-content" class="section-content loading-grid" aria-busy="true"></div>
+          </section>
+
+          <section id="new-pipeline" class="work-area" aria-labelledby="new-pipeline-title" hidden>
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">P0 → P5</span>
+                <h2 id="new-pipeline-title">Nova pipeline</h2>
+                <p>Transforme uma ideia em uma aposta executável, sem comandos.</p>
+              </div>
+            </div>
+            <div id="new-pipeline-content" class="section-content"></div>
+          </section>
+
+          <section id="pipelines" class="work-area" aria-labelledby="pipelines-title" hidden>
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">EXECUÇÃO</span>
+                <h2 id="pipelines-title">Pipelines</h2>
+                <p>Acompanhe cada aposta, ajuste o controle e recupere falhas.</p>
+              </div>
+            </div>
+            <div id="pipelines-content" class="section-content"></div>
+          </section>
+
+          <section id="decisions" class="work-area" aria-labelledby="decisions-title" hidden>
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">GATES HUMANOS</span>
+                <h2 id="decisions-title">Decisões</h2>
+                <p>Nada irreversível passa sem contexto e uma escolha explícita.</p>
+              </div>
+            </div>
+            <div id="decisions-content" class="section-content"></div>
+          </section>
+
+          <section id="factory" class="work-area" aria-labelledby="factory-title" hidden>
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">CONFIGURAÇÃO</span>
+                <h2 id="factory-title">Fábrica</h2>
+                <p>Perfis, times, providers e blueprints em um só lugar.</p>
+              </div>
+            </div>
+            <div id="factory-content" class="section-content"></div>
+          </section>
+
+          <section id="metrics" class="work-area" aria-labelledby="metrics-title" hidden>
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">RECEITA E SINAL</span>
+                <h2 id="metrics-title">Métricas</h2>
+                <p>Dados reais para decidir entre matar, iterar ou escalar.</p>
+              </div>
+            </div>
+            <div id="metrics-content" class="section-content"></div>
+          </section>
+
+          <section id="activity" class="work-area" aria-labelledby="activity-title" hidden>
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">RASTREABILIDADE</span>
+                <h2 id="activity-title">Atividade</h2>
+                <p>Operações recentes, resultados sanitizados e eventos ao vivo.</p>
+              </div>
+            </div>
+            <div id="activity-content" class="section-content"></div>
+          </section>
+        </main>
       </div>
-    </header>
-
-    <h2>Cockpit da pipeline</h2>
-    <div class="panel" id="cockpit">
-      <p class="muted" id="cockpit-empty">Sem pipeline ativa. Rode <code>forge new "&lt;ideia&gt;"</code> no terminal — os gates (P0, fundação, design system, visual, deploy) aparecem aqui pra você decidir.</p>
-      <div id="cockpit-body" style="display:none"></div>
     </div>
 
-    <h2>▶ Log ao vivo</h2>
-    <div class="logbox" id="logbox">Aguardando eventos… (SSE)</div>
+    <dialog id="action-dialog" class="action-dialog" aria-labelledby="action-dialog-title">
+      <form id="action-form" method="dialog">
+        <header class="dialog-header">
+          <div>
+            <span class="risk-badge" id="action-risk">Ação</span>
+            <h2 id="action-dialog-title">Executar ação</h2>
+          </div>
+          <button class="dialog-close" id="action-close" type="button" aria-label="Fechar">×</button>
+        </header>
+        <p class="dialog-description" id="action-description"></p>
+        <div class="effect-box">
+          <strong>Efeito esperado</strong>
+          <span id="action-effect"></span>
+        </div>
+        <div id="action-fields" class="form-fields"></div>
+        <div class="confirmation-box" id="confirmation-box" hidden>
+          <label class="check-row">
+            <input id="confirmation-check" type="checkbox">
+            <span id="confirmation-copy">Revisei o efeito e confirmo esta ação.</span>
+          </label>
+        </div>
+        <p class="form-error" id="action-error" role="alert"></p>
+        <footer class="dialog-actions">
+          <button class="button button-secondary" id="action-cancel" type="button">Cancelar</button>
+          <button class="button button-primary" id="action-submit" type="submit">Executar</button>
+        </footer>
+      </form>
+    </dialog>
 
-    <div class="links">
-      <a href="../docs/AGENT-PIPELINE.md">docs/AGENT-PIPELINE.md</a>
-      <a href="../AGENTS.md">AGENTS.md</a>
-      <a href="../docs/prompts/">prompts/</a>
-    </div>
+    <template id="empty-template">
+      <div class="empty-state">
+        <span class="empty-mark" aria-hidden="true">—</span>
+        <h3>Nada por aqui ainda</h3>
+        <p>O próximo passo aparecerá quando houver contexto suficiente.</p>
+      </div>
+    </template>
 
-    <footer id="footer">
-      Maestro HQ · Forge · TUI dirige + monta time · cockpit vê + decide · roster <span id="ver">—</span>
-    </footer>
-  </div>
-
-  <div class="toast" id="toast"></div>
-
-  <script>
-    const API = ""; // same-origin (servido pelo próprio Maestro server)
-    // espelha JOB_SHORT de engine.mjs (fonte única) — mudou lá, muda aqui (browser não importa .mjs do node)
-    const JOB_SHORT = { "L0/P0":"P0", "FOUNDATION":"Fundação", "DS-GEN":"Design", "L0/P1":"P1", "L1/B1":"B1", "L1/B2":"B2", "L1/B3":"B3", "L1/B4":"B4", "L1/B5":"B5", "P3":"ship", "ITERATE":"iterar" };
-    let TOKEN = "", state = { pipelines: {}, selApp: null, roster: null }; // multi-pipeline: mapa { appId: snap }
-
-    const $ = (id) => document.getElementById(id);
-    const toast = (m) => { const el = $("toast"); el.textContent = m; el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 2600); };
-    const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[c]));
-
-    // markdown mínimo (headings, bold, code, tabelas, listas) — zero dep
-    function md(src) {
-      const lines = String(src).split(/\r?\n/); let html = "", i = 0;
-      const inline = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
-      while (i < lines.length) {
-        const l = lines[i];
-        if (/^\s*\|(.+)\|\s*$/.test(l) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i+1] || "")) {
-          const cells = (r) => r.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
-          let t = "<table><thead><tr>" + cells(l).map((c) => `<th>${inline(c)}</th>`).join("") + "</tr></thead><tbody>";
-          i += 2;
-          while (i < lines.length && /^\s*\|(.+)\|\s*$/.test(lines[i])) { t += "<tr>" + cells(lines[i]).map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>"; i++; }
-          html += t + "</tbody></table>"; continue;
-        }
-        let m;
-        if ((m = l.match(/^(#{1,3})\s+(.*)/))) html += `<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`;
-        else if (/^\s*[-*]\s+/.test(l)) { let items = ""; while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { items += `<li>${inline(lines[i].replace(/^\s*[-*]\s+/, ""))}</li>`; i++; } html += `<ul>${items}</ul>`; continue; }
-        else if (l.trim()) html += `<p>${inline(l)}</p>`;
-        i++;
-      }
-      return html;
-    }
-
-    async function loadToken() { try { TOKEN = (await (await fetch(API + "/api/token")).json()).token || ""; } catch {} }
-    async function decide(gateId, choice, feedback) {
-      try {
-        const r = await fetch(API + "/api/pipeline/decide", {
-          method: "POST", headers: { "Content-Type": "application/json", "X-Maestro-Token": TOKEN },
-          body: JSON.stringify({ appId: state.selApp || undefined, gateId, choice, feedback: feedback || undefined }),
-        });
-        const j = await r.json();
-        if (j.ok === false) return toast("✗ " + (j.error || "falha"));
-        toast(`✔ ${gateId} → ${choice}`);
-      } catch (e) { toast("erro de rede"); }
-    }
-
-    const pendingGate = (p) => (p && p.gates || []).find((g) => !g.decision);
-
-    window.selectApp = (id) => { state.selApp = id; renderCockpit(); };
-
-    function renderCockpit() {
-      const roster = state.roster;
-      // seleção: mantém a escolhida se ainda existe; senão a 1ª ativa; senão a 1ª
-      const ids = Object.keys(state.pipelines || {}).filter((id) => state.pipelines[id] && state.pipelines[id].appId);
-      if (!ids.includes(state.selApp)) state.selApp = null;
-      const ACT = ["running", "paused_gate", "blocked"];
-      if (!state.selApp) state.selApp = ids.find((id) => ACT.includes(state.pipelines[id].status)) || ids[0] || null;
-      const p = state.selApp ? state.pipelines[state.selApp] : null;
-      const pill = $("pill-pipe");
-      if (!p || !p.appId || p.status === "idle") {
-        $("cockpit-empty").style.display = ""; $("cockpit-body").style.display = "none";
-        pill.textContent = "sem pipeline"; pill.className = "pill"; return;
-      }
-      const tabs = ids.length > 1
-        ? `<div class="actions" style="margin-bottom:8px">${ids.map((id) => `<button class="btn ${id === state.selApp ? "go" : ""}" onclick="selectApp('${esc(id)}')">${esc(id)} · ${esc(state.pipelines[id].status)}</button>`).join("")}</div>`
-        : "";
-      $("cockpit-empty").style.display = "none";
-      const body = $("cockpit-body"); body.style.display = "";
-      pill.textContent = `${p.appId} · ${p.status}${ids.length > 1 ? ` (+${ids.length - 1})` : ""}`;
-      pill.className = "pill " + (p.status === "running" ? "on" : (p.status === "paused_gate" || p.status === "blocked") ? "warn" : p.status === "done" ? "on" : "off");
-
-      const jobs = (p.jobs || []).map((j, idx) => {
-        const cls = idx < p.jobIndex ? "done" : (idx === p.jobIndex && p.status === "running") ? "now" : (idx === p.jobIndex && (p.status === "paused_gate" || p.status === "blocked")) ? "gate" : "";
-        return `<span class="job ${cls}">${JOB_SHORT[j] || j}${idx < p.jobIndex ? " ✓" : ""}</span>`;
-      }).join("");
-
-      // players do team
-      let playersHtml = "";
-      const team = roster && roster.teams && roster.teams[p.team];
-      if (team && roster) {
-        const ids = [...new Set([...Object.values(team.dispatch || {}), ...Object.values(team.fallbacks || {}).flat()])];
-        playersHtml = ids.map((id) => {
-          const pl = roster.players.find((x) => x.id === id); if (!pl) return "";
-          const active = p.currentPlayer === id && p.status === "running";
-          const ml = pl.modelLabel ? `${pl.modelLabel}${pl.effort ? " · " + String(pl.effort).toUpperCase() : ""}` : (pl.cli || "");
-          return `<span class="pchip ${active ? "active" : ""}">${pl.face || "·"} ${esc(pl.name)} <span class="mdl">${esc(ml)}</span></span>`;
-        }).join("");
-      }
-
-      body.innerHTML = tabs +
-        `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:6px">
-           <strong style="font-size:1.05rem">${esc(p.appId)}</strong>
-           <span class="muted">team ${esc(p.team)}${p.profileName ? ` · profile ${esc(p.profileName)}` : ""}${p.dryRun ? " · DRY-RUN" : ""}</span>
-           ${p.deploy && p.deploy.url ? `<a href="${esc(p.deploy.url)}" target="_blank" style="color:var(--cyan);font-size:13px">🌐 ${esc(p.deploy.url)}</a>` : ""}
-         </div>
-         <div class="muted" style="font-size:12.5px;margin-bottom:8px">ideia: ${esc((p.idea || "").slice(0, 160))}</div>
-         <div class="jobs">${jobs}</div>
-         <div class="players">${playersHtml}</div>
-         <div id="gate-slot"></div>`;
-
-      const g = pendingGate(p);
-      if (g) renderGate(g, p);
-    }
-
-    function gateButtons(g, { extra = "", goLabel = "✓ Aprovar (GO)" } = {}) {
-      const has = (c) => g.choices.includes(c);
-      let btns = extra;
-      if (has("go")) btns += `<button class="btn go" onclick="decide('${g.id}','go')">${goLabel}</button>`;
-      if (has("retry")) btns += `<button class="btn retry" onclick="sendRetry('${g.id}')">↻ Refazer</button>`;
-      if (has("kill")) btns += `<button class="btn kill" onclick="if(confirm('KILL a pipeline?'))decide('${g.id}','kill')">✗ Kill</button>`;
-      const needFb = has("retry");
-      return `<div class="actions">${btns}</div>${needFb ? `<div class="actions"><input class="fb" id="fb-${g.id}" placeholder="feedback pro retry (opcional)"/></div>` : ""}`;
-    }
-    window.sendRetry = (gateId) => { const el = $("fb-" + gateId); decide(gateId, "retry", el && el.value.trim()); };
-
-    async function renderGate(g, p) {
-      const slot = $("gate-slot"); if (!slot) return;
-      const payload = g.payload || "";
-      let inner = `<div class="gate"><h3>⏸ ${esc(g.id)}</h3><p class="prompt">${esc(g.prompt || "")}</p><div id="gate-doc"></div>`;
-
-      if (payload.startsWith("proposals:")) {
-        const app = payload.split(":")[1];
-        const frames = [1, 2, 3].map((n) => `<figure><iframe src="${API}/proposals/${app}/proposal-${n}.html" loading="lazy"></iframe><figcaption>proposta ${n}</figcaption></figure>`).join("");
-        const picks = [1, 2, 3].map((n) => `<button class="btn pick" onclick="decide('${g.id}','${n}')">Escolher ${n}</button>`).join("");
-        inner += `<div class="props">${frames}</div>` + gateButtons(g, { extra: picks });
-      } else if (payload.startsWith("preview:")) {
-        const app = payload.split(":")[1];
-        inner += `<iframe class="preview-frame" src="${API}/preview/${app}/"></iframe>` + gateButtons(g);
-      } else if (payload.startsWith("deploy:")) {
-        inner += `<p class="muted">alvo: <code>${esc(payload.slice(7))}</code></p>` + gateButtons(g, { goLabel: "🚀 Deploy" });
-      } else {
-        inner += gateButtons(g);
-      }
-      inner += `</div>`;
-      slot.innerHTML = inner;
-
-      // carrega doc markdown (scorecard/system-design) se o payload for um .md
-      if (/\.md$/.test(payload)) {
-        try {
-          const txt = await (await fetch(API + "/" + payload, { cache: "no-store" })).text();
-          const d = $("gate-doc"); if (d) { d.className = "doc"; d.innerHTML = md(txt); }
-        } catch { const d = $("gate-doc"); if (d) d.textContent = "(não consegui carregar " + payload + ")"; }
-      }
-    }
-
-    // ---- infra: roster, status, SSE (reusa o que já funcionava) ----
-    const logbox = $("logbox");
-    function appendLog(line, cls) { const s = document.createElement("div"); if (cls) s.className = cls; s.textContent = line; logbox.appendChild(s); logbox.scrollTop = logbox.scrollHeight; }
-
-    async function loadRoster() {
-      try {
-        state.roster = await (await fetch(API + "/api/roster", { cache: "no-store" })).json();
-        const m = state.roster.maestro || {};
-        $("maestro-face").textContent = m.avatar || "🎼";
-        $("maestro-name").textContent = m.name || "Maestro";
-        if (m.tagline) $("maestro-tagline").textContent = m.tagline;
-        $("ver").textContent = state.roster.version || "1";
-      } catch {}
-    }
-    async function loadPipeline() { try { state.pipelines = (await (await fetch(API + "/api/pipeline", { cache: "no-store" })).json()) || {}; } catch {} }
-
-    async function checkApi() {
-      const pill = $("pill-api");
-      try {
-        const r = await fetch(API + "/api/status"); if (!r.ok) throw 0;
-        if (!TOKEN) await loadToken();
-        pill.textContent = "API online"; pill.className = "pill on"; return true;
-      } catch { pill.textContent = "API off — npm run maestro"; pill.className = "pill off"; return false; }
-    }
-
-    let es = null;
-    function connectSSE() {
-      if (es) es.close();
-      try { es = new EventSource(API + "/api/events"); } catch { return; }
-      es.onmessage = (ev) => {
-        let msg; try { msg = JSON.parse(ev.data); } catch { return; }
-        if (msg.type === "log") {
-          const line = (msg.line || "").replace(/\[[0-9;?]*[ -/]*[@-~]/g, "");
-          if (!line.trim()) return;
-          appendLog(line, line.includes("✗") ? "err" : line.includes("✓") ? "ok" : "");
-        } else if (msg.type === "pipeline") {
-          state.pipelines = msg.pipeline || {}; renderCockpit();
-        }
-      };
-    }
-
-    (async () => {
-      await loadRoster(); await loadPipeline();
-      const ok = await checkApi();
-      renderCockpit();
-      if (ok) connectSSE();
-      setInterval(checkApi, 8000);
-    })();
-  </script>
-</body>
+    <script type="module" src="/control-center.js"></script>
+  </body>
 </html>
