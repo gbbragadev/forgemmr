@@ -4,9 +4,15 @@ const API = Object.freeze({
   confirmations: "/api/control/confirmations",
   execute: "/api/control/actions/execute",
   events: "/api/events",
+  memoryStatus: "/api/memory/status",
+  memoryOverview: "/api/memory/overview",
+  memorySearch: "/api/memory/search",
+  memoryBriefing: "/api/memory/briefing",
+  memoryImportPreview: "/api/memory/import/preview",
+  memoryImportApply: "/api/memory/import/apply",
 });
 
-const SECTION_IDS = ["overview", "new-pipeline", "pipelines", "decisions", "factory", "metrics", "activity"];
+const SECTION_IDS = ["overview", "new-pipeline", "pipelines", "decisions", "factory", "metrics", "memory", "activity"];
 const PIPELINE_STEPS = ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "P3", "P4", "P5"];
 const TEAM_ROLES = ["Estrategista", "Engenheiro", "Designer", "QA", "Revisor"];
 
@@ -20,6 +26,19 @@ const state = {
   events: [],
   refreshTimer: null,
   noticeTimer: null,
+  memory: {
+    project: "factory",
+    type: "all",
+    status: null,
+    overview: null,
+    briefing: null,
+    query: "",
+    results: [],
+    importPreview: [],
+    loading: false,
+    error: null,
+    pipelines: {},
+  },
 };
 
 const byId = (id) => document.getElementById(id);
@@ -151,6 +170,11 @@ async function postJson(path, body) {
   return readResponse(response);
 }
 
+async function getJson(path) {
+  const response = await fetch(path, { credentials: "same-origin", cache: "no-store" });
+  return readResponse(response);
+}
+
 async function loadSnapshot({ quiet = false } = {}) {
   const errorBanner = byId("error-banner");
   try {
@@ -163,6 +187,7 @@ async function loadSnapshot({ quiet = false } = {}) {
     setConnection(true);
     byId("state-version").textContent = `estado ${state.snapshot.version}`;
     renderAll();
+    if (state.activeSection === "memory" && !state.memory.loading) void loadMemoryOverview({ quiet: true });
     if (!quiet) notify("Central atualizada.");
     return state.snapshot;
   } catch (error) {
@@ -393,9 +418,84 @@ function renderPipelineDetail(pipeline) {
         element("p", { text: latestError || "Nenhum erro recente foi registrado." }),
       ]),
       element("article", { className: "card card-wide" }, [element("h3", { text: "Ações válidas agora" }), actionList]),
+      renderPipelineMemory(pipeline),
     ]),
   ]);
   return detail;
+}
+
+function renderPipelineMemory(pipeline) {
+  const context = state.memory.pipelines[pipeline.appId];
+  const previousRefs = [...(pipeline.history || [])].reverse().find((item) => item.memoryRefs?.length)?.memoryRefs || [];
+  const openMemory = element("button", { className: "button button-secondary", text: "Abrir memória do app", attrs: { type: "button" } });
+  openMemory.addEventListener("click", () => {
+    state.memory.project = `app-${pipeline.appId}`;
+    showSection("memory");
+    void loadMemoryOverview();
+  });
+  const promote = findAction("memory.rule.write", "factory");
+
+  if (!context) {
+    const load = element("button", { className: "button button-secondary", text: "Carregar contexto", attrs: { type: "button" } });
+    load.addEventListener("click", () => loadPipelineMemory(pipeline.appId));
+    return element("article", { className: "card card-wide memory-context" }, [
+      element("h3", { text: "Memória desta pipeline" }),
+      element("p", { text: previousRefs.length
+        ? `${previousRefs.length} memória(s) sustentaram o último briefing.`
+        : "Carregue o contexto que o próximo job receberá." }),
+      element("div", { className: "card-actions" }, [load, openMemory]),
+    ]);
+  }
+
+  if (context.loading) {
+    return element("article", { className: "card card-wide memory-context" }, [
+      element("h3", { text: "Memória desta pipeline" }),
+      element("p", { text: "Montando briefing seguro…" }),
+    ]);
+  }
+
+  const upcoming = context.briefing?.items || [];
+  const health = context.overview?.memory_health || {};
+  const warnings = [
+    Number(health.stale_count || 0) ? `${health.stale_count} antiga(s)` : null,
+    Number(health.duplicate_count || 0) ? `${health.duplicate_count} duplicada(s)` : null,
+    Number(health.orphan_count || 0) ? `${health.orphan_count} sem vínculo` : null,
+  ].filter(Boolean);
+  const refs = previousRefs.length ? previousRefs : upcoming;
+  const promoteButton = promote
+    ? element("button", { className: "button button-secondary", text: "Promover regra", attrs: { type: "button", disabled: !promote.enabled } })
+    : null;
+  if (promoteButton) promoteButton.addEventListener("click", () => openAction(promote.id, promote.scope, { appId: pipeline.appId }));
+  const body = refs.length
+    ? element("div", { className: "memory-result-list" }, refs.slice(0, 6).map((item) => memorySourceRow(item, `app-${pipeline.appId}`)))
+    : emptyState("Sem contexto recuperado", "O próximo job seguirá sem briefing até existir memória relevante.");
+  return element("article", { className: "card card-wide memory-context" }, [
+    element("div", { className: "card-actions" }, [
+      element("h3", { text: previousRefs.length ? "Memórias do último briefing" : "Briefing do próximo job" }),
+      warnings.length ? badge(warnings.join(" · "), "warning") : badge("contexto saudável", "success"),
+    ]),
+    body,
+    element("div", { className: "card-actions" }, [
+      openMemory,
+      promoteButton,
+    ]),
+  ]);
+}
+
+async function loadPipelineMemory(appId) {
+  state.memory.pipelines[appId] = { loading: true };
+  renderPipelines();
+  const project = `app-${appId}`;
+  try {
+    const [overview, briefing] = await Promise.all([
+      getJson(`${API.memoryOverview}?project=${encodeURIComponent(project)}`),
+      getJson(`${API.memoryBriefing}?project=${encodeURIComponent(project)}`),
+    ]);
+    state.memory.pipelines[appId] = { loading: false, overview, briefing };
+  } catch (error) {
+    state.memory.pipelines[appId] = { loading: false, error: error.message, overview: null, briefing: { items: [], text: "" } };
+  }
+  renderPipelines();
 }
 
 function renderDecisions() {
@@ -579,6 +679,294 @@ function lifecycleRow(entry) {
   ]);
 }
 
+function memoryProjectOptions() {
+  const apps = (state.snapshot?.pipelines || []).map((pipeline) => ({
+    value: `app-${pipeline.appId}`,
+    label: pipeline.appId,
+  }));
+  return [{ value: "factory", label: "Fábrica inteira" }, ...apps];
+}
+
+function memorySourceRow(item, fallbackProject = state.memory.project) {
+  const path = item.path || item.pagePath || "memória sem caminho";
+  const title = item.title || item.summary || path;
+  const updatedAt = item.updated_at || item.updatedAt || null;
+  return element("div", { className: "memory-source" }, [
+    element("div", { className: "item-copy" }, [
+      element("strong", { text: title }),
+      element("span", { text: path }),
+      element("small", { text: `${item.project || fallbackProject} · ${updatedAt ? formatDate(updatedAt) : "data não registrada"}` }),
+    ]),
+    badge(item.kind || item.type || "fact"),
+  ]);
+}
+
+function memoryOverviewPages(overview) {
+  const briefing = overview?.briefing || overview || {};
+  const pages = [
+    ...(briefing.rules || []),
+    ...(briefing.slots || []),
+    ...(briefing.recent_pages || []),
+  ];
+  const seen = new Set();
+  return pages.filter((item) => {
+    if (!item?.path || seen.has(item.path)) return false;
+    seen.add(item.path);
+    return true;
+  });
+}
+
+function memoryResultCard(item) {
+  const path = item.path || item.pagePath || "";
+  const copy = item.snippet || item.body || item.summary || "Sem trecho disponível.";
+  const removeAction = findAction("memory.page.delete", "factory");
+  const remove = removeAction && path
+    ? element("button", { className: "button button-danger", text: "Excluir", attrs: { type: "button" } })
+    : null;
+  if (remove) {
+    remove.addEventListener("click", () => openAction("memory.page.delete", "factory", {
+      appId: state.memory.project.startsWith("app-") ? state.memory.project.slice(4) : "",
+      pagePath: path,
+    }));
+  }
+  return element("article", { className: "memory-result" }, [
+    memorySourceRow(item),
+    element("p", { text: String(copy).replace(/<\/?mark>/gi, "").slice(0, 600) }),
+    remove ? element("div", { className: "card-actions" }, [remove]) : null,
+  ]);
+}
+
+function memoryAction(actionId, label = null) {
+  const action = findAction(actionId, "factory");
+  return action ? actionButton(action, label) : null;
+}
+
+function renderMemory() {
+  const target = clear(byId("memory-content"));
+  const memory = state.memory;
+  const status = memory.status || state.snapshot.memory || {};
+  const healthy = status.state === "healthy";
+  const healthActions = healthy
+    ? [memoryAction("memory.backup"), memoryAction("memory.reindex"), memoryAction("memory.update")]
+    : [memoryAction(status.state === "degraded" ? "memory.retry" : "memory.setup"), memoryAction("memory.update")];
+  const healthCard = element("article", { className: "panel memory-health" }, [
+    panelHeader("Saúde da memória", status.version ? `ai-memory ${status.version}` : "runtime local"),
+    element("div", { className: "panel-body" }, [
+      element("div", { className: "memory-health-main" }, [
+        badge(status.state || "unconfigured", healthy ? "success" : status.state === "degraded" ? "danger" : "warning"),
+        element("strong", { text: healthy ? "Contexto disponível" : status.state === "degraded" ? "Memória precisa de atenção" : "Memória ainda não configurada" }),
+      ]),
+      element("div", { className: "memory-health-stats" }, [
+        kpi("Páginas", status.pageCount || 0, "índice atual"),
+        kpi("Fila durável", status.pendingOutbox || 0, "aguardando gravação"),
+        kpi("Latência", status.latencyMs === null || status.latencyMs === undefined ? "—" : `${status.latencyMs} ms`, status.managed ? "processo gerenciado" : "processo externo"),
+      ]),
+      status.lastError ? element("p", { className: "form-error", text: status.lastError }) : null,
+      element("div", { className: "card-actions" }, healthActions),
+    ]),
+  ]);
+
+  if (!healthy) {
+    target.append(healthCard, element("div", { className: "memory-empty" }, [
+      emptyState(
+        status.state === "degraded" ? "O histórico está protegido" : "Ative a memória local",
+        status.state === "degraded"
+          ? "A pipeline continua funcionando e mantém novas lembranças na fila durável. Use Tentar novamente para recuperar o índice."
+          : "A configuração baixa a release verificada, valida o checksum e mantém tudo somente nesta máquina.",
+      ),
+    ]));
+    return;
+  }
+
+  const projectSelect = element("select", { attrs: { name: "project", "aria-label": "Escopo da memória" } }, memoryProjectOptions().map((option) => element("option", {
+    text: option.label,
+    attrs: { value: option.value, selected: option.value === memory.project },
+  })));
+  projectSelect.addEventListener("change", () => {
+    memory.project = projectSelect.value;
+    memory.results = [];
+    void loadMemoryOverview();
+  });
+  const typeSelect = element("select", { attrs: { name: "type", "aria-label": "Tipo de memória" } }, [
+    ["all", "Todos os tipos"], ["rule", "Regras"], ["decision", "Decisões"], ["fact", "Fatos"], ["outcome", "Resultados"], ["handoff", "Handoffs"],
+  ].map(([value, label]) => element("option", { text: label, attrs: { value, selected: value === memory.type } })));
+  typeSelect.addEventListener("change", () => { memory.type = typeSelect.value; });
+  const query = element("input", { attrs: { type: "search", name: "query", value: memory.query, placeholder: "Ex.: deploy, checkout, rate limit…", required: true, maxlength: 500 } });
+  const searchForm = element("form", { className: "memory-search", attrs: { role: "search" } }, [
+    element("label", {}, [element("span", { text: "Escopo" }), projectSelect]),
+    element("label", {}, [element("span", { text: "Tipo" }), typeSelect]),
+    element("label", { className: "memory-query" }, [element("span", { text: "O que você quer recuperar?" }), query]),
+    element("button", { className: "button button-primary", text: "Buscar memória", attrs: { type: "submit" } }),
+  ]);
+  searchForm.addEventListener("submit", searchMemory);
+
+  const results = memory.results.filter((item) => memory.type === "all" || (item.kind || item.type) === memory.type);
+  const searchPanel = element("article", { className: "panel" }, [
+    panelHeader("Busca", memory.query ? `${results.length} resultado(s)` : "por escopo e tipo"),
+    element("div", { className: "panel-body" }, [
+      searchForm,
+      memory.error ? element("p", { className: "form-error", text: memory.error }) : null,
+      memory.query
+        ? results.length
+          ? element("div", { className: "memory-result-list" }, results.map(memoryResultCard))
+          : emptyState("Nada encontrado", "Tente outra expressão ou amplie o escopo para a fábrica.")
+        : emptyState("Faça uma pergunta ao histórico", "A busca permanece limitada ao projeto escolhido."),
+    ]),
+  ]);
+
+  const overview = memory.overview || {};
+  const briefing = memory.briefing || { items: [], text: "" };
+  const pages = memoryOverviewPages(overview);
+  const health = overview.memory_health || {};
+  const briefingPanel = element("article", { className: "panel" }, [
+    panelHeader("Briefing do próximo job", `${briefing.items?.length || 0} fonte(s)`),
+    element("div", { className: "panel-body" }, [
+      briefing.text
+        ? element("p", { className: "memory-briefing", text: briefing.text.slice(0, 4_000) })
+        : emptyState("Ainda sem briefing", "Regras fixadas e aprendizados recentes aparecerão aqui."),
+      briefing.items?.length ? element("div", { className: "memory-result-list" }, briefing.items.map((item) => memorySourceRow(item))) : null,
+      element("div", { className: "card-actions" }, [memoryAction("memory.rule.write", "Promover uma regra")]),
+    ]),
+  ]);
+  const timelinePanel = element("article", { className: "panel" }, [
+    panelHeader("Linha do tempo", `${pages.length} itens recentes`),
+    element("div", { className: "panel-body" }, [
+      element("div", { className: "memory-health-warnings" }, [
+        badge(`${health.stale_count || 0} antigas`, health.stale_count ? "warning" : "success"),
+        badge(`${health.duplicate_count || 0} duplicadas`, health.duplicate_count ? "warning" : "success"),
+        badge(`${health.orphan_count || 0} sem vínculo`, health.orphan_count ? "warning" : "success"),
+      ]),
+      pages.length
+        ? element("div", { className: "memory-result-list" }, pages.slice(0, 12).map((item) => memoryResultCard(item)))
+        : emptyState("Nenhuma página recente", "A linha do tempo nasce conforme a fábrica registra decisões e resultados."),
+    ]),
+  ]);
+
+  const importButton = element("button", { className: "button button-secondary", text: "Analisar fontes seguras", attrs: { type: "button", disabled: memory.loading } });
+  importButton.addEventListener("click", previewMemoryImport);
+  const applyButton = element("button", { className: "button button-primary", text: "Importar selecionados", attrs: { type: "button", disabled: !memory.importPreview.length || memory.loading } });
+  applyButton.addEventListener("click", applyMemoryImport);
+  const importList = memory.importPreview.length
+    ? element("div", { className: "import-list" }, memory.importPreview.map((entry) => element("label", { className: "import-item" }, [
+        element("input", { className: "import-check", attrs: { type: "checkbox", checked: true }, dataset: { path: entry.path } }),
+        element("div", { className: "item-copy" }, [
+          element("strong", { text: entry.path }),
+          element("span", { text: `${entry.project} · ${entry.type} · ${formatNumber(entry.bytes)} bytes` }),
+          element("small", { text: String(entry.summary || "").slice(0, 240) }),
+        ]),
+      ])))
+    : emptyState("Prévia obrigatória", "Somente README, docs, handoff, fila e resumos sanitizados de pipeline entram na seleção.");
+  const importPanel = element("article", { className: "panel card-wide" }, [
+    panelHeader("Importar histórico existente", "prévia antes de gravar"),
+    element("div", { className: "panel-body" }, [
+      importList,
+      element("div", { className: "card-actions" }, [importButton, applyButton]),
+    ]),
+  ]);
+
+  target.append(healthCard, searchPanel, element("div", { className: "memory-grid" }, [briefingPanel, timelinePanel]), importPanel);
+}
+
+async function loadMemoryOverview({ quiet = false } = {}) {
+  if (!state.snapshot || state.memory.loading) return;
+  const memory = state.memory;
+  const project = memory.project;
+  memory.loading = true;
+  memory.error = null;
+  renderMemory();
+  try {
+    const status = await getJson(API.memoryStatus);
+    memory.status = status;
+    if (status.state === "healthy") {
+      const [overview, briefing] = await Promise.all([
+        getJson(`${API.memoryOverview}?project=${encodeURIComponent(project)}`),
+        getJson(`${API.memoryBriefing}?project=${encodeURIComponent(project)}`),
+      ]);
+      if (memory.project === project) {
+        memory.overview = overview;
+        memory.briefing = briefing;
+      }
+    } else {
+      memory.overview = null;
+      memory.briefing = null;
+    }
+  } catch (error) {
+    memory.error = error.message;
+    if (!quiet) notify(error.message, { error: true });
+  } finally {
+    memory.loading = false;
+    renderMemory();
+  }
+}
+
+async function searchMemory(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+  const memory = state.memory;
+  memory.query = String(new FormData(form).get("query") || "").trim();
+  memory.project = String(new FormData(form).get("project") || "factory");
+  memory.type = String(new FormData(form).get("type") || "all");
+  memory.loading = true;
+  memory.error = null;
+  renderMemory();
+  try {
+    const payload = await getJson(`${API.memorySearch}?q=${encodeURIComponent(memory.query)}&project=${encodeURIComponent(memory.project)}`);
+    memory.results = payload.hits || payload.results || [];
+  } catch (error) {
+    memory.results = [];
+    memory.error = error.message;
+  } finally {
+    memory.loading = false;
+    renderMemory();
+  }
+}
+
+async function previewMemoryImport() {
+  const memory = state.memory;
+  memory.loading = true;
+  memory.error = null;
+  renderMemory();
+  try {
+    const preview = await postJson(API.memoryImportPreview, { all: true });
+    memory.importPreview = preview.entries || [];
+    notify(`${preview.count || memory.importPreview.length} fonte(s) prontas para revisão.`);
+  } catch (error) {
+    memory.error = error.message;
+    notify(error.message, { error: true });
+  } finally {
+    memory.loading = false;
+    renderMemory();
+  }
+}
+
+async function applyMemoryImport() {
+  const paths = [...document.querySelectorAll(".import-check:checked")].map((input) => input.dataset.path).filter(Boolean);
+  if (!paths.length) {
+    notify("Selecione pelo menos uma fonte da prévia.", { error: true });
+    return;
+  }
+  const memory = state.memory;
+  memory.loading = true;
+  renderMemory();
+  try {
+    const approved = await postJson(API.memoryImportPreview, { paths });
+    const result = await postJson(API.memoryImportApply, { previewId: approved.previewId });
+    memory.importPreview = [];
+    notify(`${result.imported || 0} importada(s), ${result.skipped || 0} já estavam atuais.`);
+    await loadSnapshot({ quiet: true });
+  } catch (error) {
+    memory.error = error.message;
+    notify(error.message, { error: true });
+  } finally {
+    memory.loading = false;
+    if (state.snapshot) {
+      renderMemory();
+      void loadMemoryOverview({ quiet: true });
+    }
+  }
+}
+
 function renderActivity() {
   const target = clear(byId("activity-content"));
   const operations = [...state.snapshot.operations].reverse();
@@ -643,6 +1031,7 @@ function renderAll() {
   renderDecisions();
   renderFactory();
   renderMetrics();
+  renderMemory();
   renderActivity();
 }
 
@@ -745,7 +1134,7 @@ function collectFormInput(form, action) {
   return input;
 }
 
-function openAction(actionId, scope) {
+function openAction(actionId, scope, prefill = {}) {
   const action = findAction(actionId, scope);
   if (!action) {
     notify("Essa ação não existe mais no estado atual.", { error: true });
@@ -764,6 +1153,10 @@ function openAction(actionId, scope) {
   risk.textContent = riskBadge(action.risk).textContent;
   risk.dataset.risk = action.risk;
   clear(byId("action-fields")).append(...(action.fields || []).map((field) => renderActionField(field)));
+  for (const [name, value] of Object.entries(prefill)) {
+    const control = byId("action-form").elements.namedItem(name);
+    if (control && "value" in control) control.value = String(value ?? "");
+  }
   byId("action-error").textContent = "";
   byId("confirmation-check").checked = false;
   const needsConfirmation = ["external", "destructive"].includes(action.risk);
@@ -868,6 +1261,7 @@ function showSection(sectionId) {
   byId("mobile-menu").setAttribute("aria-expanded", "false");
   history.replaceState(null, "", `#${sectionId}`);
   byId("workspace").focus({ preventScroll: true });
+  if (sectionId === "memory" && state.snapshot && !state.memory.loading) void loadMemoryOverview({ quiet: true });
 }
 
 function bindInterface() {

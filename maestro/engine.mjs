@@ -977,6 +977,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       let rateLimited = false;
       const maxAttempts = profile.limits.maxAttemptsPerPlayer;
       let memoryBriefing = "";
+      let memoryRefs = [];
       try {
         const result = await memory?.briefing?.({
           appId: p.appId,
@@ -985,6 +986,13 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
           playerId: player.id,
         });
         memoryBriefing = String(result?.text || "").slice(0, 12 * 1024);
+        memoryRefs = (Array.isArray(result?.items) ? result.items : []).slice(0, 8).map((item) => ({
+          title: typeof item?.title === "string" ? item.title.slice(0, 300) : null,
+          path: typeof item?.path === "string" ? item.path.slice(0, 512) : null,
+          kind: typeof item?.kind === "string" ? item.kind.slice(0, 64) : null,
+          updatedAt: typeof (item?.updatedAt || item?.updated_at) === "string" ? item.updatedAt || item.updated_at : null,
+          project: `app-${p.appId}`,
+        }));
       } catch {
         log("⚠ memória indisponível; job seguirá sem briefing");
       }
@@ -1050,6 +1058,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
           exitCode: res.exitCode,
           pass: v.pass,
           detail: v.detail,
+          memoryRefs,
           errorTail: v.errorTail || (res.exitCode !== 0 ? res.tail.slice(-3000) : undefined),
         });
         save();

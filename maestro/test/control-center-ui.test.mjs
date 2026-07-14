@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 const readMaestroFile = (name) => readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
 
-test("Control Center exposes the seven zero-command work areas", () => {
+test("Control Center exposes the eight zero-command work areas", () => {
   const html = readMaestroFile("index.html");
 
   assert.match(html, /Forge Nexus/);
@@ -18,6 +18,7 @@ test("Control Center exposes the seven zero-command work areas", () => {
     "decisions",
     "factory",
     "metrics",
+    "memory",
     "activity",
   ]) {
     assert.match(html, new RegExp(`<section[^>]+id="${id}"`, "i"), `missing ${id} work area`);
@@ -41,6 +42,11 @@ test("Control Center consumes the closed control-plane API without a command esc
     "renderDecisions",
     "renderFactory",
     "renderMetrics",
+    "renderMemory",
+    "loadMemoryOverview",
+    "searchMemory",
+    "previewMemoryImport",
+    "applyMemoryImport",
     "renderActivity",
     "openAction",
     "renderActionField",
@@ -57,6 +63,12 @@ test("Control Center consumes the closed control-plane API without a command esc
     "/api/control/confirmations",
     "/api/control/actions/execute",
     "/api/events",
+    "/api/memory/status",
+    "/api/memory/overview",
+    "/api/memory/search",
+    "/api/memory/briefing",
+    "/api/memory/import/preview",
+    "/api/memory/import/apply",
   ]) {
     assert.match(js, new RegExp(endpoint.replaceAll("/", "\\/")));
   }

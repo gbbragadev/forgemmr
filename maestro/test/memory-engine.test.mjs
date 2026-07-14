@@ -90,6 +90,13 @@ test("engine injeta briefing como dado não confiável e memoriza outcome e deci
   );
 
   assert.equal(paused.history.at(-1).pass, true);
+  assert.deepEqual(paused.history.at(-1).memoryRefs, [{
+    title: "Erro já resolvido",
+    path: null,
+    kind: null,
+    updatedAt: "2026-07-14T00:00:00Z",
+    project: "app-memory-app",
+  }]);
   assert.deepEqual(memory.briefingCalls[0], {
     appId: "memory-app",
     runId: paused.runId,
