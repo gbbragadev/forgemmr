@@ -19,11 +19,10 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
-- [ ] **META/L1** Maestro Control Center zero-commands — control plane seguro, pipeline P0–P5, fábrica, métricas e launcher local (GPT-5.6, 2026-07-14)
-
 
 ## Done
 
+- [x] **META/L1** Maestro Control Center zero-commands — pipeline P0–P5, fábrica, métricas, ações auditáveis, dashboard responsivo e launcher de duplo clique · 129/129 · 8 workspaces · 4 builds (2026-07-14)
 - [x] **META/P3** Tutorial visual de onboarding completo do Forge — 108/108 · browser QA · Cloudflare Pages · push/WhatsApp (2026-07-13)
 - [x] **L2/META** Correções pós-revisão Fable C-1/C-2 — cooldown pós-restart + fonte textual de stats (2026-07-13)
 - [x] **META** Contrato GPT56 optimization — implementação local + relatórios + verificação global (2026-07-13) · próximo: revisão Fable

@@ -1,11 +1,24 @@
 # HANDOFF
 
 ## Loop ativo
-**META/P3** — onboarding visual do Forge — **PUBLICADO E VERIFICADO** · próximo = usar/medir
-*(nenhum app, pipeline viva ou servidor do Maestro foi alterado; P4 continua humano)*
+Nenhum. **META/L1 Maestro Control Center** concluído localmente; branch aguarda decisão de integração.
+*(nenhum app foi publicado; o Maestro vivo não foi reiniciado; P4 continua humano)*
 
 ## Last agent
-GPT‑5.6 | 2026-07-13 · tutorial + deploy (`feat/gpt56-optimization`)
+GPT‑5.6 | 2026-07-14 · Control Center zero-commands (`feat/gpt56-optimization`)
+
+## Last iteration — META/L1 Maestro Control Center (2026-07-14)
+- **Control plane:** snapshot versionado, catálogo state-driven, operações idempotentes, confirmação por nonce, auditoria redigida e handlers allowlisted; nenhum shell livre.
+- **Pipeline completa:** modos `autopilot_to_gate`/`guided`/`manual`, gates invariantes, recovery, target, P4 comparável e P5 `kill|iterate|scale` sem apagar produção no kill de produto.
+- **Fábrica:** profiles, times, providers e blueprints administráveis pelo catálogo; login usa somente CLI oficial allowlisted com `shell:false`.
+- **Dashboard:** sete áreas (Visão geral, Nova pipeline, Pipelines, Decisões, Fábrica, Métricas e Atividade), wizard sem terminal, formulários genéricos, previews/propostas/documentos preservados, SSE e tratamento de `state_stale`.
+- **Launcher:** `forge-control-center.cmd` + supervisor; reutiliza health existente, inicia no máximo uma instância, espera snapshot legítimo e abre o browser uma vez. Smoke real: `Maestro já estava online: http://127.0.0.1:8799`.
+- **VERIFY fresco:** `npm test` **129/129, 0 fail** · `npm run typecheck` **8 workspaces, EXIT 0** · `npm run build:all` **4 apps, 4× Compiled successfully, EXIT 0**.
+- **Browser QA:** Chromium real em 375/768/1024/1440; `scrollWidth === innerWidth` nas quatro larguras; wizard, fábrica, modal e confirmação externa exercitados; console **0 errors / 0 warnings**.
+- **UI forte:** brief denso versionado em `workbench/prompts-glm/maestro-control-center.md`. A tentativa GLM ficou opaca e não escreveu arquivos; o processo próprio foi encerrado pelos PIDs exatos e o fallback local foi revisado por testes + browser.
+- **Escopo preservado:** `package-lock.json`, `.claude/` e `.codebase-memory/` preexistentes continuam intocados; sem dependência, push, deploy, publicação, restart da porta 8799 ou mutação de apps/pipelines durante QA.
+- **Não exercitado no estado real:** submits mutáveis e login externo foram validados em roots/spawns falsos, não clicados contra os dados do dono. Isso evita criar pipeline/profile/time ou abrir autenticação só para demonstrar a UI.
+- **Próximo:** escolher merge/push/PR. O uso normal começa por duplo clique em `forge-control-center.cmd`.
 
 ## Last iteration — META/P3 onboarding visual do Forge (2026-07-13)
 - **Entrega:** tutorial público em `docs/forge-onboarding/` com mapa da jornada, primeiros 15 minutos, laboratório de gates, comparação de times, busca de comandos, operação concorrente, recovery e checklist de ship persistida no navegador.
