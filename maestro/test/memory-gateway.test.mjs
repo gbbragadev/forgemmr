@@ -184,9 +184,9 @@ test("validação fecha q, limit e travessia antes da rede", async () => {
 
 test("401, 500, timeout e JSON inválido viram erros seguros sem token", async (t) => {
   const { endpoint } = await createFixtureServer(t);
-  const gateway = createMemoryGateway({ endpoint, getToken: () => TOKEN, timeoutMs: 20 });
+  const gateway = createMemoryGateway({ endpoint, getToken: () => TOKEN, timeoutMs: 1_000 });
 
-  for (const [q, status] of [["unauthorized", 401], ["server-error", 500], ["bad-json", 502], ["timeout", 504]]) {
+  for (const [q, status] of [["unauthorized", 401], ["server-error", 500], ["bad-json", 502]]) {
     await assert.rejects(
       gateway.search({ q, workspace: "forge" }),
       (error) => {
@@ -197,6 +197,17 @@ test("401, 500, timeout e JSON inválido viram erros seguros sem token", async (
       },
     );
   }
+
+  const timeoutGateway = createMemoryGateway({ endpoint, getToken: () => TOKEN, timeoutMs: 20 });
+  await assert.rejects(
+    timeoutGateway.search({ q: "timeout", workspace: "forge" }),
+    (error) => {
+      assert.ok(error instanceof MemoryGatewayError);
+      assert.equal(error.status, 504);
+      assert.equal(error.message.includes(TOKEN), false);
+      return true;
+    },
+  );
 });
 
 test("backup é persistido atomicamente no destino interno", async (t) => {
