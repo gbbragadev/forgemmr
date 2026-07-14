@@ -15,6 +15,7 @@ export function resolveMemoryLayout({ env = process.env, platform = process.plat
     dataDir: pathApi.join(home, "memory"),
     tokenPath: pathApi.join(home, "ai-memory.token"),
     outboxPath: pathApi.join(home, "memory-outbox.jsonl"),
+    importCheckpointPath: pathApi.join(home, "memory-import-checkpoint.json"),
     backupsDir: pathApi.join(home, "backups"),
   };
 }

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { makeRedactor } from "../adapters.mjs";
 import { createMemoryGateway, MemoryGatewayError } from "./gateway.mjs";
+import { createMemoryImporter } from "./importer.mjs";
 import { resolveMemoryLayout } from "./layout.mjs";
 import { createMemoryOutbox } from "./outbox.mjs";
 import { buildMemoryRecord, recordToPage } from "./records.mjs";
@@ -46,6 +47,7 @@ export function createMemoryService({
     redact,
   });
   let pageCount = 0;
+  let memoryImporter = importer;
 
   function status() {
     try {
@@ -224,13 +226,13 @@ export function createMemoryService({
   }
 
   async function importPreview(selection) {
-    if (!importer?.preview) throw new MemoryGatewayError(501, "Importador de memória ainda não configurado.");
-    return importer.preview(selection);
+    if (!memoryImporter?.preview) throw new MemoryGatewayError(501, "Importador de memória ainda não configurado.");
+    return memoryImporter.preview(selection);
   }
 
   async function importApply(selection) {
-    if (!importer?.apply) throw new MemoryGatewayError(501, "Importador de memória ainda não configurado.");
-    return importer.apply(selection);
+    if (!memoryImporter?.apply) throw new MemoryGatewayError(501, "Importador de memória ainda não configurado.");
+    return memoryImporter.apply(selection);
   }
 
   async function startIfInstalled() {
@@ -244,6 +246,16 @@ export function createMemoryService({
 
   async function close() {
     return memoryRuntime.stopManaged();
+  }
+
+  if (!memoryImporter) {
+    memoryImporter = createMemoryImporter({
+      root,
+      redact,
+      writeRecord: record,
+      checkpointPath: memoryLayout.importCheckpointPath,
+      now,
+    });
   }
 
   return {
