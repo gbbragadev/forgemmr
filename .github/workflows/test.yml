@@ -19,3 +19,18 @@ jobs:
           git config --global user.email "ci@forge.local"
           git config --global user.name "Forge CI"
       - run: npm test
+
+  ai-memory-upstream:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/ai-memory
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.95.0"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: integrations/ai-memory
+      - run: cargo test --workspace --locked

@@ -139,3 +139,25 @@ test("service grava página ou enfileira sem lançar quando a memória cai", asy
   assert.equal(queued.length, 1);
   assert.equal(service.status().pendingOutbox, 1);
 });
+
+test("service normaliza o schema real v1.13 de busca e leitura", async (t) => {
+  const root = fixtureRoot(t);
+  const runtime = {
+    status: () => ({ state: "healthy", version: "1.13.0", managed: true }),
+    stopManaged: async () => true,
+  };
+  const gateway = {
+    search: async () => [{ path: "rules/one.md", title: "Regra", kind: "rule", snippet: "alpha" }],
+    readPage: async () => ({ path: "rules/one.md", body_markdown: "# Regra\n\nalpha" }),
+  };
+  const outbox = { size: () => 0, enqueue: () => true, drain: async () => ({ pending: 0 }) };
+  const service = createMemoryService({ root, runtime, gateway, outbox });
+
+  assert.deepEqual((await service.search({ q: "alpha", appId: "alpha" })).hits, [{
+    path: "rules/one.md",
+    title: "Regra",
+    kind: "rule",
+    snippet: "alpha",
+  }]);
+  assert.equal((await service.readPage({ appId: "alpha", pagePath: "rules/one.md" })).body, "# Regra\n\nalpha");
+});

@@ -130,7 +130,11 @@ export function createMemoryService({
   async function search({ q, appId, limit = 20 } = {}) {
     assertHealthy();
     const scope = resolveMemoryScope({ appId });
-    return redactDeep(await memoryGateway.search({ q, ...scope, limit }), redact);
+    const payload = redactDeep(await memoryGateway.search({ q, ...scope, limit }), redact);
+    if (Array.isArray(payload)) return { hits: payload };
+    if (Array.isArray(payload?.hits)) return payload;
+    if (Array.isArray(payload?.results)) return { ...payload, hits: payload.results };
+    return { ...payload, hits: [] };
   }
 
   async function briefing({ appId, limit = 8 } = {}) {
@@ -178,7 +182,11 @@ export function createMemoryService({
   async function readPage({ appId, pagePath } = {}) {
     assertHealthy();
     const scope = resolveMemoryScope({ appId });
-    return redactDeep(await memoryGateway.readPage({ ...scope, pagePath }), redact);
+    const payload = redactDeep(await memoryGateway.readPage({ ...scope, pagePath }), redact);
+    return {
+      ...payload,
+      body: typeof payload?.body === "string" ? payload.body : String(payload?.body_markdown || ""),
+    };
   }
 
   async function record(input) {
