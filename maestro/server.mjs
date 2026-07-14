@@ -35,6 +35,8 @@ import { ControlError, createControlDispatcher } from "./control/dispatcher.mjs"
 import { createEngineActionHandlers } from "./control/handlers.mjs";
 import { createFactoryAdmin } from "./control/factory-admin.mjs";
 import { createLifecycleManager } from "./control/lifecycle.mjs";
+import { createMemoryActionHandlers } from "./memory/control.mjs";
+import { createMemoryService, createUnavailableMemoryService } from "./memory/service.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -601,14 +603,24 @@ export function createMaestroServer({
   port = PORT,
   engineManager,
   operationStore,
+  memoryService,
   spawnImpl = spawn,
 } = {}) {
+  let memory = memoryService;
+  if (!memory) {
+    try {
+      memory = createMemoryService({ root });
+    } catch (error) {
+      memory = createUnavailableMemoryService(error);
+    }
+  }
   const engine =
     engineManager ||
     createEngineManager({
       root,
       emitLog: (line) => log(line),
       emitPipeline: broadcastPipeline,
+      memory,
     });
   const operations = operationStore || createOperationStore({ root });
   const factoryAdmin = createFactoryAdmin({ root, spawnImpl });
@@ -622,13 +634,17 @@ export function createMaestroServer({
       operations: operations.list(),
       providerHealth: factoryAdmin.listProviders(),
       server: { host, port },
+      memory,
     });
   const control = createControlDispatcher({
     getSnapshot: controlSnapshot,
     operations,
     audit,
     confirmations,
-    handlers: createEngineActionHandlers({ root, engineManager: engine, factoryAdmin, lifecycleManager }),
+    handlers: {
+      ...createEngineActionHandlers({ root, engineManager: engine, factoryAdmin, lifecycleManager }),
+      ...createMemoryActionHandlers(memory),
+    },
     emitEvent: (type, payload) => {
       const data = `data: ${JSON.stringify({ type, ...payload })}\n\n`;
       for (const client of sseClients) {
@@ -692,6 +708,94 @@ export function createMaestroServer({
       sendJson(res, 200, controlSnapshot());
     } catch (error) {
       sendJson(res, 500, { ok: false, error: `control_snapshot_failed: ${error instanceof Error ? error.message : String(error)}` });
+    }
+    return;
+  }
+
+  const sendMemoryError = (error) => {
+    const status = Number.isInteger(error?.status) ? error.status : 500;
+    sendJson(res, status, {
+      ok: false,
+      error: redactLog(error instanceof Error ? error.message : String(error)),
+    });
+  };
+  const memoryAppId = (project) => {
+    if (project === "factory") return null;
+    const match = /^app-([a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?)$/.exec(project || "");
+    if (!match) throw Object.assign(new Error("project de memória inválido."), { status: 400 });
+    return match[1];
+  };
+
+  if (url.pathname === "/api/memory/status" && method === "GET") {
+    sendJson(res, 200, memory.status());
+    return;
+  }
+
+  if (url.pathname === "/api/memory/overview" && method === "GET") {
+    try {
+      sendJson(res, 200, await memory.overview({ appId: memoryAppId(url.searchParams.get("project")), limit: 10 }));
+    } catch (error) {
+      sendMemoryError(error);
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/memory/search" && method === "GET") {
+    try {
+      const q = url.searchParams.get("q") || "";
+      if (!q.trim() || q.length > 500) throw Object.assign(new Error("q de memória inválido."), { status: 400 });
+      sendJson(res, 200, await memory.search({ q, appId: memoryAppId(url.searchParams.get("project")), limit: 20 }));
+    } catch (error) {
+      sendMemoryError(error);
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/memory/briefing" && method === "GET") {
+    try {
+      sendJson(res, 200, await memory.briefing({ appId: memoryAppId(url.searchParams.get("project")), limit: 8 }));
+    } catch (error) {
+      sendMemoryError(error);
+    }
+    return;
+  }
+
+  const memoryPagePrefix = "/api/memory/pages/";
+  if (url.pathname.startsWith(memoryPagePrefix) && method === "GET") {
+    try {
+      const rest = url.pathname.slice(memoryPagePrefix.length);
+      const slash = rest.indexOf("/");
+      if (slash < 1) throw Object.assign(new Error("Página de memória inválida."), { status: 400 });
+      const project = decodeURIComponent(rest.slice(0, slash));
+      const pagePath = decodeURIComponent(rest.slice(slash + 1));
+      if (
+        !pagePath
+        || pagePath.includes("\\")
+        || pagePath.split("/").some((segment) => !segment || segment === "." || segment === "..")
+      ) {
+        throw Object.assign(new Error("Path de memória inválido."), { status: 400 });
+      }
+      sendJson(res, 200, await memory.readPage({ appId: memoryAppId(project), pagePath }));
+    } catch (error) {
+      sendMemoryError(error);
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/memory/import/preview" && method === "POST") {
+    try {
+      sendJson(res, 200, await memory.importPreview(await readBody(req)));
+    } catch (error) {
+      sendMemoryError(error);
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/memory/import/apply" && method === "POST") {
+    try {
+      sendJson(res, 200, await memory.importApply(await readBody(req)));
+    } catch (error) {
+      sendMemoryError(error);
     }
     return;
   }
@@ -804,7 +908,13 @@ export function createMaestroServer({
           return;
         }
         sendJson(res, 200, { ok: true, killed: running.map((p) => p.appId) });
-        setTimeout(() => process.exit(0), 150);
+        setTimeout(async () => {
+          try {
+            await memory.close?.();
+          } finally {
+            process.exit(0);
+          }
+        }, 50);
       } else if (action === "target") {
         sendJson(res, 200, engine.setTarget(body.appId, body.target, body.subdomain));
       } else if (action === "kill") {
@@ -945,6 +1055,10 @@ export function createMaestroServer({
   res.end("Not found");
   });
 
+  server.on("close", () => {
+    void memory.close?.();
+  });
+  void memory.startIfInstalled?.().catch?.(() => {});
   return server;
 }
 

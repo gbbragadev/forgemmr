@@ -27,7 +27,7 @@ function pendingGate(pipeline) {
  * Catálogo state-driven. O browser renderiza estes descritores, mas nunca escolhe
  * comandos, executáveis ou caminhos de arquivo.
  */
-export function createActionCatalog({ pipelines = [], teams = [], profiles = [], blueprints = [], providers = [], lifecycle = [] } = {}) {
+export function createActionCatalog({ pipelines = [], teams = [], profiles = [], blueprints = [], providers = [], lifecycle = [], memoryActions = [] } = {}) {
   const teamIds = teams.map((team) => team.id);
   const profileIds = profiles.map((profile) => profile.slug);
   const blueprintIds = blueprints.map((blueprint) => blueprint.id);
@@ -125,6 +125,7 @@ export function createActionCatalog({ pipelines = [], teams = [], profiles = [],
   ];
   const lifecycleByApp = new Map(lifecycle.map((entry) => [entry.appId, entry]));
   const actionApps = new Set();
+  actions.push(...memoryActions);
 
   function addLifecycleActions(appId, pipelineStatus = "idle") {
     if (!appId || actionApps.has(appId)) return;

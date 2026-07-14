@@ -7,6 +7,7 @@ import { listProfiles } from "../engine.mjs";
 import { aggregateRuns, loadRuns } from "../stats.mjs";
 import { createActionCatalog } from "./catalog.mjs";
 import { listLifecycle as loadLifecycle } from "./lifecycle.mjs";
+import { createMemoryActions } from "../memory/control.mjs";
 
 function readJson(file, fallback) {
   try {
@@ -84,7 +85,7 @@ function pendingDecisions(pipelines) {
   return decisions.sort((a, b) => a.appId.localeCompare(b.appId) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
 }
 
-export function buildControlSnapshot({ root, engineManager, operations = [], now = new Date(), server = {}, providerHealth = null }) {
+export function buildControlSnapshot({ root, engineManager, operations = [], now = new Date(), server = {}, providerHealth = null, memory = null }) {
   const pipelineMap = engineManager?.snapshot?.() || {};
   const pipelines = Object.entries(pipelineMap)
     .map(([appId, pipeline]) => ({ appId, ...pipeline }))
@@ -97,7 +98,25 @@ export function buildControlSnapshot({ root, engineManager, operations = [], now
   const decisions = pendingDecisions(pipelines);
   const lifecycle = loadLifecycle(root);
   const stats = aggregateRuns(loadRuns(root));
-  const actions = createActionCatalog({ pipelines, profiles, teams, blueprints, providers, lifecycle });
+  const memoryStatus = memory?.status?.() || {
+    state: "unconfigured",
+    version: "1.13.0",
+    managed: false,
+    latencyMs: null,
+    pageCount: 0,
+    pendingOutbox: 0,
+    lastHealthAt: null,
+    lastError: null,
+  };
+  const actions = createActionCatalog({
+    pipelines,
+    profiles,
+    teams,
+    blueprints,
+    providers,
+    lifecycle,
+    memoryActions: createMemoryActions(memoryStatus),
+  });
   const core = {
     server: {
       status: "online",
@@ -114,6 +133,7 @@ export function buildControlSnapshot({ root, engineManager, operations = [], now
     pipelines,
     decisions,
     lifecycle,
+    memory: memoryStatus,
     stats,
     operations: operations.slice(),
     actions,
