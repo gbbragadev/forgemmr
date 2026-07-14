@@ -18,10 +18,34 @@ export async function probeControlCenter(url, { fetchImpl = fetch, timeoutMs = 1
     });
     if (!response.ok) return false;
     const snapshot = await response.json();
-    return snapshot?.server?.localOnly === true && Array.isArray(snapshot.actions) && typeof snapshot.version === "string";
+    const controlCenter = snapshot?.server?.localOnly === true
+      && Array.isArray(snapshot.actions)
+      && typeof snapshot.version === "string";
+    if (!controlCenter) return false;
+    const product = snapshot.server.product || "maestro-control-center";
+    return {
+      controlCenter: true,
+      product,
+      upgradeRequired: product !== "forge-nexus",
+    };
   } catch {
     return false;
   }
+}
+
+function normalizeProbe(result) {
+  if (result === true) {
+    return { controlCenter: true, product: "forge-nexus", upgradeRequired: false };
+  }
+  if (!result || result.controlCenter !== true) {
+    return { controlCenter: false, product: null, upgradeRequired: false };
+  }
+  const product = result.product || "maestro-control-center";
+  return {
+    controlCenter: true,
+    product,
+    upgradeRequired: result.upgradeRequired ?? product !== "forge-nexus",
+  };
 }
 
 export function startDetachedServer({ root = ROOT, port = 8799, spawnImpl = spawn } = {}) {
@@ -59,21 +83,23 @@ export async function ensureControlCenter({
   retryDelayMs = 250,
   maxAttempts = 40,
 } = {}) {
-  if (await probeHealth()) {
+  const existing = normalizeProbe(await probeHealth());
+  if (existing.controlCenter) {
     await openBrowser();
-    return { url, reused: true, started: false };
+    return { url, reused: true, started: false, product: existing.product, upgradeRequired: existing.upgradeRequired };
   }
 
   await startServer();
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     await wait(retryDelayMs);
-    if (await probeHealth()) {
+    const current = normalizeProbe(await probeHealth());
+    if (current.controlCenter) {
       await openBrowser();
-      return { url, reused: false, started: true };
+      return { url, reused: false, started: true, product: current.product, upgradeRequired: current.upgradeRequired };
     }
   }
 
-  throw new Error(`A porta não respondeu como Maestro Control Center após ${maxAttempts} tentativas: ${url}`);
+  throw new Error(`A porta não respondeu como Forge Nexus após ${maxAttempts} tentativas: ${url}`);
 }
 
 async function main() {
@@ -86,13 +112,16 @@ async function main() {
     startServer: () => startDetachedServer({ root: ROOT, port }),
     openBrowser: () => openDefaultBrowser(url),
   });
-  process.stdout.write(`${result.reused ? "Maestro já estava online" : "Maestro iniciado"}: ${result.url}\n`);
+  const status = result.upgradeRequired
+    ? "Central legada aberta; reinicie pelo Forge Nexus para atualizar"
+    : result.reused ? "Forge Nexus já estava online" : "Forge Nexus iniciado";
+  process.stdout.write(`${status}: ${result.url}\n`);
 }
 
 const direct = process.argv[1] && path.resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase();
 if (direct) {
   main().catch((error) => {
-    process.stderr.write(`Não foi possível abrir o Control Center: ${error.message}\n`);
+    process.stderr.write(`Não foi possível abrir o Forge Nexus: ${error.message}\n`);
     process.exitCode = 1;
   });
 }

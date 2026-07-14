@@ -117,7 +117,7 @@ function setConnection(online, label = null) {
   const dot = byId("connection-dot");
   dot.classList.toggle("is-online", online);
   dot.classList.toggle("is-offline", !online);
-  byId("connection-label").textContent = label || (online ? "Maestro online" : "Maestro indisponível");
+  byId("connection-label").textContent = label || (online ? "Nexus online" : "Nexus indisponível");
 }
 
 async function readResponse(response) {
@@ -177,7 +177,7 @@ async function loadSnapshot({ quiet = false } = {}) {
 function renderUnavailable() {
   for (const id of SECTION_IDS) {
     const target = byId(`${id}-content`);
-    if (target) clear(target).append(emptyState("Maestro fora de alcance", "Abra a central pelo atalho do Forge e tente novamente."));
+    if (target) clear(target).append(emptyState("Nexus indisponível", "Abra a central pelo atalho do Forge e tente novamente."));
   }
 }
 
@@ -242,7 +242,7 @@ function renderOverview() {
     : element("div", { className: "decision-callout" }, [
         element("span", { className: "eyebrow", text: "SEM GATES PENDENTES" }),
         element("h3", { text: "A fila humana está limpa" }),
-        element("p", { text: "O Maestro só volta a chamar quando uma decisão real for necessária." }),
+        element("p", { text: "O Forge Nexus só volta a chamar quando uma decisão real for necessária." }),
       ]);
   const decisionButton = decisionPanel.querySelector("button");
   if (decisionButton) decisionButton.addEventListener("click", () => showSection("decisions"));
@@ -287,7 +287,7 @@ function renderNewPipeline() {
 
   const form = element("form", { className: "wizard-main", attrs: { id: "pipeline-wizard" } }, [
     element("h3", { text: "Descreva a aposta" }),
-    element("p", { text: "O Maestro monta o caminho e para nos gates que exigem sua decisão." }),
+    element("p", { text: "O Forge Nexus monta o caminho e para nos gates que exigem sua decisão." }),
     element("div", { className: "form-fields" }, action.fields.map((field) => renderActionField(field))),
     element("div", { className: "form-actions" }, [
       element("button", { className: "button button-primary", text: "Iniciar pipeline", attrs: { type: "submit", disabled: !action.enabled } }),
@@ -402,7 +402,7 @@ function renderDecisions() {
   const target = clear(byId("decisions-content"));
   const decisionActions = state.snapshot.actions.filter((action) => action.id === "gate.decide" || (action.id === "p5.decide" && action.enabled));
   if (!decisionActions.length) {
-    target.append(emptyState("Nenhuma decisão pendente", "O Maestro continua até o próximo gate contratual ou pausa configurada."));
+    target.append(emptyState("Nenhuma decisão pendente", "O Forge Nexus continua até o próximo gate contratual ou pausa configurada."));
     return;
   }
   target.append(element("div", { className: "decision-grid" }, decisionActions.map((action) => {
@@ -838,7 +838,7 @@ function connectEvents() {
   if (state.eventSource) state.eventSource.close();
   const source = new EventSource(API.events);
   state.eventSource = source;
-  source.addEventListener("open", () => setConnection(true, "Maestro ao vivo"));
+  source.addEventListener("open", () => setConnection(true, "Nexus ao vivo"));
   source.addEventListener("error", () => setConnection(false, "Reconectando eventos"));
   source.addEventListener("message", (event) => {
     try {

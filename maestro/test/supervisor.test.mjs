@@ -16,7 +16,13 @@ test("supervisor reutiliza Maestro saudável e abre o browser uma única vez", a
     wait: async () => {},
   });
 
-  assert.deepEqual(result, { url: "http://127.0.0.1:8799", reused: true, started: false });
+  assert.deepEqual(result, {
+    url: "http://127.0.0.1:8799",
+    reused: true,
+    started: false,
+    product: "forge-nexus",
+    upgradeRequired: false,
+  });
   assert.equal(probes, 1);
   assert.equal(starts, 0);
   assert.equal(opens, 1);
@@ -37,7 +43,13 @@ test("supervisor inicia uma instância, espera health e só então abre o browse
     maxAttempts: 5,
   });
 
-  assert.deepEqual(result, { url: "http://127.0.0.1:8799", reused: false, started: true });
+  assert.deepEqual(result, {
+    url: "http://127.0.0.1:8799",
+    reused: false,
+    started: true,
+    product: "forge-nexus",
+    upgradeRequired: false,
+  });
   assert.equal(starts, 1);
   assert.equal(waits, 2);
   assert.equal(opens, 1);
@@ -56,8 +68,34 @@ test("supervisor falha fechado quando a porta não vira um Control Center saudá
       wait: async () => {},
       maxAttempts: 2,
     }),
-    /não respondeu como Maestro Control Center/i,
+    /não respondeu como Forge Nexus/i,
   );
   assert.equal(starts, 1);
   assert.equal(opens, 0);
+});
+
+test("supervisor reconhece Control Center legado sem iniciar ou matar outra instância", async () => {
+  let starts = 0;
+  let opens = 0;
+  const result = await ensureControlCenter({
+    url: "http://127.0.0.1:8799",
+    probeHealth: async () => ({
+      controlCenter: true,
+      product: "maestro-control-center",
+      upgradeRequired: true,
+    }),
+    startServer: () => { starts += 1; },
+    openBrowser: () => { opens += 1; },
+    wait: async () => {},
+  });
+
+  assert.deepEqual(result, {
+    url: "http://127.0.0.1:8799",
+    reused: true,
+    started: false,
+    product: "maestro-control-center",
+    upgradeRequired: true,
+  });
+  assert.equal(starts, 0);
+  assert.equal(opens, 1);
 });

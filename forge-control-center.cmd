@@ -12,7 +12,7 @@ if errorlevel 1 (
 node "%~dp0maestro\supervisor.mjs"
 if errorlevel 1 (
   echo.
-  echo O Maestro nao abriu. Confira se outra aplicacao esta usando a porta 8799.
+  echo O Forge Nexus nao abriu. Confira se outra aplicacao esta usando a porta 8799.
   pause
   exit /b 1
 )

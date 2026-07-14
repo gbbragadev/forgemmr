@@ -7,6 +7,8 @@ const readMaestroFile = (name) => readFileSync(new URL(`../${name}`, import.meta
 test("Control Center exposes the seven zero-command work areas", () => {
   const html = readMaestroFile("index.html");
 
+  assert.match(html, /Forge Nexus/);
+  assert.doesNotMatch(html, />Maestro Control Center</);
   assert.match(html, /<nav[^>]+aria-label="Navegação principal"/i);
   assert.equal((html.match(/<h1\b/gi) || []).length, 1);
   for (const id of [
@@ -31,6 +33,7 @@ test("Control Center exposes the seven zero-command work areas", () => {
 test("Control Center consumes the closed control-plane API without a command escape hatch", () => {
   const js = readMaestroFile("control-center.js");
 
+  assert.match(js, /Nexus indisponível/);
   for (const name of [
     "loadSnapshot",
     "renderOverview",

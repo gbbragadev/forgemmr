@@ -120,6 +120,7 @@ export function buildControlSnapshot({ root, engineManager, operations = [], now
   const core = {
     server: {
       status: "online",
+      product: "forge-nexus",
       host: "127.0.0.1",
       port: 8799,
       localOnly: true,

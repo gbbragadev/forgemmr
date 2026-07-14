@@ -1,15 +1,14 @@
-# Maestro HQ — server + browser (zero typing)
+# Forge Nexus — server + browser (zero typing)
 # Duplo clique ou: powershell -File scripts/start-maestro.ps1
 
 $ErrorActionPreference = "Continue"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
 
-$MaestroPort = 8799
-$Ui = "http://127.0.0.1:$MaestroPort/"
+$env:MAESTRO_PORT = "8799"
 
 Write-Host ""
-Write-Host "  🎼  Maestro HQ — Anime Forge" -ForegroundColor Magenta
+Write-Host "  ◆  Forge Nexus — central operacional" -ForegroundColor Magenta
 Write-Host "  $Root" -ForegroundColor DarkGray
 Write-Host ""
 
@@ -21,20 +20,10 @@ if (-not $node) {
   exit 1
 }
 
-# Start Maestro server if needed
-$busy = Get-NetTCPConnection -LocalPort $MaestroPort -ErrorAction SilentlyContinue
-if (-not $busy) {
-  Write-Host "  → node maestro/server.mjs (porta $MaestroPort)" -ForegroundColor Cyan
-  Start-Process -FilePath "node" -ArgumentList "maestro/server.mjs" -WorkingDirectory $Root -WindowStyle Minimized
-  Start-Sleep -Seconds 2
-} else {
-  Write-Host "  ✓ Maestro já em :$MaestroPort" -ForegroundColor Green
+Write-Host "  Abrindo a central segura em http://127.0.0.1:8799" -ForegroundColor Cyan
+& node "$Root\maestro\supervisor.mjs"
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "  O Forge Nexus não abriu. A mensagem acima explica o bloqueio." -ForegroundColor Red
+  pause
+  exit $LASTEXITCODE
 }
-
-Start-Process $Ui
-Write-Host "  ✓ Aberto $Ui" -ForegroundColor Green
-Write-Host ""
-Write-Host "  1. Clique preset: E2E teste · só Grok" -ForegroundColor White
-Write-Host "  2. Clique RUN" -ForegroundColor White
-Write-Host "  3. Acompanhe o log ao vivo" -ForegroundColor White
-Write-Host ""

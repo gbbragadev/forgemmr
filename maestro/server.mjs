@@ -1067,7 +1067,7 @@ if (invokedDirectly) {
   const server = createMaestroServer();
   server.listen(PORT, "127.0.0.1", () => {
     console.log("");
-    console.log(`  🎼  Maestro server  http://127.0.0.1:${PORT}`);
+    console.log(`  ◆  Forge Nexus  http://127.0.0.1:${PORT}`);
     console.log(`  Run API            POST /api/run`);
     console.log(`  Live logs          GET  /api/events (SSE)`);
     console.log(`  CWD                ${ROOT}`);
