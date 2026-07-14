@@ -1,11 +1,20 @@
 # HANDOFF
 
 ## Loop ativo
-Nenhum. **META/L1 Maestro Control Center** concluído localmente; branch aguarda decisão de integração.
+Nenhum. **META/L1 Forge Nexus + ai-memory design** concluído; documento escrito aguarda revisão final do dono antes do plano de implementação.
 *(nenhum app foi publicado; o Maestro vivo não foi reiniciado; P4 continua humano)*
 
 ## Last agent
-GPT‑5.6 | 2026-07-14 · Control Center zero-commands (`feat/gpt56-optimization`)
+GPT‑5.6 | 2026-07-14 · Forge Nexus + ai-memory design (`feat/gpt56-optimization`)
+
+## Last iteration — META/L1 Forge Nexus + ai-memory design (2026-07-14)
+- **Decisão:** marca visível Forge Nexus; código do `ai-memory` incorporado como git subtree fixado em `v1.13.0` (`39a1e248`); nomes internos `maestro/*` preservados na primeira fase.
+- **Integração:** runtime local gerenciado sem terminal/Rust, briefing pré-job, eventos estruturados pós-job, escopo por factory/app/run, outbox fail-open e importação histórica com prévia.
+- **Central:** nova área Memória para saúde, busca, briefing, regras, erros, handoffs, importação, backup e recovery; token upstream nunca chega ao browser.
+- **Segurança:** loopback, checksum, env allowlisted, redaction, `untrustedBlock`, mutações allowlisted e gates humanos invariantes.
+- **Documento:** `docs/plans/2026-07-14-forge-nexus-ai-memory-design.md`.
+- **Escopo desta iteração:** somente design e workbench; nenhum subtree, runtime, dependência, implementação, push, deploy ou restart.
+- **Próximo:** dono revisa o documento; após aprovação escrita, gerar plano por commits com `superpowers:writing-plans`.
 
 ## Last iteration — META/L1 Maestro Control Center (2026-07-14)
 - **Control plane:** snapshot versionado, catálogo state-driven, operações idempotentes, confirmação por nonce, auditoria redigida e handlers allowlisted; nenhum shell livre.
