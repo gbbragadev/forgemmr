@@ -10,7 +10,9 @@
 
 **Versão inicial:** v1.13.0
 
-**Commit da tag:** 39a1e2482348107751f5a40861238e97ca7eba8b
+**Objeto da tag:** 39a1e2482348107751f5a40861238e97ca7eba8b
+
+**Commit da release:** 94626aad1aa254901cdc6437c270894f5bb70340
 
 ## 1. Resumo executivo
 

@@ -10,9 +10,11 @@
 
 ## Global Constraints
 
-- Branch de partida: feat/gpt56-optimization, commit de design 04272cf.
+- Branch de partida: feat/gpt56-optimization, commit a064b91.
 - Trabalhar em worktree isolado criado a partir desse commit; não tocar no package-lock.json, .claude/ ou .codebase-memory/ preexistentes.
-- Fonte upstream fixada na tag v1.13.0, commit 39a1e2482348107751f5a40861238e97ca7eba8b.
+- Fonte upstream fixada na tag v1.13.0, objeto de tag
+  39a1e2482348107751f5a40861238e97ca7eba8b e commit da release
+  94626aad1aa254901cdc6437c270894f5bb70340.
 - Artefato Windows: ai-memory-windows-x86_64.zip.
 - SHA-256 do artefato Windows: 0c4be4e697e8359820c9140b02673b51f29237e158589aca0b3bf98667201fe8.
 - Sem dependência npm nova, Docker, banco cloud, fila externa ou serviço pago.
@@ -138,7 +140,8 @@ Create maestro/memory/runtime-manifest.json:
   "source": {
     "repository": "https://github.com/akitaonrails/ai-memory",
     "tag": "v1.13.0",
-    "commit": "39a1e2482348107751f5a40861238e97ca7eba8b"
+    "tagObject": "39a1e2482348107751f5a40861238e97ca7eba8b",
+    "commit": "94626aad1aa254901cdc6437c270894f5bb70340"
   },
   "platforms": {
     "win32-x64": {
@@ -160,7 +163,8 @@ Create THIRD_PARTY_NOTICES.md:
 ## ai-memory
 
 - Version: 1.13.0
-- Commit: 39a1e2482348107751f5a40861238e97ca7eba8b
+- Tag object: 39a1e2482348107751f5a40861238e97ca7eba8b
+- Release commit: 94626aad1aa254901cdc6437c270894f5bb70340
 - Source: https://github.com/akitaonrails/ai-memory
 - License: MIT
 - Copyright (c) 2026 Fabio Akita
@@ -183,11 +187,15 @@ test("ai-memory vendorizado está pinado na release auditada e mantém MIT", () 
   const cargo = read("integrations/ai-memory/Cargo.toml");
   const license = read("integrations/ai-memory/LICENSE");
   const manifest = JSON.parse(read("maestro/memory/runtime-manifest.json"));
+  const notice = read("THIRD_PARTY_NOTICES.md");
   assert.match(cargo, /version = "1\.13\.0"/);
   assert.match(license, /MIT License/);
   assert.match(license, /Copyright \(c\) 2026 Fabio Akita/);
-  assert.equal(manifest.source.commit, "39a1e2482348107751f5a40861238e97ca7eba8b");
+  assert.equal(manifest.source.tagObject, "39a1e2482348107751f5a40861238e97ca7eba8b");
+  assert.equal(manifest.source.commit, "94626aad1aa254901cdc6437c270894f5bb70340");
   assert.equal(manifest.platforms["win32-x64"].sha256.length, 64);
+  assert.match(notice, /Fabio Akita/);
+  assert.match(notice, /94626aad1aa254901cdc6437c270894f5bb70340/);
 });
 ~~~
 

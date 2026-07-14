@@ -58,3 +58,6 @@ maestro/.prompts/
 
 # worktrees locais de implementação
 .worktrees/
+
+# runtime e dados locais do Forge Nexus
+.forge-nexus/

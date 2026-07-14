@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "version": "1.13.0",
+  "source": {
+    "repository": "https://github.com/akitaonrails/ai-memory",
+    "tag": "v1.13.0",
+    "tagObject": "39a1e2482348107751f5a40861238e97ca7eba8b",
+    "commit": "94626aad1aa254901cdc6437c270894f5bb70340"
+  },
+  "platforms": {
+    "win32-x64": {
+      "asset": "ai-memory-windows-x86_64.zip",
+      "url": "https://github.com/akitaonrails/ai-memory/releases/download/v1.13.0/ai-memory-windows-x86_64.zip",
+      "sha256": "0c4be4e697e8359820c9140b02673b51f29237e158589aca0b3bf98667201fe8",
+      "binary": "ai-memory.exe",
+      "archive": "zip"
+    }
+  }
+}
