@@ -1,7 +1,7 @@
 import { activateProfile } from "../engine.mjs";
 
 /** Handlers explícitos: nenhum valor do browser vira nome de função ou comando. */
-export function createEngineActionHandlers({ root, engineManager, factoryAdmin }) {
+export function createEngineActionHandlers({ root, engineManager, factoryAdmin, lifecycleManager }) {
   return {
     "pipeline.start": ({ input }) => {
       if (input.profile) activateProfile(root, input.profile);
@@ -35,5 +35,7 @@ export function createEngineActionHandlers({ root, engineManager, factoryAdmin }
     "team.save": ({ input }) => factoryAdmin.saveTeam(input),
     "providers.refresh": () => factoryAdmin.listProviders(),
     "provider.login": ({ input }) => factoryAdmin.startProviderLogin(input.provider),
+    "p4.record": ({ appId, input }) => lifecycleManager.recordP4({ appId, ...input }),
+    "p5.decide": ({ appId, input }) => lifecycleManager.decideP5({ appId, ...input }),
   };
 }

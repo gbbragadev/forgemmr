@@ -6,6 +6,7 @@ import { makeRedactor } from "../adapters.mjs";
 import { listProfiles } from "../engine.mjs";
 import { aggregateRuns, loadRuns } from "../stats.mjs";
 import { createActionCatalog } from "./catalog.mjs";
+import { listLifecycle as loadLifecycle } from "./lifecycle.mjs";
 
 function readJson(file, fallback) {
   try {
@@ -46,17 +47,6 @@ function listBlueprints(root) {
     });
   }
   return result;
-}
-
-function listLifecycle(root) {
-  const dir = path.join(root, "maestro", "lifecycle");
-  if (!fs.existsSync(dir)) return [];
-  const entries = [];
-  for (const file of fs.readdirSync(dir).filter((name) => name.endsWith(".json")).sort()) {
-    const value = readJson(path.join(dir, file), null);
-    if (value) entries.push(value);
-  }
-  return entries;
 }
 
 function normalizeRoster(root) {
@@ -105,9 +95,9 @@ export function buildControlSnapshot({ root, engineManager, operations = [], now
   const teams = roster.teams;
   const blueprints = listBlueprints(root);
   const decisions = pendingDecisions(pipelines);
-  const lifecycle = listLifecycle(root);
+  const lifecycle = loadLifecycle(root);
   const stats = aggregateRuns(loadRuns(root));
-  const actions = createActionCatalog({ pipelines, profiles, teams, blueprints, providers });
+  const actions = createActionCatalog({ pipelines, profiles, teams, blueprints, providers, lifecycle });
   const core = {
     server: {
       status: "online",

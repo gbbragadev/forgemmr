@@ -74,6 +74,12 @@ function validateInput(action, input) {
       if (!Array.isArray(value)) throw new ControlError(400, "input_type", `${field.name} precisa ser uma lista.`);
       continue;
     }
+    if (field.type === "number") {
+      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        throw new ControlError(400, "input_type", `${field.name} precisa ser um número finito maior ou igual a zero.`);
+      }
+      continue;
+    }
     if (field.type === "checkbox" && typeof value !== "boolean") {
       throw new ControlError(400, "input_type", `${field.name} precisa ser booleano.`);
     }

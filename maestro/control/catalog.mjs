@@ -27,7 +27,7 @@ function pendingGate(pipeline) {
  * Catálogo state-driven. O browser renderiza estes descritores, mas nunca escolhe
  * comandos, executáveis ou caminhos de arquivo.
  */
-export function createActionCatalog({ pipelines = [], teams = [], profiles = [], blueprints = [], providers = [] } = {}) {
+export function createActionCatalog({ pipelines = [], teams = [], profiles = [], blueprints = [], providers = [], lifecycle = [] } = {}) {
   const teamIds = teams.map((team) => team.id);
   const profileIds = profiles.map((profile) => profile.slug);
   const blueprintIds = blueprints.map((blueprint) => blueprint.id);
@@ -123,6 +123,59 @@ export function createActionCatalog({ pipelines = [], teams = [], profiles = [],
       ],
     }),
   ];
+  const lifecycleByApp = new Map(lifecycle.map((entry) => [entry.appId, entry]));
+  const actionApps = new Set();
+
+  function addLifecycleActions(appId, pipelineStatus = "idle") {
+    if (!appId || actionApps.has(appId)) return;
+    actionApps.add(appId);
+    const scope = `pipeline:${appId}`;
+    const state = lifecycleByApp.get(appId);
+    const canMeasure = !["running", "paused_gate", "paused_control", "blocked"].includes(pipelineStatus);
+    actions.push(
+      action({
+        id: "p4.record",
+        scope,
+        label: "Registrar medição P4",
+        description: "Salva uma medição comparável de aquisição, ativação, receita e custo.",
+        risk: "guarded",
+        enabled: canMeasure,
+        blockedReason: "Espere a pipeline chegar ao pós-ship antes de medir.",
+        expectedEffect: "Grava apps/<app>/docs/p4-result.json e atualiza o lifecycle.",
+        fields: [
+          field("measuredAt", "Data da medição", "text", { required: true }),
+          field("why", "Leitura dos dados", "textarea", { required: true }),
+          field("channel", "Canal", "text", { required: true }),
+          field("daysLive", "Dias no ar", "number", { required: true }),
+          field("visits", "Visitas", "number", { required: true }),
+          field("activations", "Ativações", "number", { required: true }),
+          field("ctaClicks", "Cliques no CTA", "number", { required: true }),
+          field("conversions", "Conversões", "number", { required: true }),
+          field("revenueBrl", "Receita (R$)", "number", { required: true }),
+          field("apiCostBrl", "Custo de API (R$)", "number", { required: true }),
+          field("verdict", "Sinal sugerido", "select", { required: true, options: ["kill", "iterate", "scale"] }),
+        ],
+      }),
+      action({
+        id: "p5.decide",
+        scope,
+        label: "Decidir P5",
+        description: "Aposenta, itera ou escala a aposta usando a medição P4.",
+        risk: "guarded",
+        enabled: Boolean(state?.p4),
+        blockedReason: "Registre uma medição P4 válida antes da decisão P5.",
+        expectedEffect: "Registra a decisão; kill não remove arquivos, iterate abre feedback e scale cria próximos passos.",
+        fields: [
+          field("decision", "Decisão", "choice", { required: true, options: ["kill", "iterate", "scale"] }),
+          field("why", "Por quê?", "textarea", { required: true }),
+          field("feedback", "Feedback da iteração", "textarea"),
+          field("team", "Time da iteração", "select", { options: teamIds }),
+          field("dryRun", "Iterar em dry-run", "checkbox"),
+          field("controlMode", "Modo de controle", "select", { options: ["autopilot_to_gate", "guided", "manual"] }),
+        ],
+      }),
+    );
+  }
 
   for (const pipeline of pipelines) {
     const appId = pipeline.appId;
@@ -242,7 +295,10 @@ export function createActionCatalog({ pipelines = [], teams = [], profiles = [],
         fields: [field("force", "Forçar mesmo com run ativa", "checkbox")],
       }),
     );
+    addLifecycleActions(appId, status);
   }
+
+  for (const entry of lifecycle) addLifecycleActions(entry.appId, "idle");
 
   return actions;
 }

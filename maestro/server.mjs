@@ -34,6 +34,7 @@ import { createConfirmationManager } from "./control/confirmations.mjs";
 import { ControlError, createControlDispatcher } from "./control/dispatcher.mjs";
 import { createEngineActionHandlers } from "./control/handlers.mjs";
 import { createFactoryAdmin } from "./control/factory-admin.mjs";
+import { createLifecycleManager } from "./control/lifecycle.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -611,6 +612,7 @@ export function createMaestroServer({
     });
   const operations = operationStore || createOperationStore({ root });
   const factoryAdmin = createFactoryAdmin({ root, spawnImpl });
+  const lifecycleManager = createLifecycleManager({ root, engineManager: engine });
   const audit = createAuditLog({ root });
   const confirmations = createConfirmationManager();
   const controlSnapshot = () =>
@@ -626,7 +628,7 @@ export function createMaestroServer({
     operations,
     audit,
     confirmations,
-    handlers: createEngineActionHandlers({ root, engineManager: engine, factoryAdmin }),
+    handlers: createEngineActionHandlers({ root, engineManager: engine, factoryAdmin, lifecycleManager }),
     emitEvent: (type, payload) => {
       const data = `data: ${JSON.stringify({ type, ...payload })}\n\n`;
       for (const client of sseClients) {

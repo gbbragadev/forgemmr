@@ -84,6 +84,8 @@ test("snapshot reúne a fábrica, ordena pipelines e descreve somente ações v�
     const decide = snapshot.actions.find((action) => action.id === "gate.decide" && action.scope === "pipeline:a-app");
     assert.equal(decide.risk, "guarded");
     assert.deepEqual(decide.fields.find((field) => field.name === "choice").options, ["go", "kill"]);
+    assert.equal(snapshot.actions.find((action) => action.id === "p4.record" && action.scope === "pipeline:z-app")?.enabled, true);
+    assert.equal(snapshot.actions.find((action) => action.id === "p5.decide" && action.scope === "pipeline:z-app")?.enabled, false);
 
     for (const action of snapshot.actions) {
       assert.deepEqual(Object.keys(action), [
