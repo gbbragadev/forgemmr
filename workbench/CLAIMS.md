@@ -4,6 +4,7 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 
 | slot | agent | loop | job | app / area | since | notes |
 |------|-------|------|-----|------------|-------|-------|
+| A | GPT-5.6 | META/L1 | Maestro Control Center | maestro/control + dashboard | 2026-07-14 | plano aprovado; TDD; sem push/deploy |
 
 _(META/P3 onboarding visual liberado 2026-07-13 — GPT-5.6 · 108/108, Pages público, push/WhatsApp)_
 _(META/L2 C-1/C-2 pós-revisão Fable liberado 2026-07-13 — GPT-5.6 Sol · 99/99, sem push/deploy)_

@@ -19,6 +19,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
+- [ ] **META/L1** Maestro Control Center zero-commands — control plane seguro, pipeline P0–P5, fábrica, métricas e launcher local (GPT-5.6, 2026-07-14)
+
 
 ## Done
 
