@@ -1,0 +1,271 @@
+//! FTS5 `MATCH` query preparation for user/agent-supplied search text.
+//!
+//! FTS5 treats `column:term` as a column-qualified search. Natural-language
+//! queries that contain bare colons (`pick: handoff`, `memory: bootstrap`) make
+//! SQLite error with `no such column: pick` because only `title` and `body`
+//! exist on the FTS tables. Unknown bare column syntax is neutralised without
+//! discarding deliberate FTS operators such as `OR`.
+
+/// Sanitize free-text for use in `WHERE pages_fts MATCH ?`.
+///
+/// Returns an empty string when `raw` is empty/whitespace-only; callers
+/// should skip the SQL query in that case.
+///
+/// Bare multi-word queries are joined with **`OR`**, not the FTS5 default
+/// (`AND`). A natural-language query like "cross project search strategy"
+/// otherwise requires every word to co-occur in one page — near-zero recall
+/// for anything but single keywords. With `OR` + bm25 ranking (callers
+/// `ORDER BY rank`), the best-matching pages still surface first. When the
+/// caller supplies explicit FTS5 syntax (`OR` / `AND` / `NOT` / `NEAR` /
+/// quoted phrases / parens) we preserve it verbatim instead.
+#[must_use]
+pub fn prepare_fts5_query(raw: &str) -> String {
+    let explicit_syntax = raw.contains('"')
+        || raw.contains('(')
+        || raw.contains(')')
+        || raw
+            .split_whitespace()
+            .any(|t| matches!(t, "OR" | "AND" | "NOT" | "NEAR"));
+    let tokens: Vec<String> = raw
+        .split_whitespace()
+        .flat_map(prepare_fts5_token)
+        .collect();
+    if tokens.is_empty() {
+        return String::new();
+    }
+    let separator = if explicit_syntax { " " } else { " OR " };
+    tokens.join(separator)
+}
+
+fn prepare_fts5_token(token: &str) -> Vec<String> {
+    if has_unknown_bare_column(token) {
+        return token
+            .replace(':', " ")
+            .split_whitespace()
+            .map(quote_fts5_token)
+            .collect();
+    }
+
+    if should_quote_fts5_token(token) {
+        vec![quote_fts5_token(token)]
+    } else {
+        vec![token.to_string()]
+    }
+}
+
+fn has_unknown_bare_column(token: &str) -> bool {
+    token.contains(':')
+        && !token.contains('"')
+        && !token.starts_with("title:")
+        && !token.starts_with("body:")
+}
+
+fn should_quote_fts5_token(token: &str) -> bool {
+    if token.starts_with('"') && token.ends_with('"') {
+        return false;
+    }
+    // Quote any token carrying ASCII punctuation so FTS5 treats it as a literal
+    // phrase instead of erroring on its query grammar — e.g. a filename like
+    // `current.md` otherwise yields `fts5: syntax error near "."`. A trailing
+    // `*` (the FTS5 prefix operator) is allowed through bare; accented letters
+    // and digits are unicode (not ASCII punctuation) so recall keeps accents.
+    let core = token.strip_suffix('*').unwrap_or(token);
+    // `:` is column syntax (handled by `has_unknown_bare_column`, or preserved
+    // for known `title:`/`body:` columns) — it must not trigger quoting here.
+    core.chars().any(|c| c.is_ascii_punctuation() && c != ':')
+}
+
+fn quote_fts5_token(token: &str) -> String {
+    // FTS5 escapes `"` by doubling it. A token carrying a literal quote is an
+    // explicit-phrase fragment — keep the simple escaped form (don't expand it).
+    if token.contains('"') {
+        return format!("\"{}\"", token.replace('"', "\"\""));
+    }
+    // Otherwise emit BOTH the whole token and a punctuation-stripped sub-token
+    // phrase, OR'd, because the content tokenizer and the path index disagree
+    // on punctuation:
+    //   tokenize = "unicode61 remove_diacritics 2 tokenchars '/_-'"
+    // keeps `/ _ -` INSIDE tokens (so a body mention of `ai-memory` indexes as
+    // the single token `ai-memory`), while `ops::path_search_text` pre-expands
+    // `/ . - _` to spaces in the path index (so a path `ui-refresh-…` indexes
+    // the sub-tokens `ui`, `refresh`, …). `.` is a separator either way.
+    // Neither form alone matches both: `"ai-memory"` matches the content token
+    // but not the split path index; `"ai memory"` matches the path but not the
+    // content token. OR-ing the two makes a search for `ai-memory` / `ui-refresh`
+    // hit whichever surface indexed it. (Quoting both also neutralises the
+    // punctuation that would otherwise be FTS5 query grammar — the original
+    // `current.md` → `syntax error` bug.) With no punctuation the two coincide
+    // and we emit a single phrase.
+    let split = token
+        .chars()
+        .map(|c| if c.is_ascii_punctuation() { ' ' } else { c })
+        .collect::<String>();
+    let split = split.split_whitespace().collect::<Vec<_>>().join(" ");
+    if split.is_empty() || split == token {
+        format!("\"{token}\"")
+    } else {
+        format!("(\"{token}\" OR \"{split}\")")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn colon_is_not_column_syntax() {
+        // Bare multi-word → OR-joined (no explicit operator present).
+        // `ai-memory` expands to BOTH the whole token (matches content) and
+        // the sub-token phrase (matches the split path index) — see
+        // `quote_fts5_token`.
+        let q = prepare_fts5_query("pick: handoff ai-memory");
+        assert_eq!(q, "\"pick\" OR handoff OR (\"ai-memory\" OR \"ai memory\")");
+    }
+
+    #[test]
+    fn bare_multi_word_is_or_joined() {
+        // The recall fix: every word no longer has to co-occur.
+        assert_eq!(
+            prepare_fts5_query("cross project search strategy"),
+            "cross OR project OR search OR strategy"
+        );
+    }
+
+    #[test]
+    fn portuguese_accented_terms_or_join_and_keep_accents() {
+        // PT natural-language query: tokens preserved (accents intact),
+        // joined with OR so a page matching any term is found.
+        assert_eq!(
+            prepare_fts5_query("descrição testes commits"),
+            "descrição OR testes OR commits"
+        );
+    }
+
+    #[test]
+    fn single_word_has_no_or() {
+        assert_eq!(prepare_fts5_query("handoff"), "handoff");
+    }
+
+    /// Regression: a filename like `current.md` used to pass through bare and
+    /// FTS5 errored with `syntax error near "."`. Quoting it as a phrase both
+    /// avoids the error and matches `architecture-current.md` (the tokens
+    /// `current` + `md` are adjacent in the indexed path).
+    #[test]
+    fn dotted_filename_token_is_quoted() {
+        // Whole token OR sub-token phrase. The split form (`current md`)
+        // matches the tokenised path; the whole form covers content tokens.
+        assert_eq!(
+            prepare_fts5_query("current.md"),
+            "(\"current.md\" OR \"current md\")"
+        );
+        assert_eq!(
+            prepare_fts5_query("00-index.md"),
+            "(\"00-index.md\" OR \"00 index md\")"
+        );
+        assert_eq!(
+            prepare_fts5_query("a/b/c.md"),
+            "(\"a/b/c.md\" OR \"a b c md\")"
+        );
+    }
+
+    /// Regression for the live-found bug: searching `ui-refresh` returned
+    /// nothing even though `follow-ups/ui-refresh-scroll-restoration.md`
+    /// exists. The old quoting produced `"ui-refresh"`, which FTS5 does NOT
+    /// match against the indexed `ui refresh`; the sub-token phrase
+    /// `"ui refresh"` does. See the real-FTS5 test in `ops.rs`.
+    #[test]
+    fn hyphenated_token_quotes_as_subtoken_phrase() {
+        assert_eq!(
+            prepare_fts5_query("ui-refresh"),
+            "(\"ui-refresh\" OR \"ui refresh\")"
+        );
+        assert_eq!(
+            prepare_fts5_query("scroll-restoration"),
+            "(\"scroll-restoration\" OR \"scroll restoration\")"
+        );
+    }
+
+    /// The FTS5 prefix operator (`term*`) must survive — a trailing `*` is not
+    /// quoted away.
+    #[test]
+    fn prefix_star_token_stays_bare() {
+        assert_eq!(prepare_fts5_query("curr*"), "curr*");
+    }
+
+    #[test]
+    fn empty_yields_empty() {
+        assert_eq!(prepare_fts5_query("   "), "");
+    }
+
+    #[test]
+    fn quote_emits_whole_and_subtoken_phrase() {
+        // Punctuated identifier → both forms OR'd.
+        assert_eq!(
+            quote_fts5_token("ai-memory"),
+            r#"("ai-memory" OR "ai memory")"#
+        );
+        // A literal-quote fragment keeps the simple escaped form (no expansion).
+        assert_eq!(quote_fts5_token(r#"say "hello""#), r#""say ""hello""""#);
+        // No punctuation → single phrase.
+        assert_eq!(quote_fts5_token("handoff"), r#""handoff""#);
+    }
+
+    #[test]
+    fn boolean_operators_are_preserved() {
+        assert_eq!(prepare_fts5_query("quick OR slow"), "quick OR slow");
+    }
+
+    /// AND is the FTS5 default but operators can be explicit — when the
+    /// caller writes one, the OR-join must NOT mangle it into
+    /// `foo OR AND OR bar`. Same for NOT and NEAR. (The escape hatch from
+    /// the broad-recall default is what makes the OR-join safe to land.)
+    #[test]
+    fn explicit_and_operator_is_preserved() {
+        assert_eq!(prepare_fts5_query("foo AND bar"), "foo AND bar");
+    }
+
+    #[test]
+    fn explicit_not_operator_is_preserved() {
+        assert_eq!(prepare_fts5_query("foo NOT bar"), "foo NOT bar");
+    }
+
+    #[test]
+    fn explicit_near_operator_is_preserved() {
+        assert_eq!(prepare_fts5_query("foo NEAR bar"), "foo NEAR bar");
+    }
+
+    /// A query containing a quoted phrase is treated as explicit FTS5
+    /// syntax — `"exact phrase" baz` must not become
+    /// `"exact" OR "phrase" OR baz` (which destroys the phrase semantics).
+    /// The exact assertion is "space-joined, not OR-joined"; what the
+    /// individual tokens look like after `prepare_fts5_token` is a
+    /// separate concern (and unchanged from pre-#58 behaviour).
+    #[test]
+    fn quoted_phrase_query_is_not_or_joined() {
+        let q = prepare_fts5_query("\"exact phrase\" baz");
+        assert!(
+            !q.contains(" OR "),
+            "explicit quoted-phrase query must not get OR-joined; got {q}"
+        );
+    }
+
+    /// Same escape-hatch logic for parenthesised sub-expressions —
+    /// `(foo OR bar) AND baz` must survive unmangled.
+    #[test]
+    fn parenthesised_query_is_not_or_joined() {
+        let q = prepare_fts5_query("(foo OR bar) AND baz");
+        assert!(
+            !q.contains("OR (foo"),
+            "parens detection must skip OR-join entirely; got {q}"
+        );
+        assert!(
+            q.contains("AND"),
+            "explicit AND inside parens query must survive; got {q}"
+        );
+    }
+
+    #[test]
+    fn known_columns_are_preserved() {
+        assert_eq!(prepare_fts5_query("title:handoff"), "title:handoff");
+    }
+}
