@@ -4,7 +4,7 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 
 | slot | agent | loop | job | app / area | since | notes |
 |------|-------|------|-----|------------|-------|-------|
-| — | — | — | — | — | — | sem claim ativo |
+| A | GPT-5.6 | META/L1 | plan+implement | Forge Nexus + ai-memory | 2026-07-14 | autorizado até push/deploy; execução inline |
 
 _(META/L1 Maestro Control Center liberado 2026-07-14 — GPT-5.6 · 129/129, browser QA, sem push/deploy)_
 _(META/L1 Forge Nexus + ai-memory design liberado 2026-07-14 — GPT-5.6 · especificação revisada, sem implementação/push/deploy)_

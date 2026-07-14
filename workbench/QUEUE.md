@@ -19,6 +19,7 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
+- [ ] **META/L1→P3** Implementar Forge Nexus + ai-memory — subtree, runtime, engine, importação, UI, verificação, push e deploy
 
 ## Done
 
