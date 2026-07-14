@@ -55,3 +55,6 @@ maestro/lifecycle/
 # prompts externalizados (>6k chars) — passados por arquivo ao CLI
 maestro/.prompts/
 .gstack/
+
+# worktrees locais de implementação
+.worktrees/
