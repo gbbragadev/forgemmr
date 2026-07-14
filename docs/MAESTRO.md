@@ -1,188 +1,117 @@
-# Maestro HQ — cara + controle visual do Bernstein
+# Maestro Control Center
 
-## ⚡ Forge Autopilot (novo — 2026-07-10)
+O Maestro é a central local do Forge: uma interface única para controlar a fábrica de P0 a P5 sem
+usar terminal no fluxo normal. Ela abre apenas em `127.0.0.1:8799`, usa o estado real do engine e
+nunca transforma o navegador em shell.
 
-**Pipeline completa "ideia → app no ar" com decisões pontuais.** A CLI `forge` é a interface
-primária; o HQ browser (`:8787`) segue como visor.
+## Abrir com um clique
 
-```powershell
-cd C:\Dev\anime-forge
-npm run forge -- new "quiz de openings de anime" --team grok-glm-front
-# TUI abre; a pipeline roda P0 → P1 → B1 → B2 → B3(GLM) → B5 → ship sozinha
-# e PAUSA só nos 3 gates humanos: p0-go · b3-visual · deploy
-```
+No Explorer, abra a pasta `C:\Dev\forge` e dê duplo clique em:
 
-| Comando | Função |
-|---------|--------|
-| `forge new "<ideia>" [--team X] [--capability static\|quiz\|chat] [--subdomain X] [--dry-run]` | inicia pipeline + attach |
-| `forge attach` | TUI ao vivo (q = detach, pipeline continua) |
-| `forge status` | snapshot rápido |
-| `forge decide <gate> <go\|kill\|retry> [feedback]` | decide gate sem TUI |
-| `forge stop` / `forge resume` | pausa / retoma |
-| `forge roster` | teams e players |
+**`forge-control-center.cmd`**
 
-**Teams (setup de agente)** — `maestro/roster.json` → `teams`:
+O atalho:
 
-| Team | Quem toca |
-|------|-----------|
-| `grok-solo` (default) | Grok em tudo (SuperGrok, limite folgado) |
-| `grok-glm-front` | Grok em tudo + **GLM headless no B3** (sem copiar prompt!) |
-| `quality` | Claude Opus executa · Codex revisa · GLM no front |
-| `dry-run` | executor fake (testar a pipeline sem gastar limite) |
+1. confere se a porta 8799 responde como um Maestro legítimo;
+2. reutiliza a instância saudável, sem duplicar servidor;
+3. se necessário, inicia o servidor minimizado;
+4. espera o health real;
+5. abre o navegador uma única vez.
 
-**Git:** branch `pipeline/<app-id>` · commit checkpoint por job PASS · rollback automático
-após 3 falhas · merge+push em master **só** no gate de deploy.
+Se outra aplicação ocupar a porta, o launcher falha fechado e explica o problema. Ele não mata
+processos e não reinicia uma pipeline viva.
 
-**Rate-limit = L2 automático:** player entra em cooldown 60min e o fallback do team assume.
+## O mapa da central
 
-**Deploy:** `cf-pages` → `<app>.gbbragadev.com` usando o token **`CF_GBBRAGADEV_ADM`**
-(admin; verificado real com o quiz → https://quiz.gbbragadev.com) · `vercel` p/ apps
-server (`VERCEL_TOKEN`). Sem token válido o gate mostra 3 passos manuais.
+| Área | O que você resolve nela |
+|---|---|
+| **Visão geral** | Saúde, trabalho ativo, providers, operações e gates que exigem atenção. |
+| **Nova pipeline** | Ideia, time, profile, blueprint, capability, target, dry-run e modo de controle. |
+| **Pipelines** | Timeline P0–P5, job atual, erro recente, target, recovery e ações válidas por app. |
+| **Decisões** | Gates humanos, documentos, três propostas de design, preview e P5. |
+| **Fábrica** | Profiles, times, providers instalados, login oficial e blueprints. |
+| **Métricas** | P4 comparável, receita, custo, ativação, conversão e decisões kill/iterate/scale. |
+| **Atividade** | Operações idempotentes e eventos ao vivo, com resultado ou erro sanitizado. |
 
-**Início rápido:** digite `.\forge` na raiz do repo (ou `npm run forge`) → tela de setup:
-ideia → time (↑↓) → tipo → Enter. `forge help` p/ o resto.
+## Criar a primeira pipeline
 
-**Gotcha Grok (importante):** headless de verdade é `grok -p/--single` — goal posicional abre
-a TUI interativa e NUNCA sai (era a causa do hang + ANSI soup). Já corrigido em
-`maestro/adapters.mjs`.
+1. Abra **Nova pipeline**.
+2. Descreva a ideia e quem pagaria por ela.
+3. Escolha um time. Use `dry-run` quando quiser validar o fluxo sem gastar quota.
+4. Selecione profile/blueprint quando o caso exigir; `generic` e `auto` servem como padrão.
+5. Escolha o modo de controle:
+   - **autopilot_to_gate:** avança sozinho até uma decisão humana;
+   - **guided:** também pausa nas fronteiras de fase;
+   - **manual:** pausa depois de cada job.
+6. Clique em **Iniciar pipeline**.
 
-Estado durável: `maestro/pipeline.json` · logs por job: `maestro/runs/<runId>/` ·
-preview pós-B3: `http://127.0.0.1:8787/preview/<app-id>/`.
+O app aparece em **Pipelines**. A central mostra apenas as ações aceitas naquele estado; quando uma
+ação estiver bloqueada, o motivo vem do backend e aparece junto ao botão.
 
----
+## Decisões e risco
 
-## O problema
+As ações carregam quatro níveis:
 
-Bernstein por padrão é **CLI-first** (`bernstein live`, `bernstein -g "..."`).  
-Você quer:
+- **segura:** leitura, refresh ou continuação reversível;
+- **com atenção:** muda configuração ou estado, mas preserva o produto;
+- **efeito externo:** abre autenticação ou prepara interação fora da máquina;
+- **destrutiva:** encerra run ou remove estado/arquivos.
 
-1. **Visual** na execução (sem ficar digitando comando)
-2. **Controle total** dos modelos/CLIs despachados
-3. **Pré-mapeados** (sem `cli: auto` cego)
-4. Uma **“cara”** — identidade do maestro, não um tool genérico
+Efeito externo e destrutivo sempre abrem uma confirmação contextual. O aceite gera um nonce de uso
+único preso à ação, app e versão do estado. Se a fábrica mudar enquanto o modal estiver aberto, a
+central recarrega o snapshot e pede nova revisão.
 
-## A solução: Maestro
+Gates contratuais continuam humanos em qualquer modo. A central nunca autoriza deploy, kill,
+escolha de design ou outra decisão irreversível por conta própria.
 
-| Peça | Função |
-|------|--------|
-| **Maestro** | Persona/identidade (avatar, voz, tagline) |
-| **Orquestra (players)** | Cada “músico” = CLI + model + jobs |
-| **Dispatch map** | Job L0/L1 → player fixo |
-| **Presets** | Goals de 1 clique |
-| **Bernstein GUI** | Tela nativa de execução ao vivo (`:8052/ui`) |
-| **start-maestro.ps1** | Sobe GUI + abre HQ (zero typing) |
+## Configurar a fábrica
 
-```
-Você clica no Maestro HQ
-        │
-        ├─► escolhe preset / goal
-        ├─► copia goal (1 clique)
-        └─► Bernstein GUI mostra agents rodando
+Em **Fábrica**:
 
-Roster (quem toca o quê) = maestro/roster.json
-Team Bernstein           = templates/teams/anime-forge.toml
-```
+- crie ou ative um profile para nicho, idioma e domínio;
+- monte um time escolhendo provider, modelo, effort e papel de cada músico;
+- atualize a disponibilidade das CLIs;
+- abra apenas os logins oficiais allowlisted;
+- confira os blueprints e a quantidade de jobs.
 
-## Começar sem digitar
+Credenciais nunca passam pelo formulário. O fluxo de login pertence à CLI oficial e o navegador não
+escolhe binário, argumento ou caminho.
 
-1. No Explorer: duplo clique em  
-   `C:\Dev\anime-forge\scripts\start-maestro.ps1`  
-   (ou botão direito → Executar com PowerShell)
-2. Abre **Maestro HQ** + **Bernstein GUI**
-3. No HQ: clique num **preset** → **Copiar goal + abrir GUI**
-4. Na GUI do Bernstein: cole/rode o goal (conforme a UI do Bernstein)
-5. Acompanhe a execução na GUI (não no terminal)
+## Recuperar erro sem terminal
 
-Atalho: crie um atalho do `.ps1` na área de trabalho e mude o ícone se quiser.
+Abra a pipeline afetada e leia **Erro recente**. Conforme o estado, o catálogo pode oferecer:
 
-## Controlo de modelos (pré-mapeado)
+- parar com segurança e preservar artefatos;
+- responder o gate de recovery;
+- retomar uma pipeline bloqueada;
+- trocar target;
+- mudar o modo de controle;
+- continuar uma pausa guided/manual;
+- iterar com feedback depois de uma run concluída.
 
-Edite **`maestro/roster.json`**:
+Rate-limit continua sendo tratado pelo engine: cooldown global e fallback do time. A central apenas
+mostra o estado e as escolhas permitidas; não contorna as proteções.
 
-```json
-{
-  "id": "codex-backend",
-  "cli": "codex",
-  "model": "default",
-  "jobs": ["B1", "B4", "B5"]
-}
-```
+## Fechar o ciclo P4/P5
 
-Team espelho em **`templates/teams/anime-forge.toml`**  
-e `team: anime-forge` no **`bernstein.yaml`**.
+Quando um app estiver no pós-ship, abra suas ações e registre P4 com zeros honestos quando não houver
+dado. Depois escolha:
 
-### Mapa default
+- **kill:** aposenta a aposta sem apagar produção;
+- **iterate:** abre um novo ciclo com feedback;
+- **scale:** registra o sinal e os próximos passos.
 
-| Job | Player | CLI |
-|-----|--------|-----|
-| L1/B1 scaffold | Codex Engine | codex |
-| L1/B2 personas | Gemini Spark | gemini (opcional) |
-| L1/B3 UI | Claude Front | claude / sonnet |
-| L1/B4 API | Codex Engine | codex |
-| L1/B5 ship | Claude QA | claude |
-| L0 P0/P1 | Gemini Spark | gemini / fallback Claude |
+Os agregados aparecem em **Métricas**. Nada é estimado pelo dashboard: sem medição, ele mostra zero
+ou estado vazio.
 
-## Cara do Maestro
+## Limites de segurança
 
-Definida em `roster.json` → `maestro`:
+- local-only, sem CORS aberto e sem painel remoto;
+- token same-origin em toda mutação;
+- nenhuma ação de shell livre;
+- estado versionado, idempotência e auditoria redigida;
+- operações e lifecycle em arquivos locais privados/atômicos;
+- nenhum deploy acontece só por abrir a central.
 
-- `name`, `tagline`, `avatar`, `voice`, `color`
-- Troque o emoji/avatar ou copie o estilo pro branding dos apps
-
-Isso é a **skin** da orquestra Anime Forge — não o genérico “Bernstein operator”.
-
-## O que a GUI nativa já dá
-
-```powershell
-bernstein gui serve     # http://127.0.0.1:8052/ui/
-bernstein live          # TUI 3 colunas (se quiser terminal bonito)
-bernstein dashboard     # abre browser na GUI
-```
-
-Maestro HQ **não substitui** a GUI de execução; ele é a **recepção + partitura + caras**.  
-A GUI Bernstein é o **palco ao vivo**.
-
-## Run real (botão ▶)
-
-```powershell
-cd C:\Dev\anime-forge
-node maestro/server.mjs
-# ou: .\scripts\start-maestro.ps1
-# abra http://127.0.0.1:8787
-```
-
-| API | Função |
-|-----|--------|
-| `POST /api/run` | `{ goal, executor: "grok"\|"bernstein"\|"codex"\|"claude", playerId }` |
-| `POST /api/stop` | mata a run |
-| `GET /api/events` | SSE — log ao vivo |
-| `GET /api/status` | estado da run |
-
-### Executor **Grok solo** (E2E)
-
-Preset **E2E teste · só Grok** no HQ:
-
-1. Dispara `grok.exe` headless (`--always-approve`, `--check`)
-2. Stream de log no painel
-3. Goal cria `maestro/e2e-result.md` + HANDOFF + `npm run build`
-
-Roster: player `grok-solo` · CLI em `%USERPROFILE%\.grok\bin\grok.exe`.
-
-## Arquivos
-
-| Path | Papel |
-|------|--------|
-| `maestro/index.html` | HQ visual |
-| `maestro/roster.json` | Caras + models + presets |
-| `templates/teams/anime-forge.toml` | Team Bernstein pinado |
-| `bernstein.yaml` | `team: anime-forge` |
-| `scripts/start-maestro.ps1` | Launch 1 clique |
-| `docs/MAESTRO.md` | este doc |
-
-## Relação com workbench
-
-| Camada | Ferramenta |
-|--------|------------|
-| Multi-sub / Grok / handoff | workbench |
-| Orquestra visual + models fixos | **Maestro + Bernstein** |
-| Chat do usuário final | Z.AI (`ZAI_API_KEY`) |
+O `forge.cmd` e a TUI continuam disponíveis como fallback técnico, mas não são necessários para o
+uso normal do Control Center.

@@ -21,6 +21,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "node --test maestro/test/*.test.mjs",
     "maestro": "node maestro/server.mjs",
+    "control-center": "node maestro/supervisor.mjs",
     "forge": "node maestro/forge.mjs",
     "maestro:open": "powershell -ExecutionPolicy Bypass -File scripts/start-maestro.ps1"
   },

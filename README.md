@@ -9,6 +9,16 @@ git de cada produto.
 > trocável. O mesmo motor produz um quiz de anime, um advergame ou um SaaS B2B — o que muda é o
 > profile, não o código do maestro. (Este repo nasceu como `anime-forge` e foi generalizado.)
 
+## Abrir sem terminal
+
+Dê duplo clique em **`forge-control-center.cmd`** na raiz. O supervisor reutiliza o Maestro se ele
+já estiver saudável; caso contrário, inicia uma instância local e abre
+<http://127.0.0.1:8799>. Pela central você cria e controla pipelines, responde gates, configura
+times/profiles/providers e registra P4/P5 sem decorar comandos.
+
+- Tutorial visual: [`docs/GUIA-VISUAL.html`](docs/GUIA-VISUAL.html)
+- Manual da central: [`docs/MAESTRO.md`](docs/MAESTRO.md)
+
 ---
 
 ## 1. A ideia (por que isto existe)
