@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { buildControlSnapshot } from "../control/snapshot.mjs";
 import { createMemoryActions, createMemoryActionHandlers } from "../memory/control.mjs";
+import { MemoryGatewayError } from "../memory/gateway.mjs";
 import { createMemoryService } from "../memory/service.mjs";
 
 function fixtureRoot(t) {
@@ -160,4 +161,25 @@ test("service normaliza o schema real v1.13 de busca e leitura", async (t) => {
     snippet: "alpha",
   }]);
   assert.equal((await service.readPage({ appId: "alpha", pagePath: "rules/one.md" })).body, "# Regra\n\nalpha");
+});
+
+test("service trata escopo ainda inexistente como memória vazia", async (t) => {
+  const root = fixtureRoot(t);
+  const runtime = {
+    status: () => ({ state: "healthy", version: "1.13.0", managed: true }),
+    stopManaged: async () => true,
+  };
+  const missing = async () => {
+    throw new MemoryGatewayError(404, "workspace 'forge' not found");
+  };
+  const gateway = { overview: missing, search: missing, briefing: missing };
+  const outbox = { size: () => 0, enqueue: () => true, drain: async () => ({ pending: 0 }) };
+  const service = createMemoryService({ root, runtime, gateway, outbox });
+
+  assert.deepEqual(await service.overview(), {
+    briefing: { rules: [], slots: [], recent_pages: [], counts: { pages_latest: 0 } },
+    memory_health: { stale_count: 0, duplicate_count: 0, orphan_count: 0 },
+  });
+  assert.deepEqual(await service.search({ q: "primeira busca" }), { hits: [] });
+  assert.deepEqual(await service.briefing(), { items: [], text: "" });
 });

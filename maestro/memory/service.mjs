@@ -25,6 +25,17 @@ function toDate(now) {
   return value instanceof Date ? value : new Date(value);
 }
 
+function isMissingScope(error) {
+  return error instanceof MemoryGatewayError && error.status === 404;
+}
+
+function emptyOverview() {
+  return {
+    briefing: { rules: [], slots: [], recent_pages: [], counts: { pages_latest: 0 } },
+    memory_health: { stale_count: 0, duplicate_count: 0, orphan_count: 0 },
+  };
+}
+
 export function createMemoryService({
   root,
   layout,
@@ -121,7 +132,13 @@ export function createMemoryService({
   async function overview({ appId, limit = 10 } = {}) {
     assertHealthy();
     const scope = resolveMemoryScope({ appId });
-    const payload = await memoryGateway.overview({ ...scope, limit });
+    let payload;
+    try {
+      payload = await memoryGateway.overview({ ...scope, limit });
+    } catch (error) {
+      if (!isMissingScope(error)) throw error;
+      payload = emptyOverview();
+    }
     const count = payload?.briefing?.counts?.pages_latest ?? payload?.counts?.pages_latest;
     if (Number.isFinite(count) && count >= 0) pageCount = count;
     return redactDeep(payload, redact);
@@ -130,7 +147,14 @@ export function createMemoryService({
   async function search({ q, appId, limit = 20 } = {}) {
     assertHealthy();
     const scope = resolveMemoryScope({ appId });
-    const payload = redactDeep(await memoryGateway.search({ q, ...scope, limit }), redact);
+    let raw;
+    try {
+      raw = await memoryGateway.search({ q, ...scope, limit });
+    } catch (error) {
+      if (!isMissingScope(error)) throw error;
+      raw = [];
+    }
+    const payload = redactDeep(raw, redact);
     if (Array.isArray(payload)) return { hits: payload };
     if (Array.isArray(payload?.hits)) return payload;
     if (Array.isArray(payload?.results)) return { ...payload, hits: payload.results };
@@ -140,7 +164,13 @@ export function createMemoryService({
   async function briefing({ appId, limit = 8 } = {}) {
     if (memoryRuntime.status().state !== "healthy") return { items: [], text: "" };
     const scope = resolveMemoryScope({ appId });
-    const payload = await memoryGateway.briefing({ ...scope, limit: Math.min(8, limit) });
+    let payload;
+    try {
+      payload = await memoryGateway.briefing({ ...scope, limit: Math.min(8, limit) });
+    } catch (error) {
+      if (isMissingScope(error)) return { items: [], text: "" };
+      throw error;
+    }
     if (Array.isArray(payload?.items) && typeof payload?.text === "string") {
       return redactDeep({ items: payload.items.slice(0, 8), text: payload.text.slice(0, 12 * 1024) }, redact);
     }
