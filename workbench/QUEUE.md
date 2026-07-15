@@ -19,10 +19,10 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
-- [ ] **META/L1→P3** Implementar Forge Nexus + ai-memory — subtree, runtime, engine, importação, UI, verificação, push e deploy
 
 ## Done
 
+- [x] **META/L1→P3** Forge Nexus + ai-memory — subtree v1.13.0, runtime verificado, pipeline com contexto durável, UI zero-command, 168 testes, CI Node+Rust verde, push e onboarding em produção (2026-07-14)
 - [x] **META/L1** Especificação Forge Nexus + ai-memory — subtree v1.13.0, runtime gerenciado, memória por app/run, importação visual e operação fail-open (2026-07-14)
 - [x] **META/L1** Maestro Control Center zero-commands — pipeline P0–P5, fábrica, métricas, ações auditáveis, dashboard responsivo e launcher de duplo clique · 129/129 · 8 workspaces · 4 builds (2026-07-14)
 - [x] **META/P3** Tutorial visual de onboarding completo do Forge — 108/108 · browser QA · Cloudflare Pages · push/WhatsApp (2026-07-13)

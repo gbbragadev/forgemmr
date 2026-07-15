@@ -123,3 +123,68 @@ Saída real final de `npm test`:
 ```
 
 Smoke real de `npm run forge -- stats`: **EXIT 0**; imprimiu `PASS por player e job`, `Duração média por job e app` e `Mortes por app`, incluindo `ggg-grok1 | L0/P1 | 1/16 | 6%`.
+
+## Forge Nexus + ai-memory — implementação e publicação
+
+- **Data:** 2026-07-14
+- **Branch:** `feat/forge-nexus-memory`
+- **Base:** `04272cf`
+- **Head funcional antes do fechamento documental:** `0497ddc`
+- **Push:** `origin/feat/forge-nexus-memory`
+- **Actions:** https://github.com/gbbragadev/forgemmr/actions/runs/29378454831 — **success** nos jobs `test` e `ai-memory-upstream`
+
+### Entrega
+
+- `akitaonrails/ai-memory` incorporado em `integrations/ai-memory` na release v1.13.0, commit `94626aad`, com manifesto de runtime Windows x64 e SHA-256 fixo.
+- Runtime fora do checkout em `%LOCALAPPDATA%\ForgeNexus`, loopback `127.0.0.1:49374`, token privado, env allowlisted e encerramento limitado ao processo criado pelo Nexus.
+- Memória tipada e isolada por fábrica/app: briefing pré-job como dado não confiável, outcome/decision pós-job, outbox JSONL durável, importação allowlisted com prévia e checkpoint.
+- Forge Nexus com oito áreas zero-command e ações allowlisted para setup, retry, update, busca, regras, backup, reindex, importação e exclusão.
+- Onboarding visual refeito para Forge Nexus + memória, sem dependência da API local.
+
+### Saída real local
+
+```text
+> npm test
+ℹ tests 168
+ℹ pass 167
+ℹ fail 0
+ℹ skipped 1  # smoke real opt-in
+ℹ duration_ms 30865.8381
+
+> FORGE_MEMORY_REAL_SMOKE=1 node --test maestro/test/memory-real-smoke.test.mjs
+✔ runtime real grava, busca, isola apps e drena a outbox após restart
+ℹ tests 1
+ℹ pass 1
+ℹ fail 0
+
+> npm run typecheck
+@forge/ai       tsc --noEmit
+@forge/config   tsc --noEmit
+@forge/credits  tsc --noEmit
+@forge/ui       tsc --noEmit
+EXIT 0
+
+> npm run build:all  # checkout principal, que contém os quatro repos ignorados de apps
+@forge/anima-deck  ✓ Compiled successfully
+@forge/anime-quiz  ✓ Compiled successfully
+@forge/doki-call   ✓ Compiled successfully
+@forge/waifu-chat  ✓ Compiled successfully
+EXIT 0
+```
+
+O `build:all` executado no worktree isolado saiu 0 sem compilar apps porque `apps/*` são repositórios ignorados e não são materializados pelo Git. Por isso ele não foi usado como evidência; a prova acima foi repetida no checkout principal com os quatro apps reais.
+
+### CI, browser e deploy
+
+- Primeira execução remota `29378176800`: Rust passou; Node revelou cinco testes de runtime que herdavam `linux-x64` embora simulassem Windows. Os testes passaram a fixar `win32-x64`; nenhuma plataforma de produção foi inventada.
+- Execução final `29378454831`: suíte Node **success** e `cargo test --workspace --locked` **success**.
+- Browser real: configuração pela UI baixou e validou o runtime; saúde `healthy`; visão geral, briefing e busca no primeiro uso vazio retornam 200; console **0 errors / 0 warnings**.
+- Tutorial estável: https://forge-onboarding.pages.dev/ — HTTP 200 para `/`, `/guide.js` e `/guide.css`, com CSP, `nosniff`, `DENY` e referrer policy.
+- Deployment de produção imutável: https://5286152e.forge-onboarding.pages.dev/.
+
+### Limites preservados
+
+- A central, o token e o conteúdo de memória não foram publicados; somente o tutorial estático foi para Cloudflare Pages.
+- Nenhuma dependência npm, banco, fila ou serviço externo foi adicionado.
+- Nenhum app de produção foi removido ou republicado.
+- `package-lock.json`, `.claude/` e `.codebase-memory/` preexistentes ficaram fora dos commits.

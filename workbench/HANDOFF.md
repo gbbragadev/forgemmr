@@ -1,11 +1,24 @@
 # HANDOFF
 
 ## Loop ativo
-Nenhum. **META/L1 Forge Nexus + ai-memory design** concluído; documento escrito aguarda revisão final do dono antes do plano de implementação.
-*(nenhum app foi publicado; o Maestro vivo não foi reiniciado; P4 continua humano)*
+Nenhum. **META/L1→P3 Forge Nexus + ai-memory** concluído, verificado, publicado na branch e com onboarding em produção.
+*(o control plane continua local-only; P4 e decisões irreversíveis continuam humanos)*
 
 ## Last agent
-GPT‑5.6 | 2026-07-14 · Forge Nexus + ai-memory design (`feat/gpt56-optimization`)
+GPT‑5.6 | 2026-07-14 · Forge Nexus + ai-memory (`feat/forge-nexus-memory`)
+
+## Last iteration — META/L1→P3 Forge Nexus + ai-memory (2026-07-14)
+- **Produto:** Maestro passou a se apresentar como **Forge Nexus**; oito áreas zero-command controlam P0–P5, fábrica, decisões, métricas, atividade e memória.
+- **Memória:** `akitaonrails/ai-memory` v1.13.0 incorporado e pinado; instalação visual com checksum, runtime loopback, token privado, escopo fábrica/app, sete tipos, briefing pré-job, eventos pós-job e outbox fail-open.
+- **Operação:** setup, retry, busca, regra, importação com prévia, backup, reindex e exclusão ficam na central; primeiro uso vazio responde 200 sem ruído no console.
+- **Segurança:** conteúdo lembrado entra por `untrustedBlock`; browser nunca recebe token upstream; nenhuma rota de shell livre; control plane permanece em `127.0.0.1:8799`.
+- **VERIFY local:** `npm test` 168/167 pass/0 fail/1 skip opt-in; smoke real 1/1; typecheck 4 packages; quatro apps reais com `Compiled successfully`.
+- **VERIFY remoto:** Actions `29378454831` verde nos jobs Node e `cargo test --workspace --locked`.
+- **Browser QA:** instalação pela UI, saúde, estado vazio e busca exercitados; console 0 errors/0 warnings. Tutorial responsivo já coberto em 375/768/1024/1440.
+- **Deploy público:** onboarding estável em https://forge-onboarding.pages.dev/ e deployment imutável https://5286152e.forge-onboarding.pages.dev/; central e memória não foram publicadas.
+- **Git:** branch `feat/forge-nexus-memory` publicada; commits cirúrgicos e relatório em `docs/optimization/GPT56-VERIFICATION-REPORT.md`.
+- **Escopo preservado:** `package-lock.json`, `.claude/` e `.codebase-memory/` preexistentes continuaram fora dos commits; nenhum app de produção foi removido ou republicado.
+- **Próximo:** usar o launcher Forge Nexus e conduzir as próximas pipelines pela central; P4 real continua dependendo dos dados do dono.
 
 ## Last iteration — META/L1 Forge Nexus + ai-memory design (2026-07-14)
 - **Decisão:** marca visível Forge Nexus; código do `ai-memory` incorporado como git subtree fixado em `v1.13.0` (`39a1e248`); nomes internos `maestro/*` preservados na primeira fase.
