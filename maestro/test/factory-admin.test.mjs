@@ -39,6 +39,7 @@ test("profiles e times são administrados sem apagar configuração existente", 
     const team = admin.saveTeam({
       name: "Produto enxuto",
       emoji: "🎼",
+      fallbackPolicy: "strict",
       members: [
         { provider: "codex", model: "gpt-5.6-sol", effort: "high", roles: ["Engenheiro", "QA"] },
         { provider: "claude", model: "sonnet", effort: "high", roles: ["Designer", "Revisor"] },
@@ -47,6 +48,8 @@ test("profiles e times são administrados sem apagar configuração existente", 
     assert.equal(team.teamId, "produto-enxuto");
     assert.equal(team.players.length, 2);
     assert.ok(team.team.review);
+    assert.equal(team.team.fallbackPolicy, "strict");
+    assert.deepEqual(team.team.fallbacks[team.players[0].id], []);
 
     const roster = JSON.parse(fs.readFileSync(path.join(root, "maestro", "roster.json"), "utf8"));
     assert.ok(roster.teams.legacy, "time preexistente precisa sobreviver");
@@ -86,6 +89,36 @@ test("providers mostram disponibilidade local e login usa allowlist com shell fa
 
     assert.throws(() => admin.startProviderLogin("gemini"), /não está instalado/);
     assert.throws(() => admin.startProviderLogin("powershell"), /provider desconhecido/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("Blueprint Studio cria, deriva, arquiva e restaura contratos versionados", () => {
+  const root = fixtureRoot();
+  const admin = createFactoryAdmin({ root });
+  try {
+    const spec = JSON.stringify({
+      PLAN: { verify: { type: "file", path: "docs/${appId}/plan.md" } },
+      REVIEW: { verify: { type: "file", path: "docs/${appId}/review.md" } },
+    });
+    const base = admin.saveBlueprint({
+      name: "Pipeline editorial",
+      title: "Pipeline editorial",
+      purpose: "Transformar briefing em pauta revisada.",
+      jobs: "PLAN\nREVIEW",
+      jobSpecs: spec,
+    });
+    const child = admin.deriveBlueprint({
+      source: base.id,
+      name: "Pipeline jurídica",
+      title: "Pipeline jurídica",
+      jobs: "PLAN\nREVIEW",
+      jobSpecs: spec,
+    });
+    assert.equal(child.derivedFrom.blueprintId, base.id);
+    assert.equal(admin.archiveBlueprint(child.id).archived, true);
+    assert.equal(admin.restoreBlueprint(child.id).archived, false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

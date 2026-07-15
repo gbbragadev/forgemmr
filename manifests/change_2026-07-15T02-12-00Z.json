@@ -1,0 +1,83 @@
+{
+  "manifest_version": "1.0",
+  "harness_spec_version": "1.0",
+  "iteration": 1,
+  "timestamp": "2026-07-15T02:12:00.000Z",
+  "author": "codex",
+  "changes": [
+    {
+      "change_id": "ch_001",
+      "component": "tool_implementations",
+      "subtype": "update",
+      "file_path": "maestro/engine.mjs",
+      "summary": "Preserve terminal pipelines and enforce explicit strict versus fallback teams.",
+      "failure_evidence": "On restart, saved status=done was discarded and the Control Center rendered shipped apps as idle, disabling feedback. The built-in team labeled So Grok contained Codex and Claude fallbacks; the revisor-cetico-de history ended L0/P0 on claude-frontend after Grok failures.",
+      "root_cause": "Engine recovery restored only non-terminal states, while team fallback semantics were implicit and labels did not constrain the configured fallback chain.",
+      "targeted_fix": "Restore all persisted pipeline states, convert interrupted running states to a recovery gate, add fallbackPolicy, make grok-solo strict, and expose policy in the factory UI.",
+      "predicted_impact": {
+        "expected_fixes": ["completed-pipeline-iteration", "grok-only-provider-integrity"],
+        "at_risk_regressions": ["multi-pipeline-recovery", "rate-limit-handoff"],
+        "rationale": "The fix changes recovery and dispatch selection but leaves state format and fallback mode backward compatible."
+      }
+    },
+    {
+      "change_id": "ch_002",
+      "component": "middleware",
+      "subtype": "create",
+      "file_path": "maestro/control/run-events.mjs",
+      "summary": "Persist and replay structured per-run events in the Run Console.",
+      "failure_evidence": "The UI only displayed health and current job; SSE carried transient string logs and could not replay or filter the actual CLI phase by app/run/cursor.",
+      "root_cause": "There was no durable event contract between engine logging, SSE transport, CLI and Control Center.",
+      "targeted_fix": "Add sequenced redacted JSONL events, filtered SSE replay, CLI compatibility and a per-pipeline Run Console with progress and expandable output.",
+      "predicted_impact": {
+        "expected_fixes": ["run-log-observability", "sse-reconnect-replay"],
+        "at_risk_regressions": ["same-origin-sse", "secret-redaction", "server-http"],
+        "rationale": "The legacy log path remains as a compatibility fallback while engine events use the structured store."
+      }
+    },
+    {
+      "change_id": "ch_003",
+      "component": "tool_implementations",
+      "subtype": "create",
+      "file_path": "maestro/operator.mjs",
+      "summary": "Add Forge Operator intake/evolution and versioned Blueprint Studio contracts.",
+      "failure_evidence": "Ideas and long plans had to be transcribed manually, blueprints were listed without create/edit/archive semantics, and their relationship to profiles was not explained.",
+      "root_cause": "The control plane exposed pipeline.start but lacked a source-ingestion decision layer and immutable blueprint lifecycle.",
+      "targeted_fix": "Support text/file/folder/URL/PDF/DOCX intake, persist explainable triage, require review for self-modification/high stakes, and add content-addressed blueprint versions with derive/archive/restore/migrate actions.",
+      "predicted_impact": {
+        "expected_fixes": ["plan-to-pipeline-intake", "blueprint-lifecycle", "forge-self-evolution-gate"],
+        "at_risk_regressions": ["generic-blueprint-loading", "control-action-validation", "profile-activation"],
+        "rationale": "Legacy blueprints remain readable and the generic pipeline is inherited rather than duplicated."
+      }
+    },
+    {
+      "change_id": "ch_004",
+      "component": "skills",
+      "subtype": "register",
+      "file_path": "integrations/startup-user-simulator",
+      "summary": "Vendor Startup User Simulator and insert bounded pre-deploy simulation.",
+      "failure_evidence": "The pipeline moved from ship-check directly to deploy and had no repeatable five-customer evaluation or safe path from findings to one improvement cycle.",
+      "root_cause": "User simulation was an external manual activity, not a verified job with artifacts, limits or protected domains.",
+      "targeted_fix": "Pin the MIT skill, require five personas plus JSON/HTML and disclaimer, select only reversible high-confidence fixes, inject at most one ITERATE to B5 cycle, and expose a manual action for completed apps.",
+      "predicted_impact": {
+        "expected_fixes": ["pre-deploy-user-simulation", "bounded-auto-improvement", "completed-app-simulation"],
+        "at_risk_regressions": ["deploy-gate-order", "feedback-loop", "dry-run-e2e"],
+        "rationale": "Protected domains are fail-closed and deploy remains a human gate after simulation and verification."
+      }
+    }
+  ],
+  "verification": {
+    "status": "verified",
+    "verified_at": "2026-07-15T02:42:00.000Z",
+    "disposition": "keep",
+    "results": [
+      "npm test: 188 total, 187 pass, 0 fail, 1 skip",
+      "npm run typecheck: exit 0 across all workspaces with scripts",
+      "npm run build:all: exit 0",
+      "git diff --check: exit 0",
+      "node --check: 16 changed .mjs files, exit 0",
+      "startup simulator vendored generator smoke: pass",
+      "manual simulator engine flow: SIMULATE -> ITERATE -> B5 -> deploy gate with exactly one ITERATE"
+    ]
+  }
+}

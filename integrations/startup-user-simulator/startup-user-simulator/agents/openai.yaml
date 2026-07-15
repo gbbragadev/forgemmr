@@ -1,0 +1,4 @@
+interface:
+  display_name: "Startup User Simulator"
+  short_description: "Test landing pages with simulated customers"
+  default_prompt: "Use $startup-user-simulator to test this landing page with five simulated customer personas and create the final HTML report."

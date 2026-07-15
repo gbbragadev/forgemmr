@@ -100,6 +100,7 @@ npm run build:quiz
 | B3 UI polish | L1 | **GLM 5.2 MAX** | via prompt denso `workbench/prompts-glm/` |
 | B4 Wire API | L1 | Codex | health + stream |
 | B5 Ship check | L1 | qualquer | PASS/FAIL/**N-A** |
+| SIMULATE | L1 | qualquer | 5 personas; JSON+HTML; no máx. 1 rodada segura ITERATE→B5 |
 | P3 Deploy | L0/L1 | CI / Grok | static→GH Pages; server→Vercel |
 | Handoff | L2 | outro provedor | mesmo job |
 
@@ -110,6 +111,7 @@ npm run build:quiz
 - **Prompts GLM = brief de design** (lição: ~4/10 → ~7.5/10). Checklist: `workbench/prompts-glm/README.md`
 - karpathy-guidelines se disponível (simplicidade, surgical, goal-driven)
 - VERIFY falhou → fix ≤3 → senão BLOCK + L2
+- SIMULATE é heurística, não pesquisa real; fixes protegidos nunca são autoaplicados
 - Rate limit → L2, não recomeçar produto
 - Personas originais; sem IP; sem push/deploy sem autorização (user pode liberar na sessão)
 - pt-BR se o user escreveu em pt-BR

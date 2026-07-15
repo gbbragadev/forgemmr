@@ -1,7 +1,7 @@
 import { activateProfile } from "../engine.mjs";
 
 /** Handlers explícitos: nenhum valor do browser vira nome de função ou comando. */
-export function createEngineActionHandlers({ root, engineManager, factoryAdmin, lifecycleManager }) {
+export function createEngineActionHandlers({ root, engineManager, factoryAdmin, lifecycleManager, forgeOperator }) {
   return {
     "pipeline.start": ({ input }) => {
       if (input.profile) activateProfile(root, input.profile);
@@ -17,6 +17,8 @@ export function createEngineActionHandlers({ root, engineManager, factoryAdmin, 
     },
     "pipeline.feedback": ({ appId, input }) =>
       engineManager.startFeedback({ appId, feedbackText: input.feedback }),
+    "pipeline.simulate": ({ appId, input }) =>
+      engineManager.startSimulation({ appId, team: input.team, dryRun: Boolean(input.dryRun), controlMode: input.controlMode }),
     "gate.decide": ({ appId, input }) =>
       engineManager.decide(appId, input.gateId, input.choice, input.feedback),
     "pipeline.stop": ({ appId }) => engineManager.stop(appId),
@@ -32,9 +34,16 @@ export function createEngineActionHandlers({ root, engineManager, factoryAdmin, 
     "profile.create": ({ input }) => factoryAdmin.createProfile(input),
     "profile.activate": ({ input }) => factoryAdmin.activateProfile(input.slug),
     "profile.import": () => factoryAdmin.importActiveProfile(),
+    "blueprint.save": ({ input }) => factoryAdmin.saveBlueprint(input),
+    "blueprint.derive": ({ input }) => factoryAdmin.deriveBlueprint(input),
+    "blueprint.archive": ({ input }) => factoryAdmin.archiveBlueprint(input.blueprint),
+    "blueprint.restore": ({ input }) => factoryAdmin.restoreBlueprint(input.blueprint),
+    "blueprint.migrate": ({ input }) => factoryAdmin.migrateBlueprint(input.blueprint),
     "team.save": ({ input }) => factoryAdmin.saveTeam(input),
     "providers.refresh": () => factoryAdmin.listProviders(),
     "provider.login": ({ input }) => factoryAdmin.startProviderLogin(input.provider),
+    "operator.ingest": ({ input }) => forgeOperator.ingest(input),
+    "operator.evolve": ({ input }) => forgeOperator.evolve(input),
     "p4.record": ({ appId, input }) => lifecycleManager.recordP4({ appId, ...input }),
     "p5.decide": ({ appId, input }) => lifecycleManager.decideP5({ appId, ...input }),
   };

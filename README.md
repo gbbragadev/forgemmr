@@ -52,7 +52,9 @@ ideia
   ├─ L1/B2      conteúdo / personas / dados
   ├─ L1/B3      UI polida seguindo o DS escolhido                     ──▶ ⏸ gate b3-visual   (preview real no navegador)
   ├─ L1/B4      wire da API              (só capability `chat`)
-  ├─ L1/B5      ship-check (build, lint, typecheck)                   ──▶ ⏸ gate deploy
+  ├─ L1/B5      ship-check (build, lint, typecheck)
+  ├─ SIMULATE   5 clientes simulados + relatório JSON/HTML
+  │             └─ fixes seguros: no máx. 1× ITERATE → B5            ──▶ ⏸ gate deploy
   └─ P3         ship: merge no repo do app + deploy                   ──▶ app no ar
 ```
 
@@ -61,6 +63,11 @@ Depois de publicado, o loop de melhoria (`forge feedback`):
 ```
 feedback do dono ──▶ ITERATE ──▶ ⏸ gate iterate-visual ──▶ L1/B5 ──▶ ⏸ gate deploy ──▶ redeploy
 ```
+
+O simulador é uma heurística estruturada, não entrevista, analytics nem previsão de conversão.
+Exatamente cinco personas examinam a interface real. Só copy/layout/estados reversíveis marcados
+com alta confiança podem entrar na única rodada automática; auth, billing, dados, deploy, domínio,
+segurança e decisões legais sempre ficam para revisão humana.
 
 **O tipo do app (`static | quiz | chat`) é decidido pelo P0**, não por você num menu: o scorecard
 declara `Tipo:` e o gate `p0-go` confirma (com `retry`+feedback se você discordar). O `go` aplica a
@@ -79,6 +86,8 @@ maestro/
   index.html      cockpit web: gates renderizados, propostas em iframe, preview do app
   adapters.mjs    matriz de spawn por CLI (grok/codex/claude/glm/gemini/fake) + sanitizer + redactor
   improver.mjs    prompt-improver (reescreve o prompt do job antes de executar)
+  operator.mjs    ingest/evolve: lê ideia, arquivo, pasta, URL, PDF ou DOCX e propõe/aplica
+  simulator.mjs   contrato das cinco personas + seleção limitada de fixes reversíveis
   toolbox.mjs     catálogo de skills/subagentes do host que o improver pode escolher
   roster.json     players (modelo + effort) e teams (dispatch por job, fallbacks, revisor)
   deploy.mjs      Cloudflare Pages / Vercel / GitHub Pages
@@ -87,7 +96,8 @@ maestro/
 
 profiles/<slug>/profile.md   biblioteca de verticais (o ativo é copiado p/ .forge/profile.md)
 docs/prompts/*.md            1 template por job = o contrato de trabalho do agente
-blueprints/<nome>/           pipelines alternativas, declarativas (ex.: gameads)
+blueprints/<nome>/           contratos versionados de pipeline, com linhagem (ex.: gameads)
+integrations/startup-user-simulator/  skill MIT vendorizada e pinada por commit
 workbench/                   QUEUE · HANDOFF · CLAIMS (estado legível/retomável por humano)
 apps/<app>/                  cada app tem REPO GIT PRÓPRIO (a fábrica ignora apps/)
 packages/{ui,config,ai,credits}   kernel compartilhado pelos apps (workspaces npm)
@@ -123,9 +133,10 @@ improver é fake (zero quota). Cada tentativa deixa raw log em `maestro/runs/`.
 ### Dispatch, fallback e o loop L2
 
 `roster.json` define **players** (CLI + modelo + effort) e **teams** (qual player pega qual job, quem
-é fallback, quem revisa). Quando um player bate rate-limit (`429`, `529`, `overloaded`, quota), o
-engine o põe em **cooldown** e redispatcha o mesmo job para o próximo da cadeia — sem humano. É o
-**L2**: handoff automático entre provedores.
+é fallback, quem revisa). Cada time declara `fallbackPolicy`: `strict` nunca troca para outro
+player/provedor; `fallback` autoriza a cadeia configurada. Quando permitido e um player bate
+rate-limit (`429`, `529`, `overloaded`, quota), o engine o põe em **cooldown** e redispatcha o mesmo
+job — sem humano. É o **L2**: handoff automático entre provedores. O time **Só Grok** é `strict`.
 
 O papel **Revisor** (opcional no team) roda uma revisão adversarial depois de B1/B4: corrige problema
 real, e se quebrar o verify é revertido. Advisory-safe.
@@ -194,8 +205,11 @@ node maestro/forge.mjs      # ou: npm run forge   (o server sobe sozinho)
 | Comando | O que faz |
 |---|---|
 | `forge` | **Wizard**: profile → ideia (aceita caminho `.md`/`.txt`) → nome do app → time → confirmar |
+| `forge ingest <texto\|arquivo\|pasta\|URL> [--team X] [--review-only] [--apply]` | Tria profile/blueprint, persiste a decisão e inicia quando seguro/aprovado |
+| `forge evolve <texto\|arquivo\|pasta\|URL> [--executor codex] [--apply]` | Propõe mudança no próprio Forge; sem `--apply` nunca executa agente |
 | `forge new "<ideia>" [--team X] [--app-id X] [--dry-run]` | Start direto. Com `--idea-file doc.md` o app-id vem do **nome do arquivo** |
 | `forge feedback` | **TUI de iteração**: escolhe o app → escreve o feedback → escolhe o time |
+| `forge simulate <app> [--team X] [--dry-run]` | Roda cinco personas em um app concluído e no máximo uma melhoria automática segura |
 | `forge attach [app]` · `forge status` | TUI ao vivo · snapshot de todas as pipelines |
 | `forge decide <gate> <go\|retry\|kill\|1\|2\|3> [feedback…] [--app X]` | Decide um gate (ou por tecla no TUI) |
 | `forge stop [app]` · `forge kill [app]` · `forge resume [app]` | Pausa · mata o run agora (sem precisar de gate) · retoma |
@@ -210,9 +224,13 @@ iframe, mostra o preview do app e traz os botões de decisão.
 ### Testar sem gastar quota
 
 ```bash
-npm test                                   # 59 testes (node:test)
+npm test                                   # suíte node:test da fábrica
 forge new "ideia de teste" --team dry-run  # pipeline E2E com executor fake
 ```
+
+Blueprint não é tema nem profile: é o **contrato de ordem dos jobs, verificação e gates**. O
+`generic` herda o fluxo padrão; contratos específicos podem ser criados, derivados, versionados,
+arquivados e restaurados na área Fábrica. Veja [`docs/FORGE-OPERATOR.md`](docs/FORGE-OPERATOR.md).
 
 ---
 

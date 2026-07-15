@@ -48,6 +48,7 @@ test("Control Center consumes the closed control-plane API without a command esc
     "previewMemoryImport",
     "applyMemoryImport",
     "renderActivity",
+    "renderRunConsole",
     "openAction",
     "renderActionField",
     "executeAction",
@@ -80,6 +81,9 @@ test("Control Center consumes the closed control-plane API without a command esc
   assert.match(js, /function\s+renderDecisionContext\b/);
   assert.match(js, /\/proposals\//);
   assert.match(js, /\/preview\//);
+  assert.match(js, /event\.appId\s*===\s*pipeline\.appId/);
+  assert.match(js, /Saída completa/);
+  assert.match(js, /Progresso ao vivo/);
   assert.doesNotMatch(js, /\beval\s*\(/);
   assert.doesNotMatch(js, /\.innerHTML\s*=/);
   assert.doesNotMatch(js, /(?:shell|terminal|command)\s*:/i);
@@ -97,4 +101,6 @@ test("Control Center visual contract is responsive, accessible and tokenized", (
     assert.match(css, new RegExp(`(?:min|max)-width:\\s*${breakpoint}px`), `missing ${breakpoint}px breakpoint`);
   }
   assert.match(css, /min-height:\s*44px/);
+  assert.match(css, /\.run-console/);
+  assert.match(css, /\.run-console-line/);
 });

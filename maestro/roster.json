@@ -474,14 +474,12 @@
     "grok-solo": {
       "label": "Só Grok",
       "emoji": "⚡",
+      "fallbackPolicy": "strict",
       "dispatch": {
         "default": "grok-solo"
       },
       "fallbacks": {
-        "grok-solo": [
-          "codex-backend",
-          "claude-frontend"
-        ]
+        "grok-solo": []
       }
     },
     "grok-glm-front": {

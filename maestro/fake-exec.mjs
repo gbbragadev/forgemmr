@@ -139,6 +139,49 @@ if (job === "L0/P0") {
     "utf8"
   );
   console.log(`✓ escreveu ${path.relative(ROOT, p)}`);
+} else if (job === "SIMULATE") {
+  const runId = (goal.match(/docs\/simulations\/([^\s]+)\.json/) || [])[1] || "dry-run";
+  const dir = path.join(ROOT, "apps", appId, "docs", "simulations");
+  fs.mkdirSync(dir, { recursive: true });
+  const personas = ["Maior fit", "Avaliador cético", "Comprador econômico", "Comprador sem tempo", "Usuário adjacente"].map((label, index) => ({
+    name: label,
+    label,
+    job: `Validar a proposta ${index + 1}`,
+    score: 58 + index * 6,
+    decision: index < 2 ? "Continua, mas hesita" : "Sai sem prova suficiente",
+    first_impression: "A proposta principal é visível no primeiro contato.",
+    trust_break: "O dry-run não contém evidência comportamental real.",
+    objection: "Preciso ver prova específica antes de agir.",
+    context: "Persona simulada para verificar o contrato da pipeline.",
+    understands: "O resultado central do app.",
+    hesitation: "A evidência ainda é simulada.",
+    evidence: ["Hero", "CTA primário"],
+    dimensions: { clarity: 4, relevance: 3, trust: 2, friction: 4, value_confidence: 3, cta_fit: 3 },
+  }));
+  const report = {
+    title: `Startup User Simulation — ${appId}`,
+    tested: `preview:${appId}`,
+    goal: "Executar a ação primária",
+    mode: "quick",
+    generated_at: new Date().toISOString().slice(0, 10),
+    verdict: "A persona de maior fit continua, enquanto as demais pedem prova mais específica.",
+    biggest_leak: { title: "Prova insuficiente", detail: "A proposta aparece antes da evidência.", evidence: "Hero e CTA do dry-run." },
+    personas,
+    fixes: [
+      { rank: 1, change: "Clarificar a evidência ao lado do CTA", personas: "4 de 5", impact: "High", effort: "Small", confidence: "High", auto_apply: true },
+      { rank: 2, change: "Adicionar estado vazio explicativo", personas: "3 de 5", impact: "Medium", effort: "Small", confidence: "High", auto_apply: true },
+      { rank: 3, change: "Alterar pricing", personas: "2 de 5", impact: "High", effort: "Small", confidence: "High", auto_apply: false, protected_reason: "pricing" },
+      { rank: 4, change: "Aproximar exemplo do CTA", personas: "4 de 5", impact: "Medium", effort: "Small", confidence: "Medium", auto_apply: false },
+      { rank: 5, change: "Testar onboarding mais curto", personas: "3 de 5", impact: "Medium", effort: "Medium", confidence: "Medium", auto_apply: false },
+    ],
+    experiment: { title: "Prova junto do CTA", hypothesis: "Evidência reduz hesitação.", change: "Mostrar exemplo.", measure: "CTA click-through", success: "Melhora relativa observável." },
+    limits: ["This is a structured simulation, not observed user behavior.", "Validate with analytics or real users."],
+  };
+  const json = path.join(dir, `${runId}.json`);
+  const html = path.join(dir, `${runId}.html`);
+  fs.writeFileSync(json, JSON.stringify(report, null, 2), "utf8");
+  fs.writeFileSync(html, `<!doctype html><html><head><meta charset="utf-8"><title>${report.title}</title><style>body{font-family:system-ui;background:#111;color:#eee;max-width:900px;margin:auto;padding:40px}.persona{border:1px solid #555;padding:18px;margin:12px 0}</style></head><body><h1>${report.title}</h1><p>${report.verdict}</p>${personas.map((persona) => `<article class="persona"><h2>${persona.name}</h2><strong>Simulated decision score — not a predicted conversion rate: ${persona.score}</strong><p>${persona.objection}</p><p>${persona.evidence.join(", ")}</p></article>`).join("")}<h2>Limits</h2><p>This is a structured simulation, not observed user behavior or real-user research. Validate findings with analytics and real users.</p></body></html>`, "utf8");
+  console.log(`✓ escreveu ${path.relative(ROOT, json)} + HTML`);
 } else {
   console.log(`· fake-exec: job ${job} simulado (sem artefato)`);
 }

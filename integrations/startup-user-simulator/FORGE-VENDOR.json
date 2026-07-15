@@ -1,0 +1,8 @@
+{
+  "source": "https://github.com/Kappaemme-git/codex-startup-user-simulator-skill",
+  "commit": "834a2a37661743cc241a70781b859c1e68d08f99",
+  "version": "0.2.0",
+  "license": "MIT",
+  "vendoredAt": "2026-07-14",
+  "integration": "SIMULATE pre-P3 plus one bounded ITERATE -> B5 cycle"
+}

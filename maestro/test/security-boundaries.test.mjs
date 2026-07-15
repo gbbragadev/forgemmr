@@ -48,7 +48,7 @@ test("arquivos sensíveis usam 0600 e prompts temporários são limpos", () => {
 test("SSE é same-origin e logger central aplica redaction", () => {
   const server = source("maestro/server.mjs");
   assert.equal(server.includes('"Access-Control-Allow-Origin": "*"'), false);
-  assert.match(server, /function log\(line\)[\s\S]*redactLog\(/);
+  assert.match(server, /function log\(line(?:,|\))[\s\S]*redactLog\(/);
 });
 
 test("todos os writers sensíveis usam helpers privados e limpam prompts no sucesso", () => {

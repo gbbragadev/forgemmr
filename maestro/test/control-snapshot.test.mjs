@@ -77,7 +77,7 @@ test("snapshot reúne a fábrica, ordena pipelines e descreve somente ações v�
     assert.equal(start.risk, "safe");
     assert.equal(start.enabled, true);
     assert.ok(start.fields.find((field) => field.name === "team").options.includes("dry-run"));
-    for (const actionId of ["profile.create", "profile.activate", "team.save", "providers.refresh", "provider.login"]) {
+    for (const actionId of ["operator.ingest", "operator.evolve", "profile.create", "profile.activate", "blueprint.save", "blueprint.migrate", "team.save", "providers.refresh", "provider.login"]) {
       assert.ok(snapshot.actions.some((action) => action.id === actionId), `ação de fábrica ausente: ${actionId}`);
     }
 
@@ -86,6 +86,8 @@ test("snapshot reúne a fábrica, ordena pipelines e descreve somente ações v�
     assert.deepEqual(decide.fields.find((field) => field.name === "choice").options, ["go", "kill"]);
     assert.equal(snapshot.actions.find((action) => action.id === "p4.record" && action.scope === "pipeline:z-app")?.enabled, true);
     assert.equal(snapshot.actions.find((action) => action.id === "p5.decide" && action.scope === "pipeline:z-app")?.enabled, false);
+    assert.equal(snapshot.actions.find((action) => action.id === "pipeline.feedback" && action.scope === "pipeline:z-app")?.enabled, true);
+    assert.equal(snapshot.actions.find((action) => action.id === "pipeline.simulate" && action.scope === "pipeline:z-app")?.enabled, true);
 
     for (const action of snapshot.actions) {
       assert.deepEqual(Object.keys(action), [

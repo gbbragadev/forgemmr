@@ -11,6 +11,7 @@ import {
   listProfiles,
   slugify,
 } from "../engine.mjs";
+import { createBlueprintAdmin } from "./blueprint-admin.mjs";
 
 export const PROVIDER_CATALOG = [
   {
@@ -118,6 +119,21 @@ export function createFactoryAdmin({
   platform = process.platform,
   spawnImpl = spawn,
 } = {}) {
+  const blueprints = createBlueprintAdmin({ root });
+
+  function blueprintDraft(input) {
+    let jobs = input?.jobs;
+    if (typeof jobs === "string") {
+      const text = jobs.trim();
+      jobs = text.startsWith("[")
+        ? JSON.parse(text)
+        : text.split(/[\r\n,]+/).map((job) => job.trim()).filter(Boolean);
+    }
+    let jobSpecs = input?.jobSpecs;
+    if (typeof jobSpecs === "string") jobSpecs = JSON.parse(jobSpecs || "{}");
+    return { name: input?.name, title: input?.title, purpose: input?.purpose, jobs, jobSpecs };
+  }
+
   function providerState(definition) {
     const executable = findExecutable(definition.cli, { env, platform });
     return {
@@ -159,6 +175,21 @@ export function createFactoryAdmin({
       const slug = importActiveProfile(root);
       return { slug, imported: Boolean(slug) };
     },
+    listBlueprints: (options) => blueprints.list(options),
+    saveBlueprint(input) {
+      return blueprints.save(blueprintDraft(input), {
+        id: input?.id || undefined,
+        reason: input?.reason || "studio-save",
+      });
+    },
+    deriveBlueprint(input) {
+      return blueprints.derive(input?.source, blueprintDraft(input), {
+        reason: input?.reason || "studio-derive",
+      });
+    },
+    archiveBlueprint: (id) => blueprints.archive(id),
+    restoreBlueprint: (id) => blueprints.restore(id),
+    migrateBlueprint: (id) => blueprints.migrate(id),
     saveTeam(input) {
       const name = safeOneLine(input?.name, "nome do time", { min: 2, max: 60 });
       const emoji = safeOneLine(input?.emoji || "🎼", "símbolo", { max: 8 });
@@ -188,6 +219,12 @@ export function createFactoryAdmin({
         };
       });
       const composed = composeTeam(name, musicians, emoji);
+      const fallbackPolicy = input?.fallbackPolicy || "fallback";
+      if (!["strict", "fallback"].includes(fallbackPolicy)) throw new Error("política de fallback inválida");
+      composed.team.fallbackPolicy = fallbackPolicy;
+      if (fallbackPolicy === "strict") {
+        composed.team.fallbacks = Object.fromEntries(composed.players.map((player) => [player.id, []]));
+      }
       const { file, roster } = readRoster(root);
       roster.players = roster.players.filter((player) => !(player.generated && player.id.startsWith(`${composed.teamId}-`)));
       const players = new Map(roster.players.map((player) => [player.id, player]));

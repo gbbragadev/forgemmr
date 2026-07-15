@@ -13,7 +13,7 @@ const API = Object.freeze({
 });
 
 const SECTION_IDS = ["overview", "new-pipeline", "pipelines", "decisions", "factory", "metrics", "memory", "activity"];
-const PIPELINE_STEPS = ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "P3", "P4", "P5"];
+const PIPELINE_STEPS = ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "SIMULATE", "P3", "P4", "P5"];
 const TEAM_ROLES = ["Estrategista", "Engenheiro", "Designer", "QA", "Revisor"];
 
 const state = {
@@ -417,11 +417,48 @@ function renderPipelineDetail(pipeline) {
         element("h3", { text: latestError ? "Erro recente" : "Saúde da execução" }),
         element("p", { text: latestError || "Nenhum erro recente foi registrado." }),
       ]),
+      renderRunConsole(pipeline),
       element("article", { className: "card card-wide" }, [element("h3", { text: "Ações válidas agora" }), actionList]),
       renderPipelineMemory(pipeline),
     ]),
   ]);
   return detail;
+}
+
+function renderRunConsole(pipeline) {
+  const events = state.events
+    .filter((event) => event.appId === pipeline.appId)
+    .filter((event) => !pipeline.runId || !event.runId || event.runId === pipeline.runId)
+    .slice(-200);
+  const last = events.at(-1);
+  const elapsed = pipeline.startedAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(pipeline.startedAt).getTime()) / 1000))
+    : null;
+  const summary = [
+    pipeline.currentPlayer || last?.playerId || "agente aguardando",
+    pipeline.currentJob || last?.job || "sem fase ativa",
+    elapsed === null ? null : `${elapsed}s`,
+  ].filter(Boolean).join(" · ");
+  const progress = events.filter((event) => event.eventType !== "raw").slice(-40);
+  const rows = progress.length
+    ? progress.map((event) => element("div", { className: "run-console-line" }, [
+        element("time", { text: formatDate(event.timestamp || event.receivedAt, { timeOnly: true }) }),
+        element("span", { className: "run-console-meta", text: [event.job, event.playerId, event.attempt ? `t${event.attempt}` : null].filter(Boolean).join(" · ") }),
+        element("span", { text: event.line || event.message || eventSummary(event) }),
+      ]))
+    : [element("p", { className: "run-console-empty", text: pipeline.status === "running" ? "Agente em execução; aguardando a próxima saída…" : "Nenhum evento registrado para esta run." })];
+  const raw = element("details", { className: "run-console-raw" }, [
+    element("summary", { text: "Saída completa" }),
+    element("pre", { text: events.map((event) => event.line || event.message || "").filter(Boolean).join("\n") || "Sem stdout/stderr persistido." }),
+  ]);
+  return element("article", { className: "card card-wide run-console" }, [
+    element("div", { className: "run-console-head" }, [
+      element("div", {}, [element("h3", { text: "Progresso ao vivo" }), element("p", { text: summary })]),
+      badge(state.eventSource ? "SSE conectado" : "reconectando", state.eventSource ? "success" : "warning"),
+    ]),
+    element("div", { className: "run-console-stream", attrs: { "aria-live": "polite" } }, rows),
+    raw,
+  ]);
 }
 
 function renderPipelineMemory(pipeline) {
@@ -596,14 +633,20 @@ function renderFactory() {
     : emptyState("Sem profiles", "Crie uma configuração reutilizável para nicho e deploy.");
   const teams = snapshot.teams.length
     ? element("div", { className: "stack-list" }, snapshot.teams.map((team) => element("div", { className: "stack-item" }, [
-        element("div", { className: "item-copy" }, [element("strong", { text: team.label || team.id }), element("span", { text: `${Object.keys(team.dispatch || {}).length} rotas de dispatch` })]),
+        element("div", { className: "item-copy" }, [element("strong", { text: team.label || team.id }), element("span", { text: `${Object.keys(team.dispatch || {}).length} rotas · ${team.fallbackPolicy === "strict" ? "estrito, sem troca de provider" : "fallback permitido"}` })]),
         badge(team.id),
       ])))
     : emptyState("Sem times", "Monte um time com providers, modelos e papéis.");
   const blueprints = snapshot.blueprints.length
     ? element("div", { className: "stack-list" }, snapshot.blueprints.map((blueprint) => element("div", { className: "stack-item" }, [
-        element("div", { className: "item-copy" }, [element("strong", { text: blueprint.title || blueprint.name }), element("span", { text: `${blueprint.jobs?.length || 0} jobs` })]),
-        badge(blueprint.id),
+        element("div", { className: "item-copy" }, [
+          element("strong", { text: blueprint.title || blueprint.name }),
+          element("span", { text: blueprint.id === "generic"
+            ? "pipeline padrão herdável"
+            : `${blueprint.versions?.length || (blueprint.legacy ? 0 : 1)} versão(ões) · ${blueprint.purpose || `${blueprint.jobs?.length || 0} jobs`}` }),
+          blueprint.derivedFrom ? element("small", { text: `derivado de ${blueprint.derivedFrom.blueprintId}@${blueprint.derivedFrom.version}` }) : null,
+        ]),
+        badge(blueprint.archived ? "arquivado" : blueprint.activeVersion || blueprint.id, blueprint.archived ? "danger" : "neutral"),
       ])))
     : emptyState("Sem blueprints", "A pipeline genérica permanece disponível.");
 
@@ -1006,6 +1049,7 @@ function eventRow(event) {
 }
 
 function eventSummary(event) {
+  if (event.line) return event.line;
   if (event.actionId) return `${event.actionId} · ${humanStatus(event.status)}`;
   if (event.appId) return `${event.appId} · ${humanStatus(event.status || event.pipeline?.status)}`;
   if (event.message) return event.message;

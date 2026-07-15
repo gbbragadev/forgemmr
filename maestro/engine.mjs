@@ -27,6 +27,7 @@ import * as workbench from "./workbench.mjs";
 import { loadBlueprint, interpolate } from "./blueprint-loader.mjs";
 import { improvePrompt } from "./improver.mjs";
 import { recordDecision, writeApproval } from "./decisions.mjs";
+import { applySimulationResult, simulationArtifactPaths, validateSimulationReport } from "./simulator.mjs";
 
 // porta do Maestro HQ (server.mjs) — usada nos prompts de gate visual (preview)
 const HQ_PORT = Number(process.env.MAESTRO_PORT || 8799);
@@ -41,11 +42,12 @@ const JOB_TEMPLATES = {
   "L1/B3": "L1-B3-ui-polish.md",
   "L1/B4": "L1-B4-wire-api.md",
   "L1/B5": "L1-B5-ship-check.md",
+  SIMULATE: "L1-SIMULATE.md",
   ITERATE: "FEEDBACK-ITERATE.md",
 };
 
 // rótulos curtos por job (fonte única — TUI importa; index.html espelha em literal)
-export const JOB_SHORT = { "L0/P0": "P0", FOUNDATION: "Fundação", "DS-GEN": "Design", "L0/P1": "P1", "L1/B1": "B1", "L1/B2": "B2", "L1/B3": "B3", "L1/B4": "B4", "L1/B5": "B5", P3: "ship", ITERATE: "iterar" };
+export const JOB_SHORT = { "L0/P0": "P0", FOUNDATION: "Fundação", "DS-GEN": "Design", "L0/P1": "P1", "L1/B1": "B1", "L1/B2": "B2", "L1/B3": "B3", "L1/B4": "B4", "L1/B5": "B5", SIMULATE: "simular", P3: "ship", ITERATE: "iterar" };
 export const CONTROL_MODES = ["autopilot_to_gate", "guided", "manual"];
 
 function normalizeControlMode(mode, { fallback = false } = {}) {
@@ -61,6 +63,7 @@ function controlPhase(job) {
   if (job === "DS-GEN") return "design";
   if (job === "L0/P1") return "acquisition";
   if (job?.startsWith("L1/")) return "build";
+  if (job === "SIMULATE") return "simulate";
   if (job === "P3") return "ship";
   if (job === "ITERATE") return "iterate";
   return `blueprint:${job}`;
@@ -162,9 +165,9 @@ export function hasSubstantialText(text, minChars = 80) {
 }
 
 export const JOBS_BY_CAPABILITY = {
-  static: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
-  quiz: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "P3"],
-  chat: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "P3"],
+  static: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "SIMULATE", "P3"],
+  quiz: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B5", "SIMULATE", "P3"],
+  chat: ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "SIMULATE", "P3"],
 };
 
 // gate criado DEPOIS do job passar; pipeline pausa até forge decide
@@ -204,13 +207,19 @@ const GATES_AFTER = {
     payload: `preview:${p.appId}`,
     choices: ["go", "retry", "kill"],
   }),
-  "L1/B5": (p) => ({
+  "L1/B5": (p) => (!p.jobs.includes("SIMULATE") || p.simulationCompleted ? {
     id: "deploy",
-    prompt: `Ship check OK. Autorizar push/merge + deploy ${p.deploy.target} → https://${p.deploy.subdomain}.${p.deploy.baseUrl || "example.com"} ?`,
+    prompt: `${p.jobs.includes("SIMULATE") ? "Ship check e simulação OK" : "Ship check OK"}. Autorizar push/merge + deploy ${p.deploy.target} → https://${p.deploy.subdomain}.${p.deploy.baseUrl || "example.com"} ?`,
     payload: `deploy:${p.deploy.target}:${p.deploy.subdomain}`,
     choices: ["go", "kill"],
+  } : null),
+  SIMULATE: (p) => (p.simulationAutoIterationPending ? null : {
+    id: "deploy",
+    prompt: `Simulação com cinco personas concluída. Revise ${p.simulation?.reportHtml || "o relatório"} e autorize o deploy ${p.deploy.target}?`,
+    payload: p.simulation?.reportHtml || `simulation:${p.appId}`,
+    choices: ["go", "kill"],
   }),
-  ITERATE: (p) => ({
+  ITERATE: (p) => (p.simulationAutoIterationPending ? null : {
     id: "iterate-visual",
     prompt: `Feedback aplicado. Preview: http://127.0.0.1:${HQ_PORT}/preview/${p.appId}/ (ou npm run dev). Aprova a iteração?`,
     payload: `preview:${p.appId}`,
@@ -262,7 +271,9 @@ export function resolvePlan({ root, blueprint, capability, appId }) {
     jobSpecs[job] = {
       ...spec,
       inputs: (spec.inputs || []).map((i) => interpolate(i, ctx)),
-      verify: { ...spec.verify, path: interpolate(spec.verify.path, ctx) },
+      verify: spec.verify.type === "file"
+        ? { ...spec.verify, path: interpolate(spec.verify.path, ctx) }
+        : { ...spec.verify },
       gate: spec.gate
         ? {
             ...spec.gate,
@@ -483,11 +494,17 @@ export const TEAM_ROLES = [
   { id: "Estrategista", jobs: ["L0/P0", "FOUNDATION", "L0/P1", "L1/B2"], desc: "scorecard · fundação · hooks · personas" },
   { id: "Engenheiro", jobs: ["L1/B1", "L1/B4"], desc: "scaffold · API/wire" },
   { id: "Designer", jobs: ["L1/B3", "ITERATE", "DS-GEN"], desc: "UI polish · iteração · design system" },
-  { id: "QA", jobs: ["L1/B5"], desc: "ship check" },
+  { id: "QA", jobs: ["L1/B5", "SIMULATE"], desc: "ship check · simulação de usuários" },
   // Papel Revisor não possui jobs de dispatch próprios — atua como OVERLAY via team.review:
   // a engine (maybeReview no advanceLoop) roda uma passada de revisão adversarial após B1/B4.
   { id: "Revisor", jobs: [], desc: "revisão adversarial pós-B1/B4 (conserta bug real; reverte se quebrar o build)" },
 ];
+
+export function teamPlayerChain(team, primaryId) {
+  if (!primaryId) return [];
+  if (team?.fallbackPolicy === "strict") return [primaryId];
+  return [primaryId, ...(team?.fallbacks?.[primaryId] || [])];
+}
 
 function teamSlug(s) {
   return (
@@ -541,7 +558,7 @@ export function composeTeam(name, musicians, emoji = "🎼") {
   }
   if (!defaultId) defaultId = players[0] ? players[0].id : null;
   dispatch.default = defaultId;
-  const team = { label: name, emoji, dispatch, fallbacks };
+  const team = { label: name, emoji, fallbackPolicy: "fallback", dispatch, fallbacks };
   if (reviewPlayer) team.review = { after: ["L1/B1", "L1/B4"], player: reviewPlayer };
   return { teamId, team, players };
 }
@@ -564,7 +581,13 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
   // ---------- util ----------
 
-  const log = (line) => emitLog(line);
+  const log = (line) =>
+    emitLog(line, {
+      appId: pipeline?.appId || boundAppId || null,
+      runId: pipeline?.runId || "factory",
+      job: pipeline?.currentJob || null,
+      playerId: pipeline?.currentPlayer || null,
+    });
 
   async function remember(entry) {
     if (!memory?.record) return null;
@@ -658,7 +681,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       team.dispatch[job] ||
       (job === "ITERATE" ? team.dispatch["L1/B3"] : null) || // feedback é tipicamente visual → player de front
       team.dispatch.default;
-    const chain = [primaryId, ...(team.fallbacks?.[primaryId] || [])];
+    const chain = teamPlayerChain(team, primaryId);
     const now = Date.now();
     for (const id of chain) {
       if (excluded.includes(id)) continue;
@@ -674,7 +697,9 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
   function buildPrompt(job, player, extraFeedback, memoryBriefing = "") {
     const p = pipeline;
     const spec = p.jobSpecs && p.jobSpecs[job];
-    const template = spec ? spec.templateRef : JOB_TEMPLATES[job];
+    const template = spec
+      ? spec.templateRef || (spec.verify?.type === "builtin" ? JOB_TEMPLATES[job] : null)
+      : JOB_TEMPLATES[job];
     const lines = [
       `Job: ${job}`,
       `App: ${p.appId}`,
@@ -685,10 +710,13 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       `Você é o executor "${player.name}" do job ${job} na pipeline autônoma Forge (Maestro / ${profile.name}).`,
       `Projeto (nicho): ${profile.niche}. Namespace: ${profile.namespace}.`,
       template
-        ? `Siga EXATAMENTE o template ${spec ? template : `docs/prompts/${template}`} — preencha os campos <<< >>> com: App id=${p.appId}, Capability=${p.capability}, IDEIA=${p.idea}.`
+        ? `Siga EXATAMENTE o template ${spec?.templateRef ? template : `docs/prompts/${template}`} — preencha os campos <<< >>> com: App id=${p.appId}, Capability=${p.capability}, IDEIA=${p.idea}.`
         : "",
       job === "L1/B3"
         ? `Você é um coding agent com acesso aos arquivos: aplique você mesmo o brief denso de docs/prompts/L1-B3-TEMPLATE.md (não gere prompt para terceiros — VOCÊ é quem implementa a UI).`
+        : "",
+      job === "SIMULATE"
+        ? `Contrato de saída: grave apps/${p.appId}/docs/simulations/${p.runId}.json e gere apps/${p.appId}/docs/simulations/${p.runId}.html com integrations/startup-user-simulator/startup-user-simulator/scripts/generate_report.py. Exatamente cinco personas; scores são heurísticas, não taxa prevista. Marque auto_apply=true apenas em fixes reversíveis que não toquem auth, billing, dados, deploy, domínio, segurança ou decisões legais.`
         : "",
       "",
       "Regras da pipeline Forge:",
@@ -768,9 +796,12 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
   }
 
   function verifyDescription(job) {
+    const declared = pipeline.jobSpecs?.[job]?.verify;
+    if (declared?.type === "file") return `${declared.path} existe${declared.sections?.length ? ` com seções ${declared.sections.join(", ")}` : ""}`;
     if (job === "L0/P0") return `${runDocRel(pipeline.appId, "scorecard")} existe com GO/NO-GO`;
     if (job === "FOUNDATION") return `${runDocRel(pipeline.appId, "system-design")} existe com Arquitetura/Dados/Decisões/Padrões/Riscos`;
     if (job === "DS-GEN") return `3 propostas em maestro/proposals/${pipeline.appId}/proposal-{1,2,3}.html + ${runDocRel(pipeline.appId, "design-system")}`;
+    if (job === "SIMULATE") return `JSON + HTML em apps/${pipeline.appId}/docs/simulations/${pipeline.runId} com cinco personas e disclaimer`;
     if (job === "L0/P1") return `${runDocRel(pipeline.appId, "content-hooks")} existe`;
     return `npm run build -w ${profile.namespace}/${pipeline.appId} sai com exit 0`;
   }
@@ -835,6 +866,24 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       if (!fs.existsSync(md)) return { pass: false, detail: `faltou ${path.relative(root, md)}` };
       if (!hasSubstantialText(fs.readFileSync(md, "utf8"))) return { pass: false, detail: "design-system.md sem conteúdo útil" };
       return { pass: true, detail: "3 propostas substanciais + design-system.md útil" };
+    }
+    if (job === "SIMULATE") {
+      const artifacts = simulationArtifactPaths(root, p);
+      if (!fs.existsSync(artifacts.json)) return { pass: false, detail: `faltou ${path.relative(root, artifacts.json)}` };
+      if (!fs.existsSync(artifacts.html)) return { pass: false, detail: `faltou ${path.relative(root, artifacts.html)}` };
+      let report;
+      try {
+        report = JSON.parse(fs.readFileSync(artifacts.json, "utf8"));
+      } catch (error) {
+        return { pass: false, detail: `JSON da simulação inválido: ${error.message}` };
+      }
+      const validation = validateSimulationReport(report);
+      if (!validation.pass) return validation;
+      const html = fs.readFileSync(artifacts.html, "utf8");
+      if (Buffer.byteLength(html, "utf8") < 500 || !/<html\b/i.test(html) || !/persona/i.test(html)) {
+        return { pass: false, detail: "HTML da simulação ausente ou raso" };
+      }
+      return { pass: true, detail: `simulação válida: ${validation.detail}` };
     }
     if (p.dryRun) return { pass: true, detail: "dry-run: verify de build pulado" };
     // appId nasce do slugify(), mas revalida aqui: é interpolado em shell (npm.cmd exige shell no Windows)
@@ -1270,6 +1319,15 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
           if (job !== "P3") checkpoint(job); // P3 já terminou em master via merge — sem commit extra
           if (job !== "P3") await maybeReview(job); // overlay do papel Revisor (no-op se o team não tem review)
           if (!pipeline || pipeline.status !== "running") break; // review pode ter sido parada/morta
+          if (job === "SIMULATE") {
+            const outcome = applySimulationResult({ root, pipeline });
+            log(outcome.autoFixes.length
+              ? `↻ simulador selecionou ${outcome.autoFixes.length} correção(ões) segura(s) — uma rodada ITERATE → B5 foi inserida`
+              : "✓ simulador concluído — nenhuma correção foi autoaplicada");
+          }
+          if (job === "L1/B5" && pipeline.simulationAutoIterationPending) {
+            pipeline.simulationAutoIterationPending = false;
+          }
           pipeline.jobIndex++;
           pipeline.currentJob = pipeline.jobs[pipeline.jobIndex] || null;
           const specGate = pipeline.jobSpecs && pipeline.jobSpecs[job] && pipeline.jobSpecs[job].gate;
@@ -1561,6 +1619,64 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     return snapshot();
   }
 
+  /** Reexecuta somente a avaliação de cinco personas em um app pronto e, se seguro, uma melhoria. */
+  function startSimulation(params) {
+    if (pipeline && ["running", "paused_gate", "paused_control", "blocked"].includes(pipeline.status)) {
+      throw activeRunError();
+    }
+    profile = loadProfile(root);
+    const appId = slugify(params.appId || "");
+    if (!appId || !fs.existsSync(path.join(root, "apps", appId))) {
+      throw new Error(`app "${params.appId}" não existe em apps/`);
+    }
+    const roster = readRoster();
+    const team = resolveTeam(roster, params.team || (roster.teams?.["grok-glm-front"] ? "grok-glm-front" : "grok-solo"));
+    if (!roster.teams?.[team]) throw new Error(`team "${team}" não existe`);
+    const dryRun = Boolean(params.dryRun) || team === "dry-run";
+    ensureAppRepo(appId);
+    const baseRef = gitApp(appId, ["rev-parse", "HEAD"]);
+    let n = 1;
+    while (gitApp(appId, ["branch", "--list", `pipeline/${appId}-sim${n}`])) n++;
+    const branch = `pipeline/${appId}-sim${n}`;
+    gitApp(appId, ["checkout", "-b", branch]);
+    const capability = detectCapability(appId);
+    const prevDeploy = lastDeployFor(appId);
+    pipeline = {
+      runId: new Date().toISOString().replace(/[:.]/g, "-"),
+      appId,
+      idea: `simulação pós-build ${n}`,
+      mode: "simulation",
+      team,
+      capability,
+      dryRun,
+      status: "running",
+      controlMode: normalizeControlMode(params.controlMode),
+      controlPause: null,
+      profileName: profile.name,
+      jobs: ["SIMULATE", "P3"],
+      jobIndex: 0,
+      currentJob: null,
+      git: { branch, baseRef, checkpoints: [], lastCheckpoint: baseRef },
+      gates: [],
+      history: [],
+      cooldowns: {},
+      deploy: {
+        target: params.target || prevDeploy?.target || (capability === "chat" ? profile.deploy.serverHost : profile.deploy.staticHost),
+        subdomain: slugify(params.subdomain || prevDeploy?.subdomain || appId),
+        baseUrl: prevDeploy?.baseUrl || profile.deploy.baseUrl,
+        url: null,
+        dns: { status: "pending" },
+      },
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+    };
+    log(`🧪 startup user simulation · app=${appId} · team=${team}${dryRun ? " · DRY-RUN" : ""}`);
+    workbench.handoffUpdate(paths, pipeline);
+    save();
+    advanceLoop();
+    return snapshot();
+  }
+
   function decide(gateId, choice, feedback) {
     if (!pipeline) throw new Error("nenhuma pipeline ativa");
     const gate = pipeline.gates.find((g) => g.id === gateId && !g.decision);
@@ -1781,19 +1897,17 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
           cooldowns.set(playerId, Math.max(cooldowns.get(playerId) || 0, untilMs));
         }
       }
-      if (!["done", "killed"].includes(saved.status)) {
-        pipeline = saved;
-        if (pipeline.status === "running") {
-          pipeline.status = "blocked";
-          pipeline.gates.push({
-            id: "server-restart",
-            afterJob: pipeline.currentJob,
-            prompt: "server reiniciou no meio do job — retry (recomeça job atual) ou kill?",
-            choices: ["retry", "kill"],
-            createdAt: new Date().toISOString(),
-            decision: null,
-          });
-        }
+      pipeline = saved;
+      if (pipeline.status === "running") {
+        pipeline.status = "blocked";
+        pipeline.gates.push({
+          id: "server-restart",
+          afterJob: pipeline.currentJob,
+          prompt: "server reiniciou no meio do job — retry (recomeça job atual) ou kill?",
+          choices: ["retry", "kill"],
+          createdAt: new Date().toISOString(),
+          decision: null,
+        });
       }
     } catch (error) {
       const relativePath = path.relative(root, PIPELINE_PATH);
@@ -1801,7 +1915,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     }
   }
 
-  return { start, startFeedback, decide, stop, kill, resume, snapshot, setTarget, setControlMode, continuePipeline };
+  return { start, startFeedback, startSimulation, decide, stop, kill, resume, snapshot, setTarget, setControlMode, continuePipeline };
 }
 
 /**
@@ -1846,7 +1960,7 @@ export function createEngineManager({ root, emitLog, emitPipeline, memory = null
           appId,
           cooldowns,
           memory,
-          emitLog: (line) => emitLog(`[${appId}] ${line}`),
+          emitLog: (line, metadata = {}) => emitLog(`[${appId}] ${line}`, { ...metadata, appId }),
           emitPipeline: () => emitPipeline(snapshotAll()),
         })
       );
@@ -1886,6 +2000,11 @@ export function createEngineManager({ root, emitLog, emitPipeline, memory = null
       const appId = slugify(params.appId || "");
       if (!appId) throw new Error("forge feedback <app> — appId obrigatório");
       return engineFor(appId).startFeedback(params);
+    },
+    startSimulation(params) {
+      const appId = slugify(params.appId || "");
+      if (!appId) throw new Error("simulação exige appId");
+      return engineFor(appId).startSimulation(params);
     },
     decide(appId, gateId, choice, feedback) {
       return target(appId).decide(gateId, choice, feedback);

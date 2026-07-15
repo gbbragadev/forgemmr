@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "gameads",
+  "name": "gameads",
+  "title": "GameAds — Experiências publicitárias gamificadas",
+  "purpose": "",
+  "activeVersion": "sha256-66ce9f82c85bc843982dc0c4e40190d585461e6b7a42a574add020fa8bc4dd73",
+  "archived": false,
+  "createdAt": "2026-07-14T22:30:00.000Z",
+  "updatedAt": "2026-07-14T22:30:00.000Z",
+  "derivedFrom": null,
+  "versions": [
+    {
+      "id": "sha256-66ce9f82c85bc843982dc0c4e40190d585461e6b7a42a574add020fa8bc4dd73",
+      "parent": null,
+      "reason": "migrate-legacy",
+      "createdAt": "2026-07-14T22:30:00.000Z"
+    }
+  ]
+}

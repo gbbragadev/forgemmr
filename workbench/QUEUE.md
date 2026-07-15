@@ -19,8 +19,9 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
-
 ## Done
+
+- [x] **META/L1** Forge Operator + Blueprint Studio + Startup User Simulator + Run Console — 188 testes, types/builds verdes, branch local `feat/forge-operator`, sem push/deploy (2026-07-14)
 
 - [x] **META/L1→P3** Forge Nexus + ai-memory — subtree v1.13.0, runtime verificado, pipeline com contexto durável, UI zero-command, 168 testes, CI Node+Rust verde, push e onboarding em produção (2026-07-14)
 - [x] **META/L1** Especificação Forge Nexus + ai-memory — subtree v1.13.0, runtime gerenciado, memória por app/run, importação visual e operação fail-open (2026-07-14)

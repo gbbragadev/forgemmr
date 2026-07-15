@@ -15,7 +15,7 @@ Estágios são **passos dentro** dos loops — não uma fila linear cega.
 │  L1  BUILD LOOP  (código — até DoD ou bloqueio)             │
 │  claim → implement → build/smoke → fix → update handoff     │
 │         └──────── repete até verde ───────────────────────┘ │
-│  B1 lógica → B3 visual (GLM prompt denso) → B5 ship        │
+│  B1 lógica → B3 visual → B5 → SIMULATE → gate ship        │
 └─────────────────────────────────────────────────────────────┘
          │
          ▼
@@ -77,7 +77,7 @@ Passo a passo completo + frase mágica: **`docs/PLAYBOOK.md`** § *Como setar ou
 | Porta :3001 Docker devolve “Running” | Preferir :3000 ou portas livres; smoke real = curl HTML, não só “process up” |
 | Vercel sem login / CF token sem Pages | Ship matrix: static → **GitHub Pages**; server → Vercel com token |
 | `output: "export"` só se app sem API no free path | Quiz static OK; chat precisa Node |
-| 1 sessão ≠ app inteiro | P0→P1→B1→B3→B5 em **várias** iterações (exceto “siga até decisão” com gates claros) |
+| 1 sessão ≠ app inteiro | P0→P1→B1→B3→B5→SIMULATE em **várias** iterações (exceto “siga até decisão” com gates claros) |
 
 Detalhe visual/prompts: `workbench/prompts-glm/README.md`.
 
@@ -107,7 +107,7 @@ Uma volta = uma aposta de app. **Não** abra L0 novo com L1 vermelho no app atua
 |------|------|--------|--------|
 | P0 | Scorecard | GO/NO-GO + arquivo `docs/scorecard-<id>.md` | Grok/Gemini |
 | P1 | Content hooks | `docs/content-hooks-<id>.md` (15 PT-BR) | Grok/Gemini |
-| P2 | Enter L1 | B1…B5 | Codex/Grok/Claude/GLM |
+| P2 | Enter L1 | B1…B5 + SIMULATE | Codex/Grok/Claude/GLM |
 | P3 | Ship | URL pública | Grok/Codex + CI |
 | P4 | Measure | 5–7d bio/CTR | **Humano** (+ Grok resume) |
 | P5 | Kill/Scale | matar ou novos jobs L1 | Grok + user |
@@ -147,6 +147,7 @@ CLAIM → IMPLEMENT|PROMPT → VERIFY → FIX* → HANDOFF
 | **B3 UI** | Apelo visual shareable | Lógica nova / API | **GLM via prompt denso** |
 | **B4 Wire API** | chat/credits/health | Redesign | Codex |
 | **B5 Ship check** | Checklist PASS/N-A + Next P3/P4 | Features novas | qualquer |
+| **SIMULATE** | JSON+HTML com 5 personas e fixes priorizados | Pesquisa real / métricas inventadas | qualquer |
 | **P3 Deploy** | URL (Pages/Vercel) | Measure | Grok + CI |
 
 ### Split B1 / B3 (crítico)
@@ -187,6 +188,7 @@ Máx 3 fix no mesmo erro → BLOCK + L2.
 
 Checklist ship:
 - [ ] B5 PASS (ou N/A documentados)
+- [ ] SIMULATE válido; qualquer auto-fix passou por no máximo 1× ITERATE→B5
 - [ ] Push `master` (autorizado)
 - [ ] Workflow verde **ou** deploy CLI OK
 - [ ] URL no HANDOFF + hooks CTA apontam pra URL

@@ -102,6 +102,68 @@ test("resume pós-restart: novo manager reconstrói pipelines de maestro/pipelin
   assert.equal(mgr2.snapshot()["persist-a"].status, "killed");
 });
 
+test("restart preserves a completed pipeline so it can be iterated", () => {
+  const root = tmpRoot();
+  fs.mkdirSync(path.join(root, "maestro", "pipelines"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "maestro", "pipelines", "shipped-app.json"),
+    JSON.stringify({
+      appId: "shipped-app",
+      status: "done",
+      currentJob: null,
+      jobs: ["L0/P0", "L1/B5", "P3"],
+      jobIndex: 3,
+      gates: [],
+      history: [
+        { job: "L0/P0", pass: true },
+        { job: "L1/B5", pass: true },
+      ],
+      cooldowns: {},
+      deploy: { url: "https://shipped.example" },
+      endedAt: "2026-07-14T12:00:00.000Z",
+    }),
+    "utf8",
+  );
+
+  const snapshot = makeManager(root).snapshot()["shipped-app"];
+  assert.equal(snapshot.status, "done");
+  assert.equal(snapshot.endedAt, "2026-07-14T12:00:00.000Z");
+  assert.deepEqual(snapshot.history.map((entry) => entry.job), ["L0/P0", "L1/B5"]);
+});
+
+test("manual simulation on a completed app runs one safe ITERATE → B5 cycle before deploy gate", async () => {
+  const root = tmpRoot();
+  const app = path.join(root, "apps", "sim-app");
+  fs.mkdirSync(app, { recursive: true });
+  fs.writeFileSync(path.join(app, "package.json"), JSON.stringify({ name: "@forge/sim-app" }));
+  execFileSync("git", ["init"], { cwd: app });
+  execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: app });
+  execFileSync("git", ["config", "user.name", "Test"], { cwd: app });
+  execFileSync("git", ["add", "."], { cwd: app });
+  execFileSync("git", ["commit", "-m", "init"], { cwd: app });
+  fs.mkdirSync(path.join(root, "maestro", "pipelines"), { recursive: true });
+  fs.writeFileSync(path.join(root, "maestro", "pipelines", "sim-app.json"), JSON.stringify({
+    appId: "sim-app",
+    status: "done",
+    jobs: ["P3"],
+    jobIndex: 1,
+    gates: [],
+    history: [],
+    cooldowns: {},
+    deploy: { target: "gh-pages", subdomain: "sim-app", baseUrl: "example.com" },
+  }));
+
+  const manager = makeManager(root);
+  manager.startSimulation({ appId: "sim-app", team: "dry-run" });
+  await waitFor(() => manager.snapshot()["sim-app"].status === "paused_gate", 30_000, "simulação no gate deploy");
+  const pipeline = manager.snapshot()["sim-app"];
+  assert.deepEqual(pipeline.jobs, ["SIMULATE", "ITERATE", "L1/B5", "P3"]);
+  assert.equal(pipeline.simulationAutoIterationUsed, true);
+  assert.equal(pipeline.gates.find((gate) => !gate.decision)?.id, "deploy");
+  assert.equal(pipeline.history.filter((entry) => entry.job === "ITERATE").length, 1);
+  manager.decide("sim-app", "deploy", "kill");
+});
+
 test("guard é POR APP: re-start do mesmo app ativo explica que outros apps rodam em paralelo", async () => {
   const root = tmpRoot();
   const mgr = makeManager(root);

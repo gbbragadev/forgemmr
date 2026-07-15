@@ -8,6 +8,7 @@ import { aggregateRuns, loadRuns } from "../stats.mjs";
 import { createActionCatalog } from "./catalog.mjs";
 import { listLifecycle as loadLifecycle } from "./lifecycle.mjs";
 import { createMemoryActions } from "../memory/control.mjs";
+import { createBlueprintAdmin } from "./blueprint-admin.mjs";
 
 function readJson(file, fallback) {
   try {
@@ -34,19 +35,7 @@ function sanitize(value) {
 
 function listBlueprints(root) {
   const result = [{ id: "generic", name: "Generic", title: "Pipeline padrão", jobs: [] }];
-  const dir = path.join(root, "blueprints");
-  if (!fs.existsSync(dir)) return result;
-  for (const id of fs.readdirSync(dir).sort()) {
-    if (!/^[a-z0-9-]+$/.test(id)) continue;
-    const blueprint = readJson(path.join(dir, id, "blueprint.json"), null);
-    if (!blueprint) continue;
-    result.push({
-      id,
-      name: blueprint.name || id,
-      title: blueprint.title || blueprint.name || id,
-      jobs: Array.isArray(blueprint.jobs) ? blueprint.jobs : [],
-    });
-  }
+  result.push(...createBlueprintAdmin({ root }).list({ includeArchived: true }));
   return result;
 }
 

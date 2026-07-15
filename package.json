@@ -19,7 +19,7 @@
     "build:all": "npm run build --workspaces --if-present",
     "lint": "npm run lint -w @forge/waifu-chat",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "node --test maestro/test/*.test.mjs",
+    "test": "node --test --test-concurrency=2 maestro/test/*.test.mjs",
     "maestro": "node maestro/server.mjs",
     "nexus": "node maestro/supervisor.mjs",
     "control-center": "node maestro/supervisor.mjs",

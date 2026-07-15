@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { composeTeam } from "../engine.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { composeTeam, teamPlayerChain } from "../engine.mjs";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const musicians = [
   { provider: "alpha", cli: "alpha", model: "a", modelLabel: "Alpha", effort: "low", roles: ["Estrategista"] },
@@ -34,4 +39,28 @@ test("composeTeam preserva fallback de colisão antes da cadeia geral", () => {
   ]);
 
   assert.deepEqual(team.fallbacks[players[1].id], [players[0].id, players[2].id]);
+});
+
+test("strict teams never cross providers even with legacy fallbacks", () => {
+  const team = {
+    fallbackPolicy: "strict",
+    dispatch: { default: "grok" },
+    fallbacks: { grok: ["codex", "claude"] },
+  };
+  assert.deepEqual(teamPlayerChain(team, "grok"), ["grok"]);
+});
+
+test("fallback teams preserve the configured chain", () => {
+  const team = {
+    fallbackPolicy: "fallback",
+    dispatch: { default: "grok" },
+    fallbacks: { grok: ["codex", "claude"] },
+  };
+  assert.deepEqual(teamPlayerChain(team, "grok"), ["grok", "codex", "claude"]);
+});
+
+test("the Grok-only preset is strict and has no cross-provider fallback", () => {
+  const roster = JSON.parse(fs.readFileSync(path.join(ROOT, "maestro", "roster.json"), "utf8"));
+  assert.equal(roster.teams["grok-solo"].fallbackPolicy, "strict");
+  assert.deepEqual(roster.teams["grok-solo"].fallbacks?.["grok-solo"] || [], []);
 });

@@ -511,6 +511,84 @@ button {
   overflow: hidden;
 }
 
+.run-console {
+  background: #0d0d0c;
+  border-color: var(--line-strong);
+}
+
+.run-console-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.run-console-head h3,
+.run-console-head p {
+  margin: 0;
+}
+
+.run-console-head p,
+.run-console-empty {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.run-console-stream {
+  display: grid;
+  max-height: 340px;
+  margin-top: 16px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.run-console-line {
+  display: grid;
+  grid-template-columns: 70px minmax(100px, 180px) 1fr;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.045);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.run-console-line:last-child {
+  border-bottom: 0;
+}
+
+.run-console-line time,
+.run-console-meta {
+  color: var(--faint);
+}
+
+.run-console-empty {
+  margin: 0;
+  padding: 18px;
+}
+
+.run-console-raw {
+  margin-top: 12px;
+  color: var(--muted);
+}
+
+.run-console-raw summary {
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.run-console-raw pre {
+  max-height: 360px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+}
+
 .panel-header {
   display: flex;
   align-items: center;

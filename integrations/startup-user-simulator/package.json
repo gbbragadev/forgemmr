@@ -1,0 +1,37 @@
+{
+  "name": "codex-startup-user-simulator-skill",
+  "version": "0.2.0",
+  "description": "A Codex skill that tests landing pages with five evidence-based simulated customer personas.",
+  "license": "MIT",
+  "author": "Francesco Mistero",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kappaemme-git/codex-startup-user-simulator-skill.git"
+  },
+  "homepage": "https://github.com/Kappaemme-git/codex-startup-user-simulator-skill#readme",
+  "bugs": {
+    "url": "https://github.com/Kappaemme-git/codex-startup-user-simulator-skill/issues"
+  },
+  "bin": {
+    "codex-startup-user-simulator-skill": "scripts/install.js"
+  },
+  "files": [
+    "startup-user-simulator",
+    "scripts/install.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "codex",
+    "skill",
+    "startup",
+    "saas",
+    "landing-page",
+    "conversion",
+    "personas",
+    "user-research"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

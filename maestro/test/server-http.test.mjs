@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { createMaestroServer } from "../server.mjs";
+import { createRunEventStore } from "../control/run-events.mjs";
 
 function fakeEngine() {
   const calls = [];
@@ -118,4 +119,32 @@ test("createMaestroServer expõe HTTP real sem iniciar a porta 8799 ao importar"
   const operationResponse = await fetch(`${baseUrl}/api/control/operations/${operation.id}`);
   assert.equal(operationResponse.status, 200);
   assert.equal((await operationResponse.json()).id, operation.id);
+});
+
+test("SSE replays structured run events filtered by app and cursor", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-server-events-"));
+  fs.mkdirSync(path.join(root, "maestro"), { recursive: true });
+  fs.writeFileSync(path.join(root, "maestro", "roster.json"), JSON.stringify({ players: [], teams: {} }));
+  const events = createRunEventStore({ root });
+  events.append({ appId: "app-a", runId: "run-a", line: "old" });
+  events.append({ appId: "app-b", runId: "run-b", line: "other" });
+  events.append({ appId: "app-a", runId: "run-a", job: "L0/P0", playerId: "grok", line: "current" });
+
+  const server = createMaestroServer({ root, engineManager: fakeEngine() });
+  t.after(() => new Promise((resolve) => server.close(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    resolve();
+  })));
+  const baseUrl = await start(server);
+  const controller = new AbortController();
+  const response = await fetch(`${baseUrl}/api/events?appId=app-a&after=1`, { signal: controller.signal });
+  assert.equal(response.status, 200);
+  const reader = response.body.getReader();
+  const chunk = await reader.read();
+  controller.abort();
+  const body = new TextDecoder().decode(chunk.value);
+  assert.match(body, /"type":"run_event"/);
+  assert.match(body, /"sequence":3/);
+  assert.match(body, /"line":"current"/);
+  assert.doesNotMatch(body, /"line":"other"/);
 });

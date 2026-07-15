@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { activeBlueprintFile } from "./control/blueprint-admin.mjs";
 
 /** Substitui ${key} e ${a.b} por ctx; placeholders sem valor ficam intactos. */
 export function interpolate(tpl, ctx = {}) {
@@ -19,7 +20,8 @@ export function loadBlueprint(name, { root }) {
   if (bpName === "generic") return { name: "generic", external: false };
 
   const dir = path.join(root, "blueprints", bpName);
-  const file = path.join(dir, "blueprint.json");
+  const { file, manifest } = activeBlueprintFile(root, bpName);
+  if (manifest?.archived) throw new Error(`blueprint "${bpName}" está arquivado`);
   if (!fs.existsSync(file)) {
     throw new Error(`blueprint "${bpName}" não existe (esperado ${path.relative(root, file)})`);
   }
@@ -35,8 +37,11 @@ export function loadBlueprint(name, { root }) {
   const jobSpecs = {};
   for (const jobId of json.jobs) {
     const spec = (json.jobSpecs && json.jobSpecs[jobId]) || null;
-    if (!spec || !spec.verify || spec.verify.type !== "file" || !spec.verify.path) {
-      throw new Error(`blueprint "${bpName}": job "${jobId}" precisa de verify {type:"file", path}`);
+    if (!spec || !spec.verify || !["file", "builtin"].includes(spec.verify.type)) {
+      throw new Error(`blueprint "${bpName}": job "${jobId}" precisa de verify file ou builtin`);
+    }
+    if (spec.verify.type === "file" && !spec.verify.path) {
+      throw new Error(`blueprint "${bpName}": job "${jobId}" precisa de verify.path`);
     }
     jobSpecs[jobId] = {
       template: spec.template || null,
@@ -47,5 +52,12 @@ export function loadBlueprint(name, { root }) {
       gate: spec.gate || null,
     };
   }
-  return { name: bpName, external: true, jobs: json.jobs.slice(), jobSpecs };
+  return {
+    name: bpName,
+    external: true,
+    version: manifest?.activeVersion || "legacy",
+    derivedFrom: manifest?.derivedFrom || null,
+    jobs: json.jobs.slice(),
+    jobSpecs,
+  };
 }

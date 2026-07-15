@@ -134,6 +134,32 @@ async function ensureServer() {
   }
 }
 
+async function executeControlAction(actionId, input, appId = null) {
+  const snapshot = await api("/api/control/snapshot");
+  return api("/api/control/actions/execute", {
+    actionId,
+    appId,
+    input: Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)),
+    stateVersion: snapshot.version,
+    idempotencyKey: `forge-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`,
+  });
+}
+
+function printOperatorResult(operation) {
+  const result = operation.result || {};
+  const decision = result.proposal?.decision || {};
+  console.log(bold(`\nForge Operator · ${result.applied ? "aplicado" : "proposta"}`));
+  if (decision.intent) console.log(`  intenção     ${decision.intent}`);
+  if (decision.profileDecision) console.log(`  profile      ${decision.profileDecision.action}${decision.profileDecision.profile ? ` → ${decision.profileDecision.profile}` : ""}`);
+  if (decision.blueprintDecision) console.log(`  blueprint    ${decision.blueprintDecision.action}${decision.blueprintDecision.source ? ` ← ${decision.blueprintDecision.source}` : ""}`);
+  if (Number.isFinite(decision.confidence)) console.log(`  confiança    ${Math.round(decision.confidence * 100)}%`);
+  if (result.proposalFile) console.log(`  proposta     ${path.relative(ROOT, result.proposalFile)}`);
+  if (result.pipeline?.appId) console.log(`  pipeline     ${result.pipeline.appId}`);
+  if (result.run?.pid) console.log(`  executor     pid ${result.run.pid}`);
+  if (result.next) console.log(fg(YELLOW, `  próximo      ${result.next}`));
+  console.log("");
+}
+
 // ---------- args ----------
 function parseArgs(argv) {
   const flags = {};
@@ -263,7 +289,12 @@ async function attachTUI(appArg) {
             if (!line) continue;
             try {
               const ev = JSON.parse(line.slice(6));
-              if (ev.type === "log") {
+              if (ev.type === "run_event") {
+                if (!state.app || !ev.appId || ev.appId === state.app) {
+                  state.logs.push(ev.line);
+                  if (state.logs.length > 300) state.logs.shift();
+                }
+              } else if (ev.type === "log") {
                 // logs de run vêm etiquetados "[stamp] [appId] …" — filtra os de OUTROS apps
                 const tag = ev.line.match(/^\[[^\]]+\] \[([a-z0-9-]+)\]/);
                 if (!tag || !state.app || tag[1] === state.app) {
@@ -1624,6 +1655,12 @@ async function main() {
 ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · profile-driven)
 
   ${bold("forge")}           tela de setup interativa (ideia → time → tipo → RUN)
+  ${bold("forge ingest")} <texto|arquivo|pasta|URL> [--team X] [--review-only] [--apply]
+            tria profile/blueprint, grava a decisão e inicia ideias seguras ou explicitamente aprovadas
+  ${bold("forge evolve")} <texto|arquivo|pasta|URL> [--executor codex|grok|claude|gemini] [--apply]
+            propõe mudança no próprio Forge; sem --apply nunca executa o coding agent
+  ${bold("forge simulate")} <app> [--team X] [--dry-run]
+            roda cinco personas no app concluído e permite no máximo uma melhoria automática segura
   ${bold("forge profile init")}   wizard que autora .forge/profile.md (nicho, stack, contexto, idiomas)
   ${bold("forge profile show")}   imprime o profile atual
   ${bold("forge team")}          monta um time na TUI (Provedor→Modelo→Effort→Funções) e grava no roster
@@ -1651,6 +1688,54 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
 
 Teams: grok-solo (default) · grok-glm-front · quality · dry-run
 `);
+    return;
+  }
+
+  if (cmd === "ingest") {
+    const source = rest.join(" ").trim();
+    if (!source) throw new Error("uso: forge ingest <texto|arquivo|pasta|URL> [--team X] [--review-only] [--apply]");
+    await ensureServer();
+    const operation = await executeControlAction("operator.ingest", {
+      source,
+      team: flags.team || "grok-solo",
+      capability: flags.capability,
+      target: flags.target,
+      controlMode: flags.controlMode || "autopilot_to_gate",
+      reviewOnly: Boolean(flags.reviewOnly),
+      dryRun: Boolean(flags.dryRun),
+      approved: Boolean(flags.apply || flags.approved),
+    });
+    printOperatorResult(operation);
+    return;
+  }
+
+  if (cmd === "evolve") {
+    const source = rest.join(" ").trim();
+    if (!source) throw new Error("uso: forge evolve <texto|arquivo|pasta|URL> [--executor codex] [--apply]");
+    await ensureServer();
+    const operation = await executeControlAction("operator.evolve", {
+      source,
+      executor: flags.executor || "codex",
+      maxTurns: flags.maxTurns ? Number(flags.maxTurns) : undefined,
+      reviewOnly: Boolean(flags.reviewOnly),
+      dryRun: Boolean(flags.dryRun),
+      approved: Boolean(flags.apply || flags.approved),
+    });
+    printOperatorResult(operation);
+    return;
+  }
+
+  if (cmd === "simulate") {
+    const appId = rest[0];
+    if (!appId) throw new Error("uso: forge simulate <app> [--team X] [--dry-run]");
+    await ensureServer();
+    const operation = await executeControlAction("pipeline.simulate", {
+      team: flags.team,
+      dryRun: Boolean(flags.dryRun),
+      controlMode: flags.controlMode || "autopilot_to_gate",
+    }, appId);
+    console.log(fg(GREEN, `✓ simulação iniciada para ${appId}`));
+    if (operation.result?.runId) console.log(dim(`  run ${operation.result.runId}`));
     return;
   }
 

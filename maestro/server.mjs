@@ -37,6 +37,8 @@ import { createFactoryAdmin } from "./control/factory-admin.mjs";
 import { createLifecycleManager } from "./control/lifecycle.mjs";
 import { createMemoryActionHandlers } from "./memory/control.mjs";
 import { createMemoryService, createUnavailableMemoryService } from "./memory/service.mjs";
+import { createRunEventStore } from "./control/run-events.mjs";
+import { createForgeOperator } from "./operator.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -143,7 +145,7 @@ function createStreamSanitizer(prefix = "") {
   };
 }
 
-function log(line) {
+function log(line, metadata = {}, runEvents = null) {
   let msg = redactLog(stripAnsi(typeof line === "string" ? line : String(line))).trimEnd();
   // strip accidental "stderr: " prefix noise labels we no longer want for clean TUI
   if (msg.startsWith("stderr: ")) {
@@ -170,9 +172,20 @@ function log(line) {
   const entry = `[${stamp}] ${msg}`;
   state.logs.push(entry);
   if (state.logs.length > 2000) state.logs.shift();
-  const data = `data: ${JSON.stringify({ type: "log", line: entry })}\n\n`;
+  let event = { type: "log", line: entry };
+  if (runEvents) {
+    try {
+      event = runEvents.append({ ...metadata, line: entry });
+    } catch (error) {
+      console.error(`run event descartado: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+  const data = `${event.sequence ? `id: ${event.sequence}\n` : ""}data: ${JSON.stringify(event)}\n\n`;
   for (const res of sseClients) {
     try {
+      const filter = res.maestroEventFilter || {};
+      if (event.type === "run_event" && filter.appId && event.appId !== filter.appId) continue;
+      if (event.type === "run_event" && filter.runId && event.runId !== filter.runId) continue;
       res.write(data);
     } catch {
       sseClients.delete(res);
@@ -606,6 +619,7 @@ export function createMaestroServer({
   memoryService,
   spawnImpl = spawn,
 } = {}) {
+  const runEvents = createRunEventStore({ root, redact: redactLog });
   let memory = memoryService;
   if (!memory) {
     try {
@@ -618,13 +632,19 @@ export function createMaestroServer({
     engineManager ||
     createEngineManager({
       root,
-      emitLog: (line) => log(line),
+      emitLog: (line, metadata = {}) => log(line, metadata, runEvents),
       emitPipeline: broadcastPipeline,
       memory,
     });
   const operations = operationStore || createOperationStore({ root });
   const factoryAdmin = createFactoryAdmin({ root, spawnImpl });
   const lifecycleManager = createLifecycleManager({ root, engineManager: engine });
+  const forgeOperator = createForgeOperator({
+    root,
+    factoryAdmin,
+    engineManager: engine,
+    runFactory: (goal, options, runtime) => startRun(goal, options, { ...runtime, spawnImpl }),
+  });
   const audit = createAuditLog({ root });
   const confirmations = createConfirmationManager();
   const controlSnapshot = () =>
@@ -642,7 +662,7 @@ export function createMaestroServer({
     audit,
     confirmations,
     handlers: {
-      ...createEngineActionHandlers({ root, engineManager: engine, factoryAdmin, lifecycleManager }),
+      ...createEngineActionHandlers({ root, engineManager: engine, factoryAdmin, lifecycleManager, forgeOperator }),
       ...createMemoryActionHandlers(memory),
     },
     emitEvent: (type, payload) => {
@@ -844,11 +864,22 @@ export function createMaestroServer({
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
     });
-    res.write(`data: ${JSON.stringify({ type: "hello", status: state.status })}\n\n`);
-    // replay recent
-    for (const line of state.logs.slice(-80)) {
-      res.write(`data: ${JSON.stringify({ type: "log", line })}\n\n`);
+    const after = Number(url.searchParams.get("after") || req.headers["last-event-id"] || 0);
+    const appId = url.searchParams.get("appId") || null;
+    const runId = url.searchParams.get("runId") || null;
+    res.maestroEventFilter = { appId, runId };
+    const replay = runEvents.list({ after, appId, runId, limit: 500 });
+    let initial = `data: ${JSON.stringify({ type: "hello", status: state.status })}\n\n`;
+    if (replay.length) {
+      for (const event of replay) {
+        initial += `id: ${event.sequence}\ndata: ${JSON.stringify(event)}\n\n`;
+      }
+    } else if (!after && !appId && !runId) {
+      for (const line of state.logs.slice(-80)) {
+        initial += `data: ${JSON.stringify({ type: "log", line })}\n\n`;
+      }
     }
+    res.write(initial);
     sseClients.add(res);
     req.on("close", () => sseClients.delete(res));
     return;
