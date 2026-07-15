@@ -134,7 +134,7 @@ improver é fake (zero quota). Cada tentativa deixa raw log em `maestro/runs/`.
 
 `roster.json` define **players** (CLI + modelo + effort) e **teams** (qual player pega qual job, quem
 é fallback, quem revisa). Cada time declara `fallbackPolicy`: `strict` nunca troca para outro
-player/provedor; `fallback` autoriza a cadeia configurada. Quando permitido e um player bate
+player/provedor, inclusive no prompt-improver; `fallback` autoriza a cadeia configurada. Quando permitido e um player bate
 rate-limit (`429`, `529`, `overloaded`, quota), o engine o põe em **cooldown** e redispatcha o mesmo
 job — sem humano. É o **L2**: handoff automático entre provedores. O time **Só Grok** é `strict`.
 
@@ -151,7 +151,7 @@ real, e se quebrar o verify é revertido. Advisory-safe.
 | **codex** | `codex exec -m <model> -c model_reasoning_effort=<e>` | **real** | GPT-5.6 (sol/terra/luna). Sandbox: ver gotchas. |
 | **claude** | `claude -p --model <m> --permission-mode bypassPermissions` | etiqueta | Opus · Sonnet · **Fable 5** (`claude-fable-5`) · Haiku. |
 | **glm** | `claude` + env Z.ai (`ANTHROPIC_BASE_URL=api.z.ai`) | etiqueta | GLM 5.2 via Coding Plan. |
-| **gemini** | `agy -p --dangerously-skip-permissions` | etiqueta | Antigravity CLI (o binário `gemini` foi descontinuado). |
+| **gemini** | `agy -p --dangerously-skip-permissions` | etiqueta | Antigravity CLI por assinatura. Modelos locais: Gemini 3.1 Pro e 3.5 Flash; o binário `gemini` legado é rejeitado pelo Google. |
 | **fake** | `node maestro/fake-exec.mjs` | — | **dry-run**: gera os artefatos que o verify espera. Zero quota. |
 
 *Effort real* = o flag muda o raciocínio do modelo. Nos demais é **etiqueta** (aparece no log e no
@@ -254,7 +254,7 @@ arquivados e restaurados na área Fábrica. Veja [`docs/FORGE-OPERATOR.md`](docs
 - **GLM `529` / `overloaded` = rate-limit**, não falha de trabalho (`api.z.ai` sobrecarregado). Se não
   for tratado assim, queima as 3 tentativas do player em vez de trocar de provedor.
 - **grok** — goal posicional abre a TUI e trava; sempre `-p`.
-- **gemini** = `agy` (Antigravity CLI), não o binário `gemini`.
+- **gemini** = `agy` (Antigravity CLI), não o binário `gemini`. A autenticação vem do Antigravity; não existe `agy auth login`.
 
 **Deploy**
 - Cloudflare Pages: o CNAME do domínio custom precisa ser **DNS-only** (proxied ⇒ Error 1014). O

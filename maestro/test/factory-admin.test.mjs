@@ -123,3 +123,25 @@ test("Blueprint Studio cria, deriva, arquiva e restaura contratos versionados", 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("Gemini usa o runtime Antigravity e expõe somente modelos disponíveis", () => {
+  const root = fixtureRoot();
+  const bin = path.join(root, "bin");
+  fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(bin, "agy.cmd"), "@echo off\r\n");
+  const admin = createFactoryAdmin({
+    root,
+    env: { PATH: bin, PATHEXT: ".CMD;.EXE" },
+    platform: "win32",
+  });
+  try {
+    const gemini = admin.listProviders().find((provider) => provider.id === "gemini");
+    assert.equal(gemini.installed, true);
+    assert.equal(gemini.executable, path.join(bin, "agy.cmd"));
+    assert.ok(gemini.models.some((model) => model.id === "Gemini 3.1 Pro (High)"));
+    assert.ok(gemini.models.some((model) => model.id === "Gemini 3.5 Flash (Medium)"));
+    assert.throws(() => admin.startProviderLogin("gemini"), /não possui login interativo allowlisted/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

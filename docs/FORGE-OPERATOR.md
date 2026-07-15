@@ -66,11 +66,15 @@ mas não pode aprovar silenciosamente a própria mudança.
 ## Times estritos e fallback
 
 - `strict`: se o player escolhido falha ou entra em rate-limit, a run bloqueia/handoffa; nunca usa
-  outro player escondido. **Só Grok** usa essa política.
+  outro player escondido, nem um prompt-improver de outro provider. **Só Grok** usa essa política.
 - `fallback`: a cadeia cadastrada pode trocar de player/provedor e a troca aparece no histórico e
   nos eventos da run.
 
 A política é escolhida ao salvar o time e aparece na ficha do time na Central.
+
+Gemini roda pela assinatura do Antigravity (`agy`), não pelo cliente legado `gemini`. A fábrica
+detecta o executável `agy` e oferece os aliases retornados por `agy models`; a autenticação é herdada
+do aplicativo Antigravity, sem API key ou comando de login inventado.
 
 ## Run Console
 

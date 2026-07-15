@@ -13,9 +13,9 @@
       "summary": "Preserve terminal pipelines and enforce explicit strict versus fallback teams.",
       "failure_evidence": "On restart, saved status=done was discarded and the Control Center rendered shipped apps as idle, disabling feedback. The built-in team labeled So Grok contained Codex and Claude fallbacks; the revisor-cetico-de history ended L0/P0 on claude-frontend after Grok failures.",
       "root_cause": "Engine recovery restored only non-terminal states, while team fallback semantics were implicit and labels did not constrain the configured fallback chain.",
-      "targeted_fix": "Restore all persisted pipeline states, convert interrupted running states to a recovery gate, add fallbackPolicy, make grok-solo strict, and expose policy in the factory UI.",
+      "targeted_fix": "Restore all persisted pipeline states, convert interrupted running states to a recovery gate, add fallbackPolicy, make grok-solo strict including the prompt improver, and expose policy in the factory UI.",
       "predicted_impact": {
-        "expected_fixes": ["completed-pipeline-iteration", "grok-only-provider-integrity"],
+        "expected_fixes": ["completed-pipeline-iteration", "grok-only-provider-integrity", "strict-prompt-improver-integrity"],
         "at_risk_regressions": ["multi-pipeline-recovery", "rate-limit-handoff"],
         "rationale": "The fix changes recovery and dispatch selection but leaves state format and fallback mode backward compatible."
       }
@@ -71,7 +71,7 @@
     "verified_at": "2026-07-15T02:42:00.000Z",
     "disposition": "keep",
     "results": [
-      "npm test: 188 total, 187 pass, 0 fail, 1 skip",
+      "npm test: 190 total, 189 pass, 0 fail, 1 skip",
       "npm run typecheck: exit 0 across all workspaces with scripts",
       "npm run build:all: exit 0",
       "git diff --check: exit 0",

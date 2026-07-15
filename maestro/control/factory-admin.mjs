@@ -62,11 +62,19 @@ export const PROVIDER_CATALOG = [
   {
     id: "gemini",
     cli: "gemini",
+    executable: "agy",
     face: "✨",
     color: "#a78bfa",
-    loginArgs: ["auth", "login"],
+    loginArgs: null,
     efforts: ["medium"],
-    models: [{ id: "default", label: "Gemini" }],
+    models: [
+      { id: "default", label: "Antigravity (automático)" },
+      { id: "Gemini 3.1 Pro (High)", label: "Gemini 3.1 Pro (High)" },
+      { id: "Gemini 3.1 Pro (Low)", label: "Gemini 3.1 Pro (Low)" },
+      { id: "Gemini 3.5 Flash (High)", label: "Gemini 3.5 Flash (High)" },
+      { id: "Gemini 3.5 Flash (Medium)", label: "Gemini 3.5 Flash (Medium)" },
+      { id: "Gemini 3.5 Flash (Low)", label: "Gemini 3.5 Flash (Low)" },
+    ],
   },
 ];
 
@@ -135,7 +143,7 @@ export function createFactoryAdmin({
   }
 
   function providerState(definition) {
-    const executable = findExecutable(definition.cli, { env, platform });
+    const executable = findExecutable(definition.executable || definition.cli, { env, platform });
     return {
       id: definition.id,
       cli: definition.cli,

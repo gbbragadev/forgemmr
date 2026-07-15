@@ -506,6 +506,25 @@ export function teamPlayerChain(team, primaryId) {
   return [primaryId, ...(team?.fallbacks?.[primaryId] || [])];
 }
 
+function executorIdentity(executor) {
+  return `${executor?.cli || ""}\u0000${executor?.env || ""}`;
+}
+
+export function promptImproverConfigForTeam(team, player, cfg) {
+  const resolved = { ...(cfg || {}) };
+  if (cfg?.fallback) resolved.fallback = { ...cfg.fallback };
+  if (team?.fallbackPolicy !== "strict" || !resolved.enabled || resolved.cli === "fake") return resolved;
+
+  const sameProvider = (candidate) => executorIdentity(candidate) === executorIdentity(player);
+  if (!sameProvider(resolved)) {
+    resolved.enabled = false;
+    delete resolved.fallback;
+    return resolved;
+  }
+  if (resolved.fallback && !sameProvider(resolved.fallback)) delete resolved.fallback;
+  return resolved;
+}
+
 function teamSlug(s) {
   return (
     String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "time"
@@ -1054,6 +1073,10 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
         let improved = improvedPromptCache.get(cacheKey);
         if (!improved) {
           // prompt-improver: reescreve a base uma vez; retries só anexam o erro novo.
+          const baseImproverCfg =
+            p.dryRun || player.cli === "fake"
+              ? { ...profile.promptImprover, cli: "fake", model: "default" }
+              : profile.promptImprover;
           const imp = await improvePrompt({
             root,
             job,
@@ -1062,10 +1085,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
             player,
             prompt: rawPrompt,
             // dry-run / executor fake → improver fake também (zero quota, fluxo E2E idêntico)
-            cfg:
-              p.dryRun || player.cli === "fake"
-                ? { ...profile.promptImprover, cli: "fake", model: "default" }
-                : profile.promptImprover,
+            cfg: promptImproverConfigForTeam(readRoster().teams?.[p.team], player, baseImproverCfg),
             log,
           });
           improved = imp.prompt;

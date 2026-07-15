@@ -5,6 +5,7 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 | slot | agent | loop | job | app / area | since | notes |
 |------|-------|------|-----|------------|-------|-------|
 
+_(META/L2 Gemini Antigravity + strict prompt improver liberado 2026-07-15 — Codex · smoke real + 190 testes, sem API key)_
 _(META/L1 Forge Operator liberado 2026-07-14 — Codex · 188 testes, typecheck/build, sem push/deploy)_
 _(META/L1→P3 Forge Nexus + ai-memory liberado 2026-07-14 — GPT-5.6 · 168 testes, smoke real, CI Node+Rust, push e onboarding em produção)_
 _(META/L1 Maestro Control Center liberado 2026-07-14 — GPT-5.6 · 129/129, browser QA, sem push/deploy)_

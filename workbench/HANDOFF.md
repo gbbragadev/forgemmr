@@ -11,11 +11,12 @@ Codex | 2026-07-14 · Forge Operator (`feat/forge-operator`)
 - **Operator:** `forge ingest` recebe texto, arquivo, pasta, URL, PDF ou DOCX; classifica intenção e decide com justificativa entre reutilizar/criar profile, blueprint e pipeline. Planos de alto risco e alterações do próprio Forge exigem revisão explícita.
 - **Caso real:** `plano-revisor-cetico-orcamentos-reforma.md` foi lido em `review-only`; propôs profile + blueprint novos para capability `chat`, com revisão obrigatória por ser domínio de alto impacto. Nada foi iniciado automaticamente.
 - **Blueprint Studio:** versões imutáveis por SHA-256, lineage, derive, archive/restore e migração de blueprints legados; documentação diferencia profile, blueprint e pipeline.
-- **Times:** `grok-solo` agora é estrito e não cruza provider. Times `fallback` continuam usando a cadeia declarada. Isso elimina o uso silencioso de Codex/Claude quando o usuário escolhe “Só Grok”.
+- **Times:** `grok-solo` agora é estrito e não cruza provider nem no prompt-improver. Times `fallback` continuam usando a cadeia declarada. Isso elimina o uso silencioso de Codex/Claude quando o usuário escolhe “Só Grok”.
+- **Gemini:** executor por assinatura validado via Antigravity `agy 1.1.2`; fábrica detecta `agy`, remove o login inexistente e lista Gemini 3.1 Pro/3.5 Flash. Smoke real `Gemini 3.1 Pro (High)` retornou `GEMINI-31-PRO-FORGE-OK` sem API key.
 - **Estado:** pipelines `done` voltam a ser restauradas após restart e podem receber feedback ou simulação; somente runs interrompidas viram gate de recovery.
 - **Run Console:** eventos JSONL estruturados, redigidos, persistentes e filtráveis por app/run/cursor; a central mostra progresso, agente, job, duração e saída completa.
 - **Simulator:** skill MIT pinada no commit `834a2a37661743cc241a70781b859c1e68d08f99`; job `SIMULATE` exige exatamente cinco personas e cinco melhorias, aplica no máximo três correções seguras e injeta no máximo um ciclo `ITERATE → B5` antes do gate de deploy.
-- **VERIFY:** `npm test` **188 total / 187 pass / 0 fail / 1 skip**; `npm run typecheck`, `npm run build:all`, `git diff --check` e sintaxe dos 16 `.mjs` alterados com exit 0.
+- **VERIFY:** `npm test` **190 total / 189 pass / 0 fail / 1 skip**; `npm run typecheck`, `npm run build:all`, `git diff --check` e sintaxe dos `.mjs` alterados com exit 0.
 - **Operação preservada:** a instância em `C:\Dev\forge` não foi reiniciada; `revisor-cetico-de` continua pausado no gate `p0-go`; sem push ou deploy.
 - **Próximo:** integrar a branch local à base quando o dono escolher; após integração, reiniciar o Control Center numa janela segura para carregar o novo runtime.
 

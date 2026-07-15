@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { composeTeam, teamPlayerChain } from "../engine.mjs";
+import * as engine from "../engine.mjs";
+
+const { composeTeam, teamPlayerChain } = engine;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -63,4 +65,21 @@ test("the Grok-only preset is strict and has no cross-provider fallback", () => 
   const roster = JSON.parse(fs.readFileSync(path.join(ROOT, "maestro", "roster.json"), "utf8"));
   assert.equal(roster.teams["grok-solo"].fallbackPolicy, "strict");
   assert.deepEqual(roster.teams["grok-solo"].fallbacks?.["grok-solo"] || [], []);
+});
+
+test("strict teams do not run a cross-provider prompt improver", () => {
+  assert.equal(typeof engine.promptImproverConfigForTeam, "function");
+  const cfg = engine.promptImproverConfigForTeam(
+    { fallbackPolicy: "strict" },
+    { cli: "grok" },
+    {
+      enabled: true,
+      cli: "codex",
+      model: "gpt-5.6-terra",
+      fallback: { cli: "claude", model: "haiku" },
+    },
+  );
+
+  assert.equal(cfg.enabled, false);
+  assert.equal(cfg.fallback, undefined);
 });
