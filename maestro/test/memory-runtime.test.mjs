@@ -4,6 +4,7 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { loadRuntimeManifest } from "../memory/installer.mjs";
 import { createMemoryRuntime } from "../memory/runtime.mjs";
 import { resolveMemoryLayout } from "../memory/layout.mjs";
 
@@ -50,11 +51,21 @@ function fixture(t) {
   return { home, layout, binaryPath };
 }
 
+function createTestRuntime(options) {
+  return createMemoryRuntime({
+    ...options,
+    manifestLoader: (runtimeRoot) => loadRuntimeManifest(runtimeRoot, {
+      platform: "win32",
+      arch: "x64",
+    }),
+  });
+}
+
 test("setup instala, inicia com env mínimo e publica health sem expor token", async (t) => {
   const { layout, binaryPath } = fixture(t);
   const calls = { spawn: [], random: 0 };
   let probes = 0;
-  const runtime = createMemoryRuntime({
+  const runtime = createTestRuntime({
     root,
     layout,
     spawnImpl(file, args, options) {
@@ -116,7 +127,7 @@ test("setup instala, inicia com env mínimo e publica health sem expor token", a
 test("porta ocupada por serviço desconhecido falha fechada e nunca recebe kill", async (t) => {
   const { layout, binaryPath } = fixture(t);
   let spawnCount = 0;
-  const runtime = createMemoryRuntime({
+  const runtime = createTestRuntime({
     root,
     layout,
     spawnImpl() {
@@ -138,7 +149,7 @@ test("porta ocupada por serviço desconhecido falha fechada e nunca recebe kill"
 test("timeout de health depois do spawn resulta degraded", async (t) => {
   const { layout, binaryPath } = fixture(t);
   const child = fakeChild(503);
-  const runtime = createMemoryRuntime({
+  const runtime = createTestRuntime({
     root,
     layout,
     spawnImpl: () => child,
@@ -161,7 +172,7 @@ test("stopManaged encerra somente o child criado pela instância", async (t) => 
   const { layout, binaryPath } = fixture(t);
   const child = fakeChild(504);
   let probes = 0;
-  const runtime = createMemoryRuntime({
+  const runtime = createTestRuntime({
     root,
     layout,
     spawnImpl: () => child,
@@ -187,7 +198,7 @@ test("reindex para o servidor gerenciado, executa manutenção e reinicia", asyn
   const calls = [];
   let pid = 600;
   let firstProbe = true;
-  const runtime = createMemoryRuntime({
+  const runtime = createTestRuntime({
     root,
     layout,
     spawnImpl(file, args, options) {
