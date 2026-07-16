@@ -590,9 +590,9 @@
         "L1/B2": "ggg-grok1",
         "L1/B1": "ggg-grok1",
         "L1/B4": "ggg-grok1",
-        "L1/B3": "ggg-glm2",
-        "ITERATE": "ggg-glm2",
-        "DS-GEN": "ggg-glm2",
+        "L1/B3": "ggg-grok1",
+        "ITERATE": "ggg-grok1",
+        "DS-GEN": "ggg-grok1",
         "L1/B5": "ggg-gemini3",
         "default": "ggg-grok1"
       },

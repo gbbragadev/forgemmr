@@ -1,10 +1,16 @@
 # HANDOFF
 
 ## Loop ativo
-**FOUNDATION pmoc-acceptance-gate Done** (2026-07-16) — `apps/pmoc-acceptance-gate/docs/system-design.md` · gate documental (regras + matriz + humano) · próximo: gate foundation-review / **L0/P1 hooks**. B1 só após P1 ou “pode decidir e seguir”.
+**DS-GEN pmoc-acceptance-gate Done** (2026-07-16) — 3 propostas + `design-system.md` · recomendação auto: proposta 1 Fiscal Clean · próximo: **ds-pick** (humano ou full_auto) / **L0/P1 hooks**.
 
 ## Last agent
-Grok 4.5 (ggg-grok1) | 2026-07-16 · FOUNDATION `pmoc-acceptance-gate`
+Grok 4.5 (ggg-grok1) | 2026-07-16 · DS-GEN `pmoc-acceptance-gate`
+
+## Last iteration — DS-GEN pmoc-acceptance-gate (2026-07-16, Grok 4.5)
+- **Feito:** `maestro/proposals/pmoc-acceptance-gate/proposal-{1,2,3}.html` (Fiscal Clean / Matrix Signal / Cartório Editorial) + `apps/pmoc-acceptance-gate/docs/design-system.md` com tokens e `Recomendação automática: proposta 1`.
+- **Direções:** (1) clean institucional claro · (2) ops dark matrix-first · (3) editorial papel/serif jurídico.
+- **VERIFY:** 4 arquivos existem; HTML self-contained sem CDN; job documental — sem código app/build/git.
+- **Sem git** (orquestrador).
 
 ## Last iteration — FOUNDATION pmoc-acceptance-gate (2026-07-16, Grok 4.5)
 - **Feito:** `apps/pmoc-acceptance-gate/docs/system-design.md` — seções **Arquitetura**, **Dados**, **Decisões**, **Padrões**, **Riscos**.
@@ -1064,17 +1070,6 @@ aposta engagement/share-first.
 _Atualizado 2026-07-13T03:24:44.250Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/doki-call.json_
 <!-- forge:end:doki-call -->
 
-<!-- forge:begin:revisor-cetico-de -->
-## Forge autopilot — revisor-cetico-de
-- **Ideia:** feedback fb1: executar alterações levantadas no feedback so startup-simulator e faça o deploy da applicação real
-- **Team:** grok-glm-front · **Status:** done
-- **Job atual:** — (4/3)
-- **Branch:** pipeline/revisor-cetico-de-fb1 · checkpoints: 2
-- **URL:** https://revisor-cetico-de.gbbragadev.com
-- DONE. Próximo: P4 measure (humano, 5–7d) — postar hooks de apps/revisor-cetico-de/docs/content-hooks.md
-_Atualizado 2026-07-16T06:45:49.078Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/revisor-cetico-de.json_
-<!-- forge:end:revisor-cetico-de -->
-
 <!-- forge:begin:pmoc-acceptance-gate -->
 ## Forge autopilot — pmoc-acceptance-gate
 - **Ideia:** # PMOC Acceptance Gate no lado comprador
@@ -1146,10 +1141,8 @@ O principal risco é tentar resolver, de início, mais do que o problema documen
 O segundo risco é regulatório. Como a referência de qualidade do ar mencionada na lei foi alterada no plano infralegal, qualquer módulo que tente concluir conformidade técnica de ambiente interno precisa governança normativa séria e atualização constante. Por isso, faz sentido que o MVP fique no eixo “contrato–inventário–relatório–evidência–fatura”, deixando diagnóstico técnico e juízo de qualidade do ar para fases posteriores, possivelmente com especialistas no loop. citeturn22view0turn24view0
 
 A recomendação, portanto, é positiva. Entre as ideias de software B2B documental no Brasil, esta tem três qualidades raras ao mesmo tempo: obrigação legal clara, artefatos verificáveis já existentes e ponto econômico de decisão bem definido antes do pagamento. Em resumo, **há uma tese forte de produto** para um PMOC Acceptance Gate do lado comprador, desde que ele seja vendido como revisor documental com trilha de exceções e aceite humano, e não como perito técnico de HVAC. citeturn22view0turn23view0turn20view0turn2view2turn12view1
-- **Team:** ggg · **Status:** killed
-- **Job atual:** — (3/11)
-- **Branch:** pipeline/pmoc-acceptance-gate · checkpoints: 2
-- **⏸ GATE pendente:** `stopped` — pipeline parada manualmente — retry (recomeça o job atual) ou kill? → `forge decide stopped go|kill`
-- pipeline encerrada: killed
-_Atualizado 2026-07-16T06:47:29.433Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/pmoc-acceptance-gate.json_
+- **Team:** ggg · **Status:** running
+- **Job atual:** L0/P1 (4/11)
+- **Branch:** pipeline/pmoc-acceptance-gate · checkpoints: 3
+_Atualizado 2026-07-16T07:38:47.180Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/pmoc-acceptance-gate.json_
 <!-- forge:end:pmoc-acceptance-gate -->

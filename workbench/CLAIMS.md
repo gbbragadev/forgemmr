@@ -5,9 +5,8 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 | slot | agent | loop | job | app / area | since | notes |
 |------|-------|------|-----|------------|-------|-------|
 
-| — | — | — | — | — | — | livre |
-| F | ggg-grok1 | L1 | DS-GEN | pmoc-acceptance-gate | 06:42 | forge autopilot |
-
+| F | ggg-grok1 | L0 | L0/P1 | pmoc-acceptance-gate | 07:38 | forge autopilot |
+_(DS-GEN pmoc-acceptance-gate liberado 2026-07-16 — Grok 4.5 / ggg-grok1 · proposal-{1,2,3}.html + design-system.md · Rec. automática: proposta 1 · sem código/build/git · claim liberado)_
 _(FOUNDATION pmoc-acceptance-gate liberado 2026-07-16 — Grok 4.5 / ggg-grok1 · `apps/pmoc-acceptance-gate/docs/system-design.md` · Arquitetura/Dados/Decisões/Padrões/Riscos · sem código/build/git · claim liberado)_
 _(L0/P0 pmoc-acceptance-gate liberado 2026-07-16 — Grok 4.5 / ggg-grok1 · `apps/pmoc-acceptance-gate/docs/scorecard.md` · Veredito: GO condicionado · Tipo: chat · mercado 4 campos · Next L0/P1 hooks · sem código/build/git · claim liberado)_
 _(META/P3 deploy hardening liberado 2026-07-16 — Codex · production_branch consultada · canonical deployment precisa avançar · binding/CNAME/HTTP 2xx fail-closed · revisor-cetico-de live HTTP 200 · 204 testes / 203 pass / 1 skip · sem push)_
