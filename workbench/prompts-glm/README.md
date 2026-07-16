@@ -32,6 +32,7 @@ Template: `docs/prompts/L1-B3-TEMPLATE.md`.
 |--------|-----------|
 | `L1-B3-ui-polish-waifu-chat.md` | waifu-chat share + empty + mobile |
 | `L1-B3-ui-anime-theme-anime-quiz.md` | anime-quiz tema / visual punch |
+| `L1-B3-revisor-cetico-de-obra-clareza.md` | revisor-cetico-de · Obra Clareza (ds-pick 2) |
 
 ## Ao gerar um prompt novo
 

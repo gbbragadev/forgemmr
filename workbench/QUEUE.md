@@ -10,6 +10,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 
 
+
+- [ ] **L0/P4** Measure revisor-cetico-de (5–7d) — **humano** · https://revisor-cetico-de.gbbragadev.com
 - [ ] **L0/P4** Measure doki-call (5–7d) — **humano** · https://doki-call.gbbragadev.com
 - [ ] **L0/P4** Measure anima-deck (5–7d) — **humano** · https://anima-deck.gbbragadev.com
 - [ ] **L0/P4** Measure anime-quiz (5–7d) — **humano** · URL https://quiz.gbbragadev.com (+ Pages antiga) · hooks `docs/content-hooks-anime-quiz.md`
@@ -19,11 +21,37 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
+
 ## Done
 
+
+- [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16)
+- [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16) · ship check static: build EXIT 0 · smoke 18/18 · disclaimer+gate humano · `.env.example` porta 3003 · Next: P3 deploy (CF Pages/GH Pages) autorizado
+- [x] **META/L1** Skill local `forge-operator` - Codex/Claude orquestram ideia -> profile/blueprint/time/pipeline -> inicio + acompanhamento real (2026-07-16)
+
+
+
+
+
+- [x] **L1/B3** revisor-cetico-de — forge/grok-solo (2026-07-16)
+- [x] **L1/B3** revisor-cetico-de — prompt GLM denso Obra Clareza (ds-pick 2) · `workbench/prompts-glm/L1-B3-revisor-cetico-de-obra-clareza.md` · **prompt GLM pronto** — forge/grok-solo (2026-07-16) · Next: user → GLM 5.2 MAX cola PROMPT
+- [x] **L1/B2** revisor-cetico-de — forge/grok-solo (2026-07-16)
+- [x] **L1/B2** revisor-cetico-de — forge/grok-solo (2026-07-16) · `revisor-pack-v2.json` (5 perspectivas densas) + wire app.config · build EXIT 0
+- [x] **L1/B1** revisor-cetico-de — forge/grok-solo (2026-07-16)
+- [x] **L1/B1** revisor-cetico-de — forge/grok-solo (2026-07-15/16) · tentativa 4: source recriado (disco só tinha out/.next) · scaffold static + build EXIT 0
+- [x] **L1/B1** revisor-cetico-de — forge/grok-solo (2026-07-15) · tentativa 3 re-verify: namespace `@forge` + `npm run build -w @forge/revisor-cetico-de` EXIT 0 (Maestro path simulado pass)
+- [x] **L1/B1** revisor-cetico-de — forge/grok-solo (2026-07-15) · tentativa 2: fix namespace profile `orçamentos`→`@forge` + reverify build EXIT 0
+- [x] **L1/B1** revisor-cetico-de — forge/grok-solo (2026-07-15) · scaffold static backoffice Raio-X · `npm run build -w @forge/revisor-cetico-de` EXIT 0
+- [x] **L0/P1** revisor-cetico-de — forge/grok-solo (2026-07-15)
+- [x] **L0/P1** revisor-cetico-de — 15 hooks + oferta + brief piloto WhatsApp · `apps/revisor-cetico-de/docs/content-hooks.md` — forge/grok-solo (2026-07-15)
 - [x] **META/L2** Gemini Antigravity + strict provider end-to-end — smoke real Gemini 3.1 Pro, 190 testes, sem API key (2026-07-15)
 - [x] **META/L1** Forge Operator + Blueprint Studio + Startup User Simulator + Run Console — 188 testes, types/builds verdes, branch local `feat/forge-operator`, sem push/deploy (2026-07-14)
-
+- [x] **DS-GEN** revisor-cetico-de — forge/grok-solo (2026-07-15)
+- [x] **DS-GEN** revisor-cetico-de — forge/grok-solo (2026-07-15) · 3 propostas + design-system.md
+- [x] **FOUNDATION** revisor-cetico-de — forge/grok-solo (2026-07-15)
+- [x] **FOUNDATION** revisor-cetico-de — system-design.md (Arquitetura, Dados, Decisões, Padrões, Riscos) · grok-solo (2026-07-15)
+- [x] **L0/P0** revisor-cetico-de — forge/claude-frontend (2026-07-15)
+- [x] **L0/P0** revisor-cetico-de — scorecard real **GO condicionado** (1ª execução verificada; registros anteriores "tentativa 3"/Codex/Grok eram falsos, arquivo não existia) · `apps/revisor-cetico-de/docs/scorecard.md` · Claude Sonnet 5 (2026-07-14) · **2026-07-15: causa raiz do verify corrigida** (faltava seção `## Mercado` exigida por `validateP0Market()` em `maestro/engine.mjs` — conteúdo do documento não mudou, só o formato estrutural)
 - [x] **META/L1→P3** Forge Nexus + ai-memory — subtree v1.13.0, runtime verificado, pipeline com contexto durável, UI zero-command, 168 testes, CI Node+Rust verde, push e onboarding em produção (2026-07-14)
 - [x] **META/L1** Especificação Forge Nexus + ai-memory — subtree v1.13.0, runtime gerenciado, memória por app/run, importação visual e operação fail-open (2026-07-14)
 - [x] **META/L1** Maestro Control Center zero-commands — pipeline P0–P5, fábrica, métricas, ações auditáveis, dashboard responsivo e launcher de duplo clique · 129/129 · 8 workspaces · 4 builds (2026-07-14)
