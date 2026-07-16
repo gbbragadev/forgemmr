@@ -58,9 +58,38 @@ export function jobExecutionMode(job, controlMode) {
 export function hasVisualImplementationChanges(statusOutput) {
   return String(statusOutput)
     .split(/\r?\n/)
-    .map((line) => line.slice(3).trim().replaceAll("\\", "/"))
-    .filter(Boolean)
-    .some((file) => /(?:^|\/)(?:src|app|pages|components|styles)\/|\.(?:css|scss|sass|less|tsx|jsx|html)$/i.test(file));
+    .map((line) => {
+      const code = line.slice(0, 2);
+      const rawPath = line.slice(3).trim().replaceAll("\\", "/");
+      const file = rawPath.includes(" -> ") ? rawPath.split(" -> ").at(-1) : rawPath;
+      return { code, file: file.replace(/^"|"$/g, "") };
+    })
+    .filter(({ file }) => Boolean(file))
+    .some(({ code, file }) => {
+      if (code.includes("D")) return false;
+      if (/^(?:docs?|prompts?|artifacts?)\//i.test(file)) return false;
+      if (/^index\.html$/i.test(file)) return true;
+      return /^(?:src|app|pages|components|styles)\/.+\.(?:css|scss|sass|less|tsx|jsx|html)$/i.test(file);
+    });
+}
+
+export function parseP0Verdict(text) {
+  const verdicts = new Set();
+  for (const line of String(text).split(/\r?\n/)) {
+    const clean = line
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/^[\s#>*-]+/, "")
+      .replace(/[\*_`]/g, "")
+      .trim();
+    const body = clean.replace(/^(?:veredito|verdict|decisao|resultado)\s*:\s*/i, "");
+    if (/^go\b.*\bno\s*-?\s*go\b/i.test(body)) verdicts.add("review");
+    else if (/^no\s*-?\s*go(?:\s*$|\s*[:—-]\s+.*$)/i.test(body)) verdicts.add("review");
+    else if (/^go(?:\s*[-–—]\s*|\s+)condicionado(?:\s*$|\s*[:—-]\s+.*$|\s*\([^)]*\)\s*$)/i.test(body)) verdicts.add("conditional_go");
+    else if (/^go(?:\s*$|\s*[:—-]\s+.*$)/i.test(body)) verdicts.add("go");
+  }
+  if (verdicts.has("review") || verdicts.size !== 1) return "review";
+  return [...verdicts][0];
 }
 
 export function parseRecommendedDesignProposal(text) {
@@ -107,14 +136,31 @@ function recommendedDesignProposal(root, pipeline) {
   return null;
 }
 
+function verifiedP0Verdict(root, pipeline) {
+  try {
+    const text = fs.readFileSync(path.join(root, runDocRel(pipeline.appId, "scorecard")), "utf8");
+    if (!validateP0Market(text).pass) return "review";
+    return parseP0Verdict(text);
+  } catch {
+    return "review";
+  }
+}
+
 function automaticGateDecision(root, pipeline, gate) {
   if (pipeline.controlMode !== "full_auto") return null;
-  if (gate.id === "p0-go" && ["go", "conditional_go"].includes(pipeline.p0Verdict)) {
-    return { choice: "go", reason: `scorecard verificado: ${pipeline.p0Verdict}` };
+  if (gate.id === "p0-go") {
+    pipeline.p0Verdict = verifiedP0Verdict(root, pipeline);
+    if (["go", "conditional_go"].includes(pipeline.p0Verdict)) {
+      return { choice: "go", reason: `scorecard verificado: ${pipeline.p0Verdict}` };
+    }
   }
   if (gate.id === "foundation-review") return { choice: "go", reason: "system design passou no verify estrutural" };
   if (gate.id === "ds-pick") return recommendedDesignProposal(root, pipeline);
-  if (gate.id === "b3-visual") return { choice: "go", reason: "B3 alterou a interface e o build passou" };
+  if (gate.id === "b3-visual") {
+    return pipeline.dryRun
+      ? { choice: "go", reason: "dry-run: B3 simulado; diff/build não executados" }
+      : { choice: "go", reason: "B3 alterou a interface e o build passou" };
+  }
   if (gate.id === "iterate-visual") return { choice: "go", reason: "iteracao passou no verify" };
   return null;
 }
@@ -899,10 +945,9 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       const txt = fs.readFileSync(f, "utf8");
       const market = validateP0Market(txt);
       if (!market.pass) return market;
-      const verdict = txt.split("\n").slice(0, 10).join("\n");
-      const go = /\bGO\b/.test(txt) && !/\bNO-?GO\b/.test(verdict);
-      p.conditionalGo = go && /\bGO(?:\s*-\s*|\s+)condicionado\b/i.test(verdict);
-      p.p0Verdict = go ? (p.conditionalGo ? "conditional_go" : "go") : "review";
+      p.p0Verdict = parseP0Verdict(txt);
+      const go = ["go", "conditional_go"].includes(p.p0Verdict);
+      p.conditionalGo = p.p0Verdict === "conditional_go";
       return { pass: true, detail: go ? "scorecard: GO; mercado declarado" : "scorecard: revisar GO/NO-GO no gate; mercado declarado" };
     }
     if (job === "L0/P1") {
@@ -1551,6 +1596,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     }
     const dryRun = !!params.dryRun || team === "dry-run";
     const blueprint = params.blueprint || "generic";
+    const controlMode = normalizeControlMode(params.controlMode);
     // tipo do app: sem --capability o P0 decide (declara "Tipo:" no scorecard; GO do p0-go aplica)
     const capabilityAuto = blueprint === "generic" && (!params.capability || params.capability === "auto");
     const capability = capabilityAuto ? "static" : params.capability || "static";
@@ -1574,9 +1620,16 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
     // DS gerado por projeto: pula DS-GEN se este app já tem design system (só generic)
     let jobs = plan.jobs;
-    if (plan.jobSpecs === null && fs.existsSync(path.join(root, runDocRel(appId, "design-system")))) {
-      jobs = jobs.filter((j) => j !== "DS-GEN");
-      log(`· DS-GEN pulado — ${runDocRel(appId, "design-system")} já existe`);
+    let existingDsChoice = null;
+    const existingDesignSystem = path.join(root, runDocRel(appId, "design-system"));
+    if (plan.jobSpecs === null && fs.existsSync(existingDesignSystem)) {
+      existingDsChoice = parseRecommendedDesignProposal(fs.readFileSync(existingDesignSystem, "utf8"));
+      if (controlMode !== "full_auto" || existingDsChoice) {
+        jobs = jobs.filter((j) => j !== "DS-GEN");
+        log(`· DS-GEN pulado — ${runDocRel(appId, "design-system")} já existe${existingDsChoice ? ` · proposta ${existingDsChoice}` : ""}`);
+      } else {
+        log(`· DS-GEN será regenerado — design-system legado não declara recomendação automática`);
+      }
     }
 
     pipeline = {
@@ -1588,7 +1641,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       capability,
       dryRun,
       status: "running",
-      controlMode: normalizeControlMode(params.controlMode),
+      controlMode,
       controlPause: null,
       profileName: profile.name,
       capabilityAuto,
@@ -1601,6 +1654,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       jobSpecs: plan.jobSpecs,
       git: { branch, baseRef, checkpoints: [], lastCheckpoint: baseRef },
       gates: [],
+      dsChoice: existingDsChoice,
       history: [],
       cooldowns: {},
       deploy: {

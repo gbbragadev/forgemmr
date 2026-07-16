@@ -8,6 +8,7 @@ import {
   createEngineManager,
   hasVisualImplementationChanges,
   jobExecutionMode,
+  parseP0Verdict,
   parseRecommendedDesignProposal,
 } from "../engine.mjs";
 
@@ -153,6 +154,7 @@ test("full_auto decide gates locais e para antes do deploy", async () => {
         ["b3-visual", "go", "orchestrator"],
       ],
     );
+    assert.match(stopped.gates.find((gate) => gate.id === "b3-visual").feedback, /dry-run.*diff\/build não executados/i);
     assert.equal(stopped.gates.find((gate) => !gate.decision)?.id, "deploy");
     mgr.decide("full-auto-app", "deploy", "kill");
   } finally {
@@ -187,13 +189,27 @@ test("B3 usa implementação direta somente no full_auto", () => {
 test("B3 full_auto exige diff real de interface", () => {
   assert.equal(hasVisualImplementationChanges(" M src/app/page.tsx\n?? docs/prompt.md"), true);
   assert.equal(hasVisualImplementationChanges(" M src\\components\\Hero.jsx"), true);
+  assert.equal(hasVisualImplementationChanges(" M src/app/docs/page.tsx"), true);
+  assert.equal(hasVisualImplementationChanges(" M index.html"), true);
   assert.equal(hasVisualImplementationChanges("?? docs/prompts/design.md\n M README.md"), false);
+  assert.equal(hasVisualImplementationChanges("?? docs/prompt.html\n?? docs/mockup.jsx"), false);
+  assert.equal(hasVisualImplementationChanges(" D src/app/page.tsx"), false);
+  assert.equal(hasVisualImplementationChanges("R  src/app/page.tsx -> docs/mockup.tsx"), false);
+  assert.equal(hasVisualImplementationChanges("R  docs/mockup.tsx -> src/app/page.tsx"), true);
 });
 
 test("full_auto escolhe somente recomendacao explicita do design-system", () => {
   assert.equal(parseRecommendedDesignProposal("Recomendação automática: proposta 3"), "3");
   assert.equal(parseRecommendedDesignProposal("## Escolha recomendada\nProposta 1"), "1");
   assert.equal(parseRecommendedDesignProposal("Três propostas sem decisão final"), null);
+});
+
+test("P0 nunca transforma NO-GO tardio ou ambiguo em GO", () => {
+  const prelude = Array.from({ length: 12 }, (_, index) => `linha ${index + 1}`).join("\n");
+  assert.equal(parseP0Verdict(`# Scorecard\n${prelude}\n\n**NO-GO**`), "review");
+  assert.equal(parseP0Verdict("Veredito: GO condicionado"), "conditional_go");
+  assert.equal(parseP0Verdict("**GO**"), "go");
+  assert.equal(parseP0Verdict("GO\nNO-GO"), "review");
 });
 
 test("trocar uma pipeline pausada para full_auto resolve gate local e retoma", async () => {
@@ -207,17 +223,46 @@ test("trocar uma pipeline pausada para full_auto resolve gate local e retoma", a
       "p0 legado",
     );
 
-    mgr.setControlMode("switch-app", "full_auto");
+    const pipelineFile = path.join(root, "maestro", "pipelines", "switch-app.json");
+    const persisted = JSON.parse(fs.readFileSync(pipelineFile, "utf8"));
+    delete persisted.p0Verdict;
+    fs.writeFileSync(pipelineFile, JSON.stringify(persisted, null, 2));
+    const restarted = manager(root);
+
+    restarted.setControlMode("switch-app", "full_auto");
     const resumed = await waitFor(
-      () => mgr.snapshot()["switch-app"],
+      () => restarted.snapshot()["switch-app"],
       (pipeline) => pipeline?.gates.some((gate) => gate.id === "p0-go" && gate.automatic),
       "decisão automática do gate existente",
     );
     assert.equal(resumed.controlMode, "full_auto");
     assert.notEqual(resumed.gates.find((gate) => !gate.decision)?.id, "p0-go");
-    mgr.kill("switch-app");
-    await waitFor(() => mgr.snapshot()["switch-app"], (pipeline) => pipeline?.status === "killed", "kill da retomada");
+    restarted.kill("switch-app");
+    await waitFor(() => restarted.snapshot()["switch-app"], (pipeline) => pipeline?.status === "killed", "kill da retomada");
     await new Promise((resolve) => setTimeout(resolve, 500));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("full_auto regenera design-system legado sem recomendacao antes do B3", async () => {
+  const root = fixtureRoot();
+  try {
+    const docs = path.join(root, "apps", "legacy-ds", "docs");
+    fs.mkdirSync(docs, { recursive: true });
+    fs.writeFileSync(path.join(docs, "design-system.md"), "# Design system legado\n\nTokens e três propostas antigas sem escolha final.\n");
+
+    const mgr = manager(root);
+    mgr.start({ idea: "atualizar app legado", appId: "legacy-ds", team: "dry-run", capability: "static", controlMode: "full_auto" });
+    const stopped = await waitFor(
+      () => mgr.snapshot()["legacy-ds"],
+      (pipeline) => pipeline?.status === "paused_gate" && pipeline.gates.find((gate) => !gate.decision)?.id === "deploy",
+      "design system legado regenerado",
+      45000,
+    );
+    assert.equal(stopped.dsChoice, "2");
+    assert.equal(stopped.history.some((entry) => entry.job === "DS-GEN" && entry.pass), true);
+    mgr.decide("legacy-ds", "deploy", "kill");
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

@@ -8,6 +8,7 @@
 - **Provider:** política `strict` continua sem fallback oculto; escolher full Grok mantém Grok também no B3.
 - **Skill:** `.agents/skills/forge-operator/SKILL.md` e adaptador Claude atualizados para operar/acompanhar o novo modo.
 - **VERIFY:** testes focados 18/18; `npm run typecheck` PASS (9 workspaces); `npm run build:all` PASS (5 apps); `npm test` **196 total / 195 pass / 0 fail / 1 skip**; validators das duas skills PASS.
+- **Code review:** corrigidos NO-GO tardio/ambíguo, migração de `p0Verdict`, DS legado sem recomendação, falso positivo de UI em `docs/`/deleção/rename e motivo factual de dry-run; regressão focada final **24/24 PASS**.
 - **Sem push/deploy.** Próximo uso: `$forge-operator tive uma ideia... crie profile/blueprint/time se necessário, inicie em full_auto e acompanhe`.
 
 ## Loop ativo
