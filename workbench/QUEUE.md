@@ -27,6 +27,7 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Done
 
+- [x] **META/P3** Hardening Cloudflare Pages — production branch real + canonical deployment novo + binding/CNAME/HTTP 2xx fail-closed · revisor live HTTP 200 (2026-07-16)
 
 
 

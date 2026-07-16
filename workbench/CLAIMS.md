@@ -6,6 +6,7 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 |------|-------|------|-----|------------|-------|-------|
 
 | — | — | — | — | — | — | livre |
+_(META/P3 deploy hardening liberado 2026-07-16 — Codex · production_branch consultada · canonical deployment precisa avançar · binding/CNAME/HTTP 2xx fail-closed · revisor-cetico-de live HTTP 200 · 204 testes / 203 pass / 1 skip · sem push)_
 _(L1/B5 revisor-cetico-de liberado 2026-07-16 — Grok 4.5 / grok-solo · ship check static pós-ITERATE PASS · `npm run build -w @forge/revisor-cetico-de` EXIT 0 · `node apps/revisor-cetico-de/scripts/b5-smoke.mjs` 18/18 · sem código · sem git · claim liberado)_
 _(ITERATE revisor-cetico-de liberado 2026-07-16 — Grok 4.5 / grok-solo · 3 auto_apply SIMULATE: eyebrow copiloto, caseStatusLabel pt-BR, resumo WhatsApp+perguntas no topo do relatório · gate copy piloto · `npm run build -w @forge/revisor-cetico-de` EXIT 0 · sem git · claim liberado)_
 _(SIMULATE revisor-cetico-de liberado 2026-07-16 — Grok 4.5 / grok-solo · JSON+HTML `2026-07-16T04-52-11-152Z` · 5 personas · validateSimulationReport PASS · sem código/build/git · claim liberado)_

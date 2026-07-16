@@ -1849,7 +1849,16 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       pipeline.capability = cap;
       pipeline.capabilityAuto = false;
       let jobs = JOBS_BY_CAPABILITY[cap].slice();
-      if (fs.existsSync(path.join(root, runDocRel(pipeline.appId, "design-system")))) jobs = jobs.filter((j) => j !== "DS-GEN");
+      const designSystemPath = path.join(root, runDocRel(pipeline.appId, "design-system"));
+      if (fs.existsSync(designSystemPath)) {
+        const existingChoice = parseRecommendedDesignProposal(fs.readFileSync(designSystemPath, "utf8"));
+        if (pipeline.controlMode !== "full_auto" || existingChoice) {
+          jobs = jobs.filter((j) => j !== "DS-GEN");
+          if (existingChoice) pipeline.dsChoice = existingChoice;
+        } else {
+          log(`· DS-GEN mantido — design-system legado não declara recomendação automática`);
+        }
+      }
       pipeline.jobs = jobs; // P0 é o job 0 em toda sequência (divergem só depois) — trocar o array com jobIndex=1 é seguro
       pipeline.currentJob = jobs[pipeline.jobIndex] || null;
       if (pipeline.deploy?.autoTarget) {

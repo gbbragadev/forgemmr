@@ -253,7 +253,7 @@ test("full_auto regenera design-system legado sem recomendacao antes do B3", asy
     fs.writeFileSync(path.join(docs, "design-system.md"), "# Design system legado\n\nTokens e três propostas antigas sem escolha final.\n");
 
     const mgr = manager(root);
-    mgr.start({ idea: "atualizar app legado", appId: "legacy-ds", team: "dry-run", capability: "static", controlMode: "full_auto" });
+    mgr.start({ idea: "atualizar app legado", appId: "legacy-ds", team: "dry-run", controlMode: "full_auto" });
     const stopped = await waitFor(
       () => mgr.snapshot()["legacy-ds"],
       (pipeline) => pipeline?.status === "paused_gate" && pipeline.gates.find((gate) => !gate.decision)?.id === "deploy",

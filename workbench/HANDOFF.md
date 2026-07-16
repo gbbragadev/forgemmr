@@ -1,10 +1,19 @@
 # HANDOFF
 
 ## Loop ativo
-**L1/B5 revisor-cetico-de Done** (2026-07-16) — ship check static pós-ITERATE **PASS**. Build EXIT 0 · smoke 18/18. Próximo: gate humano **P3 deploy** (CF Pages) ou **P4 measure** se URL live já válida. Sem push/deploy.
+**META/P3 hardening Cloudflare Pages Done** (2026-07-16) — full-auto e deploy agora fecham com evidência real; `revisor-cetico-de` está live em HTTP 200. Próximo: **P4 measure** humano em 5–7 dias.
 
 ## Last agent
-Grok 4.5 | 2026-07-16 · L1/B5 `revisor-cetico-de` (forge autopilot / grok-solo)
+Codex | 2026-07-16 · META/P3 `maestro` + produção `revisor-cetico-de`
+
+## Last iteration — META/P3 full-auto + deploy verificável (2026-07-16, Codex)
+- **Full-auto:** corrigido o caminho `capabilityAuto` que reconstruía jobs no gate P0 e pulava `DS-GEN` diante de design system legado sem recomendação; agora regenera e fixa `dsChoice` explícito.
+- **Causa do 404 pós-deploy:** Wrangler herdava a branch raiz `feat/gpt56-optimization`, criando preview em vez de produção. O deploy agora consulta `production_branch` do projeto (fallback `master` para projeto novo) e exige que `canonical_deployment.id` avance.
+- **Fail-closed externo:** account/zone ausentes, binding inativo, CNAME incorreto, produção canônica antiga ou HTTP 404/sem 2xx reprovam o P3; domínio já vinculado e CNAME correto são aceitos sem mutação inútil.
+- **Produção reparada após `gate deploy → go`:** deployment canônico `e64f1833-bd8b-4727-90cb-5bd5f6f627c5`; `https://revisor-cetico-de.pages.dev/` e `https://revisor-cetico-de.gbbragadev.com/` retornam **HTTP 200** com título `Raio-X do Orçamento — backoffice de revisão`.
+- **VERIFY:** deploy unit/integration fake **6/6**; regressão capability-auto vermelho→verde; `npm run typecheck` PASS em 9 workspaces; suíte final `npm test` **204 total / 203 pass / 0 fail / 1 skip**; `node --check` e `git diff --check` PASS.
+- **Code review:** dois revisores; achados de branch, produção antiga, DNS, binding e caminhos sem account/zone corrigidos e revalidados.
+- **Sem push.** Alterações preexistentes fora do escopo preservadas.
 
 ## Last iteration — L1/B5 revisor-cetico-de (pós-ITERATE, 2026-07-16, Grok 4.5 / grok-solo)
 - **Contexto:** re-check após ITERATE (eyebrow copiloto, status pt-BR, WhatsApp+perguntas no topo do relatório).

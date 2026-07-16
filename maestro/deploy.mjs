@@ -14,6 +14,7 @@ import path from "node:path";
 // Pins deliberados: deploy nunca executa código flutuante com tokens de produção.
 const WRANGLER = "wrangler@4.108.0"; // versão comprovada no package-lock/node_modules
 const VERCEL = "vercel"; // somente instalação local; adicionar ao lockfile antes de habilitar
+const CLOUDFLARE_PAGES_PRODUCTION_BRANCH = "master";
 
 // ---------- helpers ----------
 
@@ -96,23 +97,46 @@ function run(cmd, env = {}, timeout = 5 * 60 * 1000, cwd = process.cwd(), input 
 }
 
 /** Verifica URL com retry/backoff */
-async function waitUrl(url, delaysMs = [30000, 60000, 120000, 300000]) {
+export async function waitUrl(url, delaysMs = [30000, 60000, 120000, 300000]) {
   for (const delay of delaysMs) {
     await new Promise((r) => setTimeout(r, delay));
     try {
       const res = await fetch_safe(url, { timeout: 8000 });
-      if (res.ok || res.status === 404) return { ok: true, status: res.status };
+      if (res.ok) return { ok: true, status: res.status };
     } catch {}
   }
   return { ok: false };
 }
 
+function isSafePagesBranch(branch) {
+  const value = String(branch || "");
+  return /^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$/.test(value) && !value.includes("..") && !value.includes("//") && !value.includes("@{");
+}
+
+export function cloudflarePagesDeployCommand(appId, productionBranch = CLOUDFLARE_PAGES_PRODUCTION_BRANCH) {
+  if (!/^[a-z0-9-]+$/.test(appId)) throw new Error(`appId inválido: ${appId}`);
+  if (!isSafePagesBranch(productionBranch)) throw new Error(`branch de produção Pages inválida: ${productionBranch}`);
+  return `npx --yes ${WRANGLER} pages deploy apps/${appId}/out --project-name ${appId} --branch ${productionBranch} --commit-dirty=true`;
+}
+
+function sameHostname(left, right) {
+  const normalize = (value) => String(value || "").trim().toLowerCase().replace(/\.$/, "");
+  return normalize(left) === normalize(right);
+}
+
+function isExpectedPagesCname(record, pagesHost) {
+  return record?.type === "CNAME" && sameHostname(record.content, pagesHost);
+}
+
 // ---------- targets ----------
 
 /** Cloudflare Pages + custom domain setup */
-async function deployToCloudflarePages(pipeline, { root, log, limits }) {
+export async function deployToCloudflarePages(pipeline, { root, log, limits, runtime = {} }) {
   const { appId, deploy } = pipeline;
   const outDir = path.join(root, "apps", appId, "out");
+  const runCommand = runtime.run || run;
+  const cfRequest = runtime.cf || cf;
+  const waitForUrl = runtime.waitUrl || waitUrl;
 
   // Valida appId (antes de interpolar em shell)
   if (!/^[a-z0-9-]+$/.test(appId)) {
@@ -122,7 +146,7 @@ async function deployToCloudflarePages(pipeline, { root, log, limits }) {
   // 1. Valida output do build
   if (!fs.existsSync(outDir)) {
     log(`▶ build ${appId} (falta out/)`);
-    const buildRes = run(`npm run build -w @forge/${appId}`, {}, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, root);
+    const buildRes = runCommand(`npm run build -w @forge/${appId}`, {}, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, root);
     if (!buildRes.ok) {
       return {
         ok: false,
@@ -141,20 +165,44 @@ async function deployToCloudflarePages(pipeline, { root, log, limits }) {
   log(`✓ output ready: ${path.relative(root, outDir)}`);
 
   // Account ID antes do wrangler: token multi-conta trava sem ele em modo não-interativo
-  let accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  let accountId = Object.hasOwn(runtime, "accountId") ? runtime.accountId : process.env.CLOUDFLARE_ACCOUNT_ID;
   if (!accountId) {
-    const listRes = await cf("/accounts", {});
+    const listRes = await cfRequest("/accounts", {});
     if (listRes?.ok && listRes.result?.length > 0) accountId = listRes.result[0].id;
+  }
+  if (!accountId) {
+    return {
+      ok: false,
+      error: "não foi possível identificar a conta Cloudflare para comprovar o deploy de produção",
+      fallbackSteps: ["1. Configure CLOUDFLARE_ACCOUNT_ID", "2. Tente o deploy novamente"],
+    };
   }
   const wranglerEnv = {
     CLOUDFLARE_API_TOKEN: CF_TOKEN,
-    ...(accountId ? { CLOUDFLARE_ACCOUNT_ID: accountId } : {}),
+    CLOUDFLARE_ACCOUNT_ID: accountId,
   };
 
+  const projectPath = `/accounts/${accountId}/pages/projects/${appId}`;
+  const projectBefore = await cfRequest(projectPath);
+  if (!projectBefore?.ok && projectBefore?.status !== 404) {
+    return {
+      ok: false,
+      error: "não foi possível consultar a configuração de produção do projeto Pages",
+      fallbackSteps: ["1. Confirme Pages:Read no token Cloudflare", "2. Tente o deploy novamente"],
+    };
+  }
+  const productionBranch = projectBefore?.ok
+    ? projectBefore.result?.production_branch || CLOUDFLARE_PAGES_PRODUCTION_BRANCH
+    : CLOUDFLARE_PAGES_PRODUCTION_BRANCH;
+  if (!isSafePagesBranch(productionBranch)) {
+    return { ok: false, error: `branch de produção Pages inválida: ${productionBranch}`, fallbackSteps: [] };
+  }
+  const previousCanonicalDeploymentId = projectBefore?.ok ? projectBefore.result?.canonical_deployment?.id || null : null;
+
   // 2. Deploy via wrangler (path relativo sem aspas — cmd.exe /c mastiga aspas em arg)
-  log(`▶ wrangler pages deploy → ${appId}`);
-  const deployCmd = `npx --yes ${WRANGLER} pages deploy apps/${appId}/out --project-name ${appId} --commit-dirty=true`;
-  const deployRes = run(deployCmd, wranglerEnv, 5 * 60 * 1000, root);
+  log(`▶ wrangler pages deploy → ${appId} · produção ${productionBranch}`);
+  const deployCmd = cloudflarePagesDeployCommand(appId, productionBranch);
+  const deployRes = runCommand(deployCmd, wranglerEnv, 5 * 60 * 1000, root);
 
   let deployed = deployRes.ok;
   if (!deployed) {
@@ -162,8 +210,8 @@ async function deployToCloudflarePages(pipeline, { root, log, limits }) {
     // Tenta criar projeto Pages
     if (/no project|not found|does not exist/i.test(errText)) {
       log(`▶ criar projeto Pages ${appId}`);
-      const createCmd = `npx --yes ${WRANGLER} pages project create ${appId} --production-branch master`;
-      const createRes = run(createCmd, wranglerEnv, 5 * 60 * 1000, root);
+      const createCmd = `npx --yes ${WRANGLER} pages project create ${appId} --production-branch ${productionBranch}`;
+      const createRes = runCommand(createCmd, wranglerEnv, 5 * 60 * 1000, root);
       if (!createRes.ok) {
         return {
           ok: false,
@@ -176,13 +224,13 @@ async function deployToCloudflarePages(pipeline, { root, log, limits }) {
         };
       }
       // Retry deploy após criar projeto
-      const retryRes = run(deployCmd, wranglerEnv, 5 * 60 * 1000, root);
+      const retryRes = runCommand(deployCmd, wranglerEnv, 5 * 60 * 1000, root);
       if (!retryRes.ok) {
         return {
           ok: false,
           error: `wrangler deploy falhou mesmo após criar projeto: ${retryRes.error}`,
           fallbackSteps: [
-            `1. Rode manualmente: npx wrangler pages deploy apps/${appId}/out --project-name ${appId}`,
+            `1. Rode manualmente: npx wrangler pages deploy apps/${appId}/out --project-name ${appId} --branch ${productionBranch}`,
             `2. Dash Pages → custom domain ${deploy.subdomain}.gbbragadev.com`,
             `3. forge decide <gate> retry`,
           ],
@@ -205,7 +253,7 @@ async function deployToCloudflarePages(pipeline, { root, log, limits }) {
         ok: false,
         error: `wrangler deploy falhou: ${deployRes.error}`,
         fallbackSteps: [
-          `1. Rode manualmente: npx wrangler pages deploy apps/${appId}/out --project-name ${appId}`,
+          `1. Rode manualmente: npx wrangler pages deploy apps/${appId}/out --project-name ${appId} --branch ${productionBranch}`,
           `2. No dash do Pages, adicione o custom domain ${deploy.subdomain}.gbbragadev.com`,
           `3. forge decide <gate> retry quando o site responder`,
         ],
@@ -214,92 +262,133 @@ async function deployToCloudflarePages(pipeline, { root, log, limits }) {
   }
 
   log(`✓ deployed to Pages`);
-  // subdomínio REAL do projeto (nome global pode colidir → CF dá sufixo, ex. anime-quiz-9r7.pages.dev)
-  let pagesHost = `${appId}.pages.dev`;
-  if (accountId) {
-    const projRes = await cf(`/accounts/${accountId}/pages/projects/${appId}`);
-    if (projRes?.ok && projRes.result?.subdomain) pagesHost = projRes.result.subdomain;
+  const projectAfter = await cfRequest(projectPath);
+  if (!projectAfter?.ok) {
+    return {
+      ok: false,
+      error: "deploy enviado, mas o projeto Pages não pôde ser revalidado",
+      fallbackSteps: ["1. Confirme Pages:Read no token Cloudflare", "2. Tente o deploy novamente"],
+    };
   }
-  const defaultUrl = `https://${pagesHost}`;
+  const canonicalDeploymentId = projectAfter.result?.canonical_deployment?.id || null;
+  if (!canonicalDeploymentId || canonicalDeploymentId === previousCanonicalDeploymentId) {
+    return {
+      ok: false,
+      error: "deploy enviado, mas a produção canônica não avançou",
+      fallbackSteps: [`1. Confirme a production branch ${productionBranch} no projeto Pages`, "2. Tente o deploy novamente"],
+    };
+  }
+  if (projectAfter.result?.production_branch !== productionBranch) {
+    return {
+      ok: false,
+      error: `production branch mudou durante o deploy (${projectAfter.result?.production_branch || "ausente"})`,
+      fallbackSteps: ["1. Reabra a configuração do projeto Pages", "2. Tente o deploy novamente"],
+    };
+  }
+
+  // subdomínio REAL do projeto (nome global pode colidir → CF dá sufixo, ex. anime-quiz-9r7.pages.dev)
+  const pagesHost = projectAfter.result?.subdomain;
+  if (!pagesHost) return { ok: false, error: "projeto Pages sem subdomain verificável", fallbackSteps: [] };
 
   // 3. Custom domain SEMPRE — o objetivo é <subdomain>.<baseUrl> (do profile)
   const zoneName = deploy.baseUrl || "gbbragadev.com";
   const customDomain = `${deploy.subdomain}.${zoneName}`;
-  {
-    log(`▶ custom domain ${customDomain}`);
+  log(`▶ custom domain ${customDomain}`);
 
-    // accountId já resolvido no topo (necessário pro wrangler também)
-    if (!accountId) {
-      log(`✗ sem account ID — via dash: adicione custom domain ${customDomain} no Pages → Settings`);
+  const domainsPath = `${projectPath}/domains`;
+  const domainRes = await cfRequest(domainsPath, { method: "POST", body: { name: customDomain } });
+  if (!domainRes?.ok) {
+    const domainsRes = await cfRequest(domainsPath);
+    const alreadyBound = domainsRes?.ok && domainsRes.result?.some((domain) => sameHostname(domain.name, customDomain));
+    if (!alreadyBound) {
       return {
-        ok: true,
-        url: defaultUrl,
-        dns: { status: "propagando", note: "custom domain setup manual" },
+        ok: false,
+        error: `não foi possível vincular o custom domain ${customDomain}`,
+        fallbackSteps: [`1. Pages → ${appId} → Custom domains → adicione ${customDomain}`, "2. Tente o deploy novamente"],
       };
     }
+    log(`✓ custom domain ${customDomain} já vinculado`);
+  } else {
+    log(`✓ custom domain ${customDomain} vinculado`);
+  }
 
-    // Cria binding domain
-    const domainRes = await cf(`/accounts/${accountId}/pages/projects/${appId}/domains`, {
-      method: "POST",
-      body: { name: customDomain },
-    });
-    if (!domainRes.ok) {
-      log(`✗ adicionar custom domain ${customDomain} falhou (pode já estar ligado)`);
-    }
-
-    // Setup DNS CNAME
-    const zoneRes = await cf(`/zones?name=${zoneName}`);
-    if (!zoneRes.ok) {
-      log(`✗ encontrar zone ${zoneName} falhou`);
-      return {
-        ok: true,
-        url: defaultUrl,
-        dns: { status: "propagando", recordId: null },
-      };
-    }
-
-    const zoneId = zoneRes.result?.[0]?.id;
-    if (!zoneId) {
-      return {
-        ok: true,
-        url: defaultUrl,
-        dns: { status: "propagando" },
-      };
-    }
-
-    // CNAME → subdomínio REAL do projeto. Se o registro já existe, corrige o conteúdo (PATCH).
-    const existingRes = await cf(`/zones/${zoneId}/dns_records?name=${customDomain}`);
-    const existing = existingRes?.ok ? existingRes.result?.[0] : null;
-    const recordBody = {
-      type: "CNAME",
-      name: deploy.subdomain,
-      content: pagesHost,
-      // DNS-only: proxied trava a validação HTTP do Pages (Error 1014 até ativar);
-      // o Pages já está na edge da CF, proxy aqui é redundante.
-      proxied: false,
-    };
-    const recordRes = existing
-      ? await cf(`/zones/${zoneId}/dns_records/${existing.id}`, { method: "PATCH", body: recordBody })
-      : await cf(`/zones/${zoneId}/dns_records`, { method: "POST", body: recordBody });
-
-    if (recordRes.ok) {
-      log(`✓ DNS CNAME criado`);
-      return {
-        ok: true,
-        url: `https://${customDomain}`,
-        dns: { status: "propagando", recordId: recordRes.result?.id },
-      };
-    }
-
-    log(`✗ DNS CNAME falhou (pode já existir)`);
+  // Setup DNS CNAME. Nenhum 200 antigo pode mascarar falha nesta etapa.
+  const zoneRes = await cfRequest(`/zones?name=${zoneName}`);
+  const zoneId = zoneRes?.ok ? zoneRes.result?.[0]?.id : null;
+  if (!zoneId) {
     return {
-      ok: true,
-      url: `https://${customDomain}`,
-      dns: { status: "propagando" },
+      ok: false,
+      error: `não foi possível comprovar a zone Cloudflare ${zoneName}`,
+      fallbackSteps: ["1. Confirme Zone:Read + DNS:Edit no token Cloudflare", "2. Tente o deploy novamente"],
     };
   }
 
-  return { ok: true, url: defaultUrl, dns: { status: "ok" } };
+  const recordsPath = `/zones/${zoneId}/dns_records`;
+  const existingRes = await cfRequest(`${recordsPath}?name=${customDomain}`);
+  if (!existingRes?.ok) {
+    return { ok: false, error: `não foi possível consultar o CNAME ${customDomain}`, fallbackSteps: [] };
+  }
+  const existing = existingRes.result?.[0] || null;
+  const recordBody = {
+    type: "CNAME",
+    name: deploy.subdomain,
+    content: pagesHost,
+    // DNS-only: proxied trava a validação HTTP do Pages (Error 1014 até ativar);
+    // o Pages já está na edge da CF, proxy aqui é redundante.
+    proxied: false,
+  };
+
+  let recordId = existing?.id || null;
+  if (isExpectedPagesCname(existing, pagesHost)) {
+    log(`✓ DNS CNAME já aponta para ${pagesHost}`);
+  } else {
+    const recordRes = existing
+      ? await cfRequest(`${recordsPath}/${existing.id}`, { method: "PATCH", body: recordBody })
+      : await cfRequest(recordsPath, { method: "POST", body: recordBody });
+    if (!recordRes?.ok || !isExpectedPagesCname(recordRes.result, pagesHost)) {
+      return {
+        ok: false,
+        error: `não foi possível publicar o CNAME ${customDomain} → ${pagesHost}`,
+        fallbackSteps: ["1. Confirme DNS:Edit no token Cloudflare", "2. Corrija o registro e tente o deploy novamente"],
+      };
+    }
+    recordId = recordRes.result.id || recordId;
+    log(`✓ DNS CNAME publicado`);
+  }
+
+  const publicUrl = `https://${customDomain}`;
+  const configuredDelays = limits?.deployRetryDelaysMs || [5000, 15000, 30000];
+  const health = await waitForUrl(publicUrl, [0, ...configuredDelays.filter((delay) => delay > 0).slice(0, 3)]);
+  if (!health.ok) {
+    return {
+      ok: false,
+      error: `deploy publicado, mas ${publicUrl} não respondeu HTTP 2xx`,
+      fallbackSteps: [
+        `1. Confirme que o deploy de produção usa --branch ${productionBranch}`,
+        `2. Confira o custom domain ${customDomain} no Pages`,
+        "3. Tente o deploy novamente",
+      ],
+    };
+  }
+
+  const finalDomains = await cfRequest(domainsPath);
+  const activeBinding = finalDomains?.ok && finalDomains.result?.some(
+    (domain) => sameHostname(domain.name, customDomain) && domain.status === "active",
+  );
+  if (!activeBinding) {
+    return {
+      ok: false,
+      error: `custom domain ${customDomain} respondeu, mas o binding Pages não está ativo`,
+      fallbackSteps: ["1. Confira o status do custom domain no Pages", "2. Tente o deploy novamente"],
+    };
+  }
+
+  log(`✓ ${publicUrl} no ar (HTTP ${health.status}) · produção ${canonicalDeploymentId}`);
+  return {
+    ok: true,
+    url: publicUrl,
+    dns: { status: "ok", recordId },
+  };
 }
 
 /** GitHub Pages — fallback (CI automático via workflow) */
