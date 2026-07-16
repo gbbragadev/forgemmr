@@ -1,7 +1,7 @@
-# Novo app com 1 prompt
+﻿# Novo app com 1 prompt
 
 Cole o bloco abaixo no **Claude Code**, **Codex**, **Grok** ou **Gemini**  
-com a pasta aberta em `C:\Dev\anime-forge`.
+com a pasta aberta em `C:\Dev\forge`.
 
 Substitua só o que está entre `<<< >>>`.
 
@@ -10,7 +10,7 @@ Substitua só o que está entre `<<< >>>`.
 ## Prompt (copiar tudo)
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Leia AGENTS.md + workbench/HANDOFF.md + workbench/QUEUE.md + docs/prompts/L1-B1-scaffold.md.
 
 ## Missão
@@ -39,10 +39,10 @@ Criar um NOVO app da factory Anime Forge a partir do template existente.
 ## Passos (execute na ordem)
 1. Claim + mover job na QUEUE se ainda não estiver
 2. Copiar apps/waifu-chat → apps/<id>
-3. Ajustar package.json name para @anime-forge/<id>
+3. Ajustar package.json name para @forge/<id>
 4. app.config.ts: id, name, seo, monetization, personas (inline ou content/personas/<id>-pack-v1.json)
 5. Ajustar copy da landing (page/layout) para o one-liner
-6. npm install na root se preciso; npm run build -w @anime-forge/<id> (ou build root)
+6. npm install na root se preciso; npm run build -w @forge/<id> (ou build root)
 7. Se build falhar: fix até 3 tentativas; senão BLOCK no HANDOFF
 8. Atualizar workbench/HANDOFF.md (done + next: content hooks L0/P1 ou smoke dev)
 9. Liberar claim; QUEUE → Done no scaffold
@@ -52,7 +52,7 @@ Criar um NOVO app da factory Anime Forge a partir do template existente.
 - [ ] npm run build passa
 - [ ] personas ≥ 4
 - [ ] HANDOFF + QUEUE + CLAIMS atualizados
-- [ ] me diga: cd + comando npm run dev -w @anime-forge/<id> (ou script root se aplicável)
+- [ ] me diga: cd + comando npm run dev -w @forge/<id> (ou script root se aplicável)
 
 Comece agora.
 ```

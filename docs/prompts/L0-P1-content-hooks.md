@@ -1,7 +1,7 @@
-# L0 / P1 — Content hooks (1 iteração)
+﻿# L0 / P1 — Content hooks (1 iteração)
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Leia AGENTS.md + workbench/HANDOFF.md + app.config share templates se existirem.
 Loop: L0 Product · Step: P1 Content hooks
 Claim: L0 / P1 / app alvo.

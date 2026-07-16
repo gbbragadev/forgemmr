@@ -64,3 +64,8 @@ maestro/.prompts/
 
 # lixo de redirecionamento Windows e resultados de run E2E
 maestro/e2e-result.md
+
+# worktrees de agentes Claude/Codex locais
+.claude/worktrees/
+.codebase-memory/
+

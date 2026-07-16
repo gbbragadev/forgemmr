@@ -1,9 +1,9 @@
-# L0 — Setar outra ideia (app anterior terminou)
+﻿# L0 — Setar outra ideia (app anterior terminou)
 
 Use quando o build do app atual está **Done** (ship ok) e o user quer a próxima aposta.
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Leia AGENTS.md + workbench/HANDOFF.md + workbench/QUEUE.md + docs/PLAYBOOK.md
 (seção "Como setar outra ideia").
 

@@ -1,5 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText, type CoreMessage } from "ai";
+import { generateText, streamText, type CoreMessage } from "ai";
 import {
   getOpenRouterApiKey,
   getOpenRouterModel,
@@ -78,7 +78,7 @@ export function trimHistory(
   return nonSystem.slice(-maxHistory);
 }
 
-export function streamProductChat(options: ProductChatOptions) {
+function resolveProductChat(options: ProductChatOptions) {
   const {
     system,
     messages,
@@ -105,7 +105,36 @@ export function streamProductChat(options: ProductChatOptions) {
   });
   const history = trimHistory(messages, maxHistory) as CoreMessage[];
 
+  return {
+    provider,
+    model,
+    system,
+    history,
+    maxTokens,
+    temperature,
+    client,
+  };
+}
+
+export function streamProductChat(options: ProductChatOptions) {
+  const { client, model, system, history, maxTokens, temperature } =
+    resolveProductChat(options);
+
   return streamText({
+    model: client.chat(model),
+    system,
+    messages: history,
+    maxTokens,
+    temperature,
+  });
+}
+
+/** Non-stream completion — preferido quando o provider trava no stream (ex. Z.AI). */
+export async function generateProductChat(options: ProductChatOptions) {
+  const { client, model, system, history, maxTokens, temperature } =
+    resolveProductChat(options);
+
+  return generateText({
     model: client.chat(model),
     system,
     messages: history,
@@ -121,6 +150,7 @@ export function streamOpenRouterChat(options: ProductChatOptions) {
 
 export {
   streamText,
+  generateText,
   getOpenRouterApiKey,
   getOpenRouterModel,
   getProductAiProvider,

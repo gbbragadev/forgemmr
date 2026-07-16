@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "name": "PMOC Acceptance Gate no lado comprador workflow",
+  "title": "PMOC Acceptance Gate no lado comprador — workflow",
+  "purpose": "Contrato derivado pelo Forge Operator para juridico.",
+  "jobs": [
+    "L0/P0",
+    "FOUNDATION",
+    "DS-GEN",
+    "L0/P1",
+    "L1/B1",
+    "L1/B2",
+    "L1/B3",
+    "L1/B4",
+    "L1/B5",
+    "SIMULATE",
+    "P3"
+  ],
+  "jobSpecs": {
+    "L0/P0": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "FOUNDATION": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "DS-GEN": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "L0/P1": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "L1/B1": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "L1/B2": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "L1/B3": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "L1/B4": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "L1/B5": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "SIMULATE": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    },
+    "P3": {
+      "template": null,
+      "inputs": [],
+      "verify": {
+        "type": "builtin"
+      },
+      "gate": null
+    }
+  }
+}

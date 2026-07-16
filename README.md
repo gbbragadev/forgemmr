@@ -171,7 +171,7 @@ narrativo (contexto do projeto, injetado em **todo** prompt). O profile ativo é
   "namespace": "@forge",             // workspaces npm: @forge/<app>
   "niche": "advergames gamificados",
   "i18n":   { "defaultLocale": "pt-BR", "locales": ["pt-BR"], "rule": "single" },
-  "deploy": { "baseUrl": "exemplo.com", "staticHost": "cf-pages", "serverHost": "vercel" },
+  "deploy": { "baseUrl": "gbbragadev.com", "staticHost": "cf-pages", "serverHost": "cf-workers" },
   "git":    { "targetBranch": "master", "commitPrefix": "forge" },
   "legal":  { "ipRules": ["nada de IP de terceiros"] },
   "capabilities": ["static", "quiz", "chat"],

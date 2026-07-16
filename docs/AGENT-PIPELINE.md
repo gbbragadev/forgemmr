@@ -1,4 +1,4 @@
-# Agent Pipeline — loops multi-provedor
+﻿# Agent Pipeline — loops multi-provedor
 
 Um **processo em loops**, vários motores (**Codex / Claude / Grok / Gemini / GLM**).  
 Estágios são **passos dentro** dos loops — não uma fila linear cega.
@@ -29,7 +29,7 @@ Estágios são **passos dentro** dos loops — não uma fila linear cega.
 ## Frase mágica (colar em qualquer agente)
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Leia AGENTS.md + workbench/HANDOFF.md + workbench/QUEUE.md.
 Identifique o loop (L0/L1/L2) e rode UMA iteração do job livre.
 Claime em CLAIMS.md. Ao terminar: HANDOFF + QUEUE + liberar claim.
@@ -184,9 +184,9 @@ Máx 3 fix no mesmo erro → BLOCK + L2.
 
 | App free path | Host preferido | Notas |
 |---------------|----------------|-------|
-| Static (`output: "export"`) | **GitHub Pages** (workflow no repo) | `PAGES_BASE_PATH=/<repo>` no CI |
-| Server (API routes) | **Vercel** | precisa `vercel login` ou `VERCEL_TOKEN` |
-| CF Pages | se token com **Pages write** | token “whoami only” não basta |
+| Static (`output: "export"`) | **Cloudflare Pages** → `<sub>.gbbragadev.com` (ou `baseUrl` do profile) | token CF com Pages + DNS write |
+| Server (API routes) | **Cloudflare Workers** (OpenNext) | mesmo domínio; `CF_GBBRAGADEV_ADM` |
+| GitHub Pages | alternativa estática | workflow no repo; `PAGES_BASE_PATH=/<repo>` no CI |
 
 Checklist ship:
 - [ ] B5 PASS (ou N/A documentados)

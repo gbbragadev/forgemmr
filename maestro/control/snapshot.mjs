@@ -74,8 +74,41 @@ function pendingDecisions(pipelines) {
   return decisions.sort((a, b) => a.appId.localeCompare(b.appId) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
 }
 
+/** Cache de snapshot: evita readdir/parse de runs a cada tick SSE (TTL + chave de pipelines). */
+let _snapshotCache = null;
+
+function pipelineCacheKey(pipelineMap) {
+  return Object.keys(pipelineMap)
+    .sort()
+    .map((id) => {
+      const p = pipelineMap[id] || {};
+      return [
+        id,
+        p.status,
+        p.currentJob,
+        p.jobIndex,
+        (p.gates || []).length,
+        (p.history || []).length,
+        p.endedAt || "",
+        p.controlMode || "",
+      ].join(":");
+    })
+    .join("|");
+}
+
 export function buildControlSnapshot({ root, engineManager, operations = [], now = new Date(), server = {}, providerHealth = null, memory = null }) {
   const pipelineMap = engineManager?.snapshot?.() || {};
+  const key = pipelineCacheKey(pipelineMap);
+  const nowMs = now instanceof Date ? now.getTime() : Date.now();
+  if (
+    _snapshotCache &&
+    _snapshotCache.root === root &&
+    _snapshotCache.key === key &&
+    nowMs - _snapshotCache.at < 2000
+  ) {
+    return _snapshotCache.value;
+  }
+
   const pipelines = Object.entries(pipelineMap)
     .map(([appId, pipeline]) => ({ appId, ...pipeline }))
     .sort((a, b) => a.appId.localeCompare(b.appId));
@@ -133,5 +166,12 @@ export function buildControlSnapshot({ root, engineManager, operations = [], now
     generatedAt: now.toISOString(),
     ...core,
   };
-  return sanitize(snapshot);
+  const value = sanitize(snapshot);
+  _snapshotCache = { root, key, at: nowMs, value };
+  return value;
+}
+
+/** Só para testes: limpa o cache do snapshot. */
+export function clearControlSnapshotCache() {
+  _snapshotCache = null;
 }

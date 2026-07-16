@@ -1,0 +1,175 @@
+{
+  "version": "pmoc-rules-v1",
+  "normativeRegime": "documental-contratual-mvp",
+  "description": "Regras documentais de pré-aceite PMOC (lado comprador). Não diagnosticam HVAC/QAI nem provam visita.",
+  "rules": [
+    {
+      "id": "COV-01",
+      "class": "coverage",
+      "severity": "high",
+      "description": "Equipamento do inventário com periodicidade no período deve constar no relatório.",
+      "version": "1"
+    },
+    {
+      "id": "COV-02",
+      "class": "coverage",
+      "severity": "high",
+      "description": "Quantidade de equipamentos reportados não pode ser inferior ao escopo contratado no período.",
+      "version": "1"
+    },
+    {
+      "id": "COV-03",
+      "class": "coverage",
+      "severity": "medium",
+      "description": "Equipamento sem ocorrência ainda precisa de presença explícita quando o contrato exige cobertura total.",
+      "version": "1"
+    },
+    {
+      "id": "COV-04",
+      "class": "coverage",
+      "severity": "high",
+      "description": "Anexos obrigatórios do contrato devem constar no pacote do período.",
+      "version": "1"
+    },
+    {
+      "id": "COV-05",
+      "class": "coverage",
+      "severity": "medium",
+      "description": "Relatório deve cobrir a janela de medição contratada (datas de início e fim).",
+      "version": "1"
+    },
+    {
+      "id": "COV-06",
+      "class": "coverage",
+      "severity": "medium",
+      "description": "Unidade do inventário deve aparecer no relatório do período.",
+      "version": "1"
+    },
+    {
+      "id": "COV-07",
+      "class": "coverage",
+      "severity": "low",
+      "description": "Fornecedor do relatório deve coincidir com o fornecedor do contrato.",
+      "version": "1"
+    },
+    {
+      "id": "INT-01",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Foto com o mesmo fingerprint em equipamentos ou linhas diferentes do lote.",
+      "version": "1"
+    },
+    {
+      "id": "INT-02",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Assinatura do responsável técnico deve estar presente no relatório.",
+      "version": "1"
+    },
+    {
+      "id": "INT-03",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Papel do signatário deve corresponder ao papel esperado (RT).",
+      "version": "1"
+    },
+    {
+      "id": "INT-04",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Data da assinatura deve estar dentro ou imediatamente após a janela de medição.",
+      "version": "1"
+    },
+    {
+      "id": "INT-05",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Identificação do responsável técnico (nome/registro) deve constar no relatório.",
+      "version": "1"
+    },
+    {
+      "id": "INT-06",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Marca/modelo do relatório deve coincidir com o inventário do ativo.",
+      "version": "1"
+    },
+    {
+      "id": "INT-07",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Capacidade do equipamento no relatório deve coincidir com o inventário.",
+      "version": "1"
+    },
+    {
+      "id": "INT-08",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Patrimônio no relatório deve coincidir com o inventário.",
+      "version": "1"
+    },
+    {
+      "id": "INT-09",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Documento de assinatura deve estar legível (não corrompido).",
+      "version": "1"
+    },
+    {
+      "id": "INT-10",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Data de captura da evidência fotográfica deve cair na janela do período.",
+      "version": "1"
+    },
+    {
+      "id": "INT-11",
+      "class": "integrity",
+      "severity": "low",
+      "description": "Evidências referenciadas nas linhas do relatório devem existir no pacote.",
+      "version": "1"
+    },
+    {
+      "id": "COR-01",
+      "class": "corrective",
+      "severity": "high",
+      "description": "Defeito ou ocorrência apontada precisa de ação, OS, justificativa ou recomendação formal.",
+      "version": "1"
+    },
+    {
+      "id": "COR-02",
+      "class": "corrective",
+      "severity": "high",
+      "description": "Troca de peça deve vincular OS, autorização ou ocorrência.",
+      "version": "1"
+    },
+    {
+      "id": "COR-03",
+      "class": "corrective",
+      "severity": "medium",
+      "description": "Indício de problema futuro deve gerar recomendação formal ao contratante.",
+      "version": "1"
+    },
+    {
+      "id": "COR-04",
+      "class": "corrective",
+      "severity": "medium",
+      "description": "Ocorrência aberta sem trilha de fechamento ou postergação justificada.",
+      "version": "1"
+    },
+    {
+      "id": "COR-05",
+      "class": "corrective",
+      "severity": "medium",
+      "description": "Quando o contrato exige, o pacote deve referenciar a fatura/nota do período.",
+      "version": "1"
+    },
+    {
+      "id": "COR-06",
+      "class": "corrective",
+      "severity": "low",
+      "description": "Serviço corretivo/sob demanda sem vínculo a equipamento do inventário.",
+      "version": "1"
+    }
+  ]
+}

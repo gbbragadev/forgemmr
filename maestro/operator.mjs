@@ -142,7 +142,34 @@ async function responseTextCapped(response) {
   return text + decoder.decode();
 }
 
-export async function readIntakeSource(input, { fetchImpl = globalThis.fetch } = {}) {
+/** Hosts/IPs privados e loopback — bloqueados no intake URL (anti-SSRF). */
+function isBlockedIntakeHost(hostname) {
+  const host = String(hostname || "").toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host) return true;
+  if (host === "localhost" || host === "0.0.0.0" || host.endsWith(".local")) return true;
+  if (host === "::1" || host === "0:0:0:0:0:0:0:1") return true;
+  // IPv4
+  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (a === 127 || a === 10 || a === 0) return true;
+    if (a === 169 && b === 254) return true; // link-local / IMDS
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+  }
+  return false;
+}
+
+function assertInsideRoot(root, resolved) {
+  if (!root) return; // callers de teste sem root: só path-relative safety abaixo
+  const base = path.resolve(root);
+  const target = path.resolve(resolved);
+  if (target !== base && !target.startsWith(base + path.sep)) {
+    throw new Error("fonte fora do repositório");
+  }
+}
+
+export async function readIntakeSource(input, { root = null, fetchImpl = globalThis.fetch } = {}) {
   const value = String(input || "").trim();
   if (!value) throw new Error("fonte vazia");
   let kind = "inline";
@@ -151,31 +178,56 @@ export async function readIntakeSource(input, { fetchImpl = globalThis.fetch } =
   let files = [];
   if (/^https?:\/\//i.test(value)) {
     kind = "url";
-    const response = await fetchImpl(value, { redirect: "follow", signal: AbortSignal.timeout(20_000) });
+    let url;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new Error("URL de fonte inválida");
+    }
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error("apenas http(s) permitido na fonte URL");
+    }
+    if (isBlockedIntakeHost(url.hostname)) {
+      throw new Error("host da URL bloqueado (loopback/privado)");
+    }
+    // redirect: manual — não seguir pivot para rede privada
+    const response = await fetchImpl(value, { redirect: "manual", signal: AbortSignal.timeout(20_000) });
+    if (response.status >= 300 && response.status < 400) {
+      throw new Error("redirect em fonte URL não permitido");
+    }
     if (!response.ok) throw new Error(`fonte URL respondeu HTTP ${response.status}`);
     text = (await responseTextCapped(response)).replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ");
-    title = new URL(value).hostname;
-  } else if (fs.existsSync(path.resolve(value))) {
-    const resolved = path.resolve(value);
-    const stat = fs.statSync(resolved);
-    if (stat.isDirectory()) {
-      kind = "folder";
-      files = folderFiles(resolved);
-      let used = 0;
-      const sections = [];
-      for (const file of files) {
-        const content = readFileText(file);
-        if (used + content.length > MAX_SOURCE_BYTES) break;
-        used += content.length;
-        sections.push(`\n--- ${path.relative(resolved, file)} ---\n${content}`);
+    title = url.hostname;
+  } else {
+    // path: relativo a root se fornecido; absoluto só se sob root
+    const candidate = path.isAbsolute(value)
+      ? path.resolve(value)
+      : root
+        ? path.resolve(root, value)
+        : path.resolve(value);
+    if (fs.existsSync(candidate)) {
+      assertInsideRoot(root, candidate);
+      const resolved = candidate;
+      const stat = fs.statSync(resolved);
+      if (stat.isDirectory()) {
+        kind = "folder";
+        files = folderFiles(resolved);
+        let used = 0;
+        const sections = [];
+        for (const file of files) {
+          const content = readFileText(file);
+          if (used + content.length > MAX_SOURCE_BYTES) break;
+          used += content.length;
+          sections.push(`\n--- ${path.relative(resolved, file)} ---\n${content}`);
+        }
+        text = sections.join("\n");
+        title = path.basename(resolved);
+      } else {
+        kind = path.extname(resolved).toLowerCase().slice(1) || "file";
+        files = [resolved];
+        text = readFileText(resolved);
+        title = path.basename(resolved);
       }
-      text = sections.join("\n");
-      title = path.basename(resolved);
-    } else {
-      kind = path.extname(resolved).toLowerCase().slice(1) || "file";
-      files = [resolved];
-      text = readFileText(resolved);
-      title = path.basename(resolved);
     }
   }
   text = text.replace(/\u0000/g, "").trim().slice(0, MAX_SOURCE_BYTES);
@@ -273,7 +325,7 @@ export function createForgeOperator({ root, factoryAdmin, engineManager, runFact
   const redact = makeRedactor();
 
   async function prepare(input, mode) {
-    const source = await readIntakeSource(input?.source);
+    const source = await readIntakeSource(input?.source, { root });
     source.text = redact(source.text);
     const decision = classifyIntake({
       source,

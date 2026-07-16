@@ -1,104 +1,103 @@
 # Implementation Plans
 
-Gerados pelo skill improve em 2026-07-16 (auditoria deep, commit base `ab9f479`,
-branch `feat/gpt56-optimization`). Execute na ordem abaixo, salvo dependências.
-Cada executor: leia o plano inteiro antes de começar, honre as STOP conditions e
-atualize sua linha ao terminar.
+Gerados pelo skill **improve**.
+
+- **Onda 1** (2026-07-16, deep, base `ab9f479`): planos **001–005** — todos
+  **DONE + MERGED** em `feat/gpt56-optimization`.
+- **Onda 2** (2026-07-16, standard, base `895cc63`): planos **006–020** —
+  segurança, docs de job, créditos, DX, tests, perf e 2 spikes de direction.
+
+Execute na ordem abaixo salvo dependências. Cada executor: leia o plano inteiro,
+honre STOP conditions e atualize a linha de status ao terminar.
 
 ## Execution order & status
 
+### Onda 1 (histórico)
+
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001 | Higiene: docs errados, CI, artefatos | P1 | S | — | DONE + MERGED — commit `5993c46` |
-| 002 | Testes @forge/credits + coverage nativo | P1 | S | — | DONE + MERGED — commit `ff99954` (28 testes, credits 100% cov) |
-| 003 | Testes das rotas HTTP mutantes do server | P1 | M | — | DONE + MERGED — commit `87d012a` (17 testes novos) |
-| 004 | Hardening server.mjs (body cap + streams) | P2 | S-M | — | DONE + MERGED — commit `b467345` (readBody 413 + streamFile, 4 testes) |
-| 005 | Build assíncrono no verify (event loop) | P1 | M | — | DONE + MERGED — commit `ef956d9` (zero execSync) |
+| 001 | Higiene: docs errados, CI, artefatos | P1 | S | — | DONE + MERGED — `5993c46` |
+| 002 | Testes @forge/credits + coverage | P1 | S | — | DONE + MERGED — `ff99954` |
+| 003 | Testes rotas HTTP mutantes do server | P1 | M | — | DONE + MERGED — `87d012a` |
+| 004 | Hardening server (body cap + streams) | P2 | S-M | — | DONE + MERGED — `b467345` |
+| 005 | Build assíncrono no verify | P1 | M | — | DONE + MERGED — `ef956d9` |
+
+### Onda 2 (TODO)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 006 | SEC: validar `ai.envKey` no deploy Workers (shell) | P1 | S | — | DONE — assertSafeEnvKey + testes |
+| 007 | DOC: prompts `@anime-forge` → `@forge` / path forge | P1 | S | — | DONE — docs/prompts + AGENT-PIPELINE |
+| 008 | SEC: confinar blueprint id + `verify.path` | P1 | S | — | DONE — loader + engine verify |
+| 009 | SEC: operator SSRF + path sob root | P1 | S-M | — | DONE — readIntakeSource + testes |
+| 010 | CORE/SEC: crédito pós-IA + sanitize msgs + zero coins cookie | P1 | M | — | DONE — guest-safe + sanitize + waifu pós-IA |
+| 011 | SEC: HMAC no cookie de créditos | P2 | M | 010 | DONE — seal/open + CREDITS_COOKIE_SECRET |
+| 012 | CORE: goal file por run (fim da race `.run-goal.txt`) | P2 | S | — | DONE — runs/<runId>/goal.txt |
+| 013 | DX: lint root = workspaces + typecheck no CI | P2 | S | — | DONE — package.json + test.yml |
+| 014 | DX: fake-exec delay default 0 | P2 | S | — | DONE — FORGE_FAKE_DELAY_MS |
+| 015 | DEP: pinar OpenNext/wrangler no path Workers | P2 | S | — | DONE — OPENNEXT_CF + WRANGLER pins |
+| 016 | TEST: caracterização `workbench.mjs` | P2 | S-M | — | DONE — workbench.test.mjs |
+| 017 | TEST: `@forge/ai` env + trimHistory | P2 | S | — | DONE — packages/ai/test/env.test.mjs (env only; index SDK skip) |
+| 018 | PERF: cache do control snapshot | P2 | M | — | DONE — TTL 2s + pipeline key |
+| 019 | DIRECTION: spike sink de telemetria | P3 | M | — | DONE (doc) — docs/telemetry-sink-decision.md |
+| 020 | DIRECTION: spike loop P4/P5 + prefills | P3 | M | 019 (soft) | DONE (doc) — docs/p4-measure-loop.md |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (razão em 1 linha) | REJECTED.
 
-> **Merged em `feat/gpt56-optimization` em 2026-07-16** (autorizado pelo dono): merges
-> `065596e`…`e0cab90`, suíte pós-merge **253 testes · 252 pass · 0 fail · 1 skipped**
-> (memory-real-smoke, opt-in). Arquivo `nul` da raiz removido. Único conflito de merge:
-> `.env.example` (bloco do revisor × bloco do maestro — mantidos os dois).
-
 ## Dependency notes
 
-- Os 5 planos são **independentes entre si** (arquivos disjuntos; 004 cria seu
-  próprio arquivo de teste em vez de depender do harness do 003).
-- Merge order sugerida: 001/002/003 (zero risco de produção) → 004 → 005.
-- 003 e 004 tocam ambos em `maestro/test/` com arquivos NOVOS distintos — sem
-  conflito. 002 é o único que edita o `package.json` raiz.
+```
+006 007 008 009 012 013 014 015 016 017 018 019  → paralelizáveis
+010 → 011 (HMAC depois do guest-safe)
+019 → 020 (preferir decisão de sink antes do loop measure; 020 design-only ok em paralelo)
+```
 
-## Findings considered and rejected
+**Ordem sugerida de merge (segurança primeiro):**  
+006 → 008 → 009 → 010 → 007 → 012 → 014 → 013 → 015 → 016 → 017 → 011 → 018 → 019 → 020
 
-(Registrado para não re-auditar. Fonte: auditoria deep 2026-07-16, 8 subagentes,
-achados vetados abrindo o código citado.)
+**Nota de sessão:** Vercel foi removido do deploy operacional (CF Pages/Workers +
+`baseUrl`/domínio). Plano 015 **não** reintroduz Vercel — só pina CLIs Workers.
 
-- **CORE-03 (leak de SSE client em double-delete)**: `Set.delete` é idempotente
-  nos dois caminhos — não há leak.
-- **CORE-04 (advanceLoop fire-and-forget)**: tem try/catch/finally interno;
-  snapshot imediato é by-design (UI acompanha por SSE).
-- **CORE-05 (readBody sem catch nos callers)**: callers embrulham em try/catch.
-- **CORE-07 (check-then-act no improver)**: o bloco já está em try/catch com
-  fallback para stdout — o crash alegado não existe.
-- **SEC-01 (npm audit "crítico")**: real mas 4 low + 4 moderate (arbitrado por
-  `npm audit --omit=dev`); o fix `--force` instalaria `next@9.3.3` (downgrade
-  catastrófico). Não agir agora; acompanhar patches de `ai`/`next` upstream.
-- **SEC-03 (tokens de deploy via env visíveis em ps)**: alegação incorreta (env
-  não aparece em ps; mesmo usuário já teria acesso total). `deploy.mjs` já manda
-  segredo por STDIN onde suportado (comentário na linha 69). Env var é o
-  mecanismo padrão de wrangler/vercel.
-- **DEBT-09 ("maestro/test vazio")**: alucinação — são ~50 arquivos, 204 testes.
-- **DEBT-10 ("maestro/memory não existe")**: alucinação — existe com 9 módulos.
-- **DEBT-07 (módulos grandes = god-modules)**: o próprio auditor concluiu que são
-  longos-mas-lineares; tamanho justificado.
-- **PERF-05 (suíte 27% mais lenta)**: variância de máquina ocupada (81s vs 102s
-  na mesma máquina em horários diferentes); sem baseline controlado não é achado.
-- **MEM-06 (ordem do Set em dedup)**: Set do ES2015+ preserva ordem de inserção —
-  o próprio achado admite; não é bug.
-- **DX-02 parcial (vars fictícias no .env.example)**: FOO_TOKEN/AAA/BBB não
-  existem no arquivo; a parte válida (vars de deploy ausentes) entrou no plano 001.
-- **DEBT-01 parcial (p4-result.mjs como artefato)**: é módulo validador com teste
-  próprio; só `e2e-result.md` + `nul` eram artefatos (plano 001).
+## Findings considered and rejected (onda 2 + herdados)
 
-## Backlog (achados válidos, abaixo da linha de corte dos 5 planos)
+Não reabrir sem evidência nova:
 
-- **TEST.001** forge.mjs (~2000L CLI/TUI) sem nenhum teste — M-L, valioso mas caro.
-- **TEST.003** 5 de 6 apps sem testes — começar por revisor-cetico-de e
-  pmoc-acceptance-gate se forem a produção séria.
-- **TEST.006** o único teste skipped é `memory-real-smoke` (opt-in
-  `FORGE_MEMORY_REAL_SMOKE=1`, só Windows x64) — considerar job de CI Windows.
-- **PERF-02/03** SSE: broadcast por linha sem batch; replay de 500 eventos numa
-  string única — otimizar se o cockpit pesar com múltiplos viewers.
-- **PERF-04** `maestro/runs/` sem rotação (4.4 MB/126 arquivos hoje) — cleanup
-  por idade no boot do server quando incomodar.
-- **CORE-01/F-B4** regex `\b` após nome de seção no verify (`engine.mjs:935`) —
-  latente; trocar por `(?=\s|$)` quando mexerem nesse código.
-- **CORE-06** `simulator.mjs:44` JSON.parse sem contexto de erro próprio — S, LOW.
-- **MEM-01..05, MEM-07, MEM-08** observabilidade/robustez do subsistema de
-  memória e timeout de operações no dispatcher do control — S-M, LOW-MED.
-- **SEC-04/05/06** cap de sseClients, validação extra de subdomain no deploy,
-  documentar o threshold de 8 chars do redactor — defesa em profundidade, S.
-- **DEBT-02** constantes duplicadas engine ↔ control-center.js — M.
-- **DEBT-03** duplicação parcial de rotas/credits entre apps — M, consolidar em
-  packages/ quando um 3º app repetir o padrão.
-- **DX-04/DX-07** lint/formatter monorepo-wide + docs de lint — S-M.
+- Rate-limit falso positivo (T-03) — guard `exitCode !== 0` + testes
+- Cooldown some no restart (F-B2) — ressemeado no boot do engine
+- `stats.mjs` binário (F-B3) — usa `\u0000` escapado
+- SSE double-delete leak, advanceLoop fire-and-forget, improver check-then-act
+- npm audit force (downgrade Next catastrófico)
+- God-modules só por tamanho de arquivo
+- Target Vercel como feature — **removido de propósito** (não é bug a restaurar)
+- Planos 001–005 — já merged
 
-## Direction (opções para o dono — não são planos)
+## Backlog residual (abaixo da linha, sem plano nesta onda)
 
-Da auditoria de direção (evidência no repo, decisão é de negócio):
-1. **P4 measure→kill|scale automatizado** — a tese do produto é o gate kill/scale
-   e ele é 100% manual hoje (README §9 ⏳; 4 apps parados em P4 no QUEUE.md).
-   Pré-requisito: decidir o sink de telemetria (item 2).
-2. **Sink de telemetria** — produção responde 503 `telemetry_sink_required`
-   honesto desde a revisão de 13/07; decisão pendente do dono (JSONL local →
-   Postgres/ClickHouse/SaaS).
-3. **Billing real (Stripe/Pix)** — checkout do doki-call é waitlist honesta;
-   `packages/credits` já modela coins/weekly (o plano 002 vira contrato de testes).
-4. **Capability `image`** — stated-but-undelivered (README §9, PLAYBOOK "Anime
-   Me/haifu"); exige P0 próprio.
-5. **API de jobs para dispatch remoto/batch** — o supervisor e o L2 já apontam
-   nessa direção; M de esforço aproveitando o engine.
-6. **Profile B2B (Braga Suite/Senior)** — a arquitetura de profiles suporta;
-   margem maior que o vertical anime; exige decisão de compliance/LGPD.
+- Cap de `sseClients` / batch de linhas SSE
+- Rotação/prune de `maestro/runs/` (ajuda 018; fazer quando disco doer)
+- Regex `\b` em seções de verify (F-B4 / CORE-01 latente)
+- `forge.mjs` CLI/TUI — cobertura ainda parcial
+- File lock no workbench (016 caracteriza; lock é follow-up)
+- Capability `image` — exige P0, não plano de build
+
+## Direction index
+
+| ID | Tema | Plano |
+|----|------|-------|
+| Telemetria / sink prod | 019 |
+| P4 measure → P5 kill\|scale | 020 |
+| Billing real | depende 010+011; sem plano de Stripe ainda |
+| Profile B2B / jobs API remota | sem plano — decisão de produto |
+
+## Como executar um plano
+
+```text
+1. Ler plans/NNN-*.md por completo
+2. Drift check no SHA stamped
+3. Branch advisor/NNN-<slug>
+4. Steps + verify commands
+5. Atualizar status nesta tabela
+6. Não push/PR sem o dono pedir
+```
+
+Ou: `/improve execute plans/006-sec-deploy-envkey-shell.md` (worktree isolado + review).

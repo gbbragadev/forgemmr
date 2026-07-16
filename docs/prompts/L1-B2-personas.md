@@ -1,7 +1,7 @@
-# L1 / B2 — Personas pack (1 iteração)
+﻿# L1 / B2 — Personas pack (1 iteração)
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Loop: L1 · Job: B2 Personas
 Claim: content/personas (não mexer em packages/ai).
 

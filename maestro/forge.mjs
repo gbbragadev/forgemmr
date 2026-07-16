@@ -3,7 +3,7 @@
  * forge — CLI do Maestro Autopilot (estilo harness: TUI full-screen, cliente REST+SSE).
  *
  *   forge new "<ideia>" [--team grok-glm-front] [--app-id x] [--capability static|quiz|chat]
- *                       [--subdomain x] [--target cf-pages|vercel] [--dry-run]
+ *                       [--subdomain x] [--target cf-pages|cf-workers|gh-pages] [--dry-run]
  *   forge attach | status | decide <gate> <go|kill|retry> [feedback…] | stop | resume | roster
  *
  * Teclas na TUI: [g] go · [k] kill (2x) · [r] retry · [f] retry + feedback · [q] detach
@@ -1665,7 +1665,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge profile show")}   imprime o profile atual
   ${bold("forge team")}          monta um time na TUI (Provedor→Modelo→Effort→Funções) e grava no roster
   ${bold("forge new")} "<ideia>" [--team X] [--app-id X] [--capability static|quiz|chat]
-            [--subdomain X] [--target cf-pages|vercel] [--control-mode M] [--dry-run]
+            [--subdomain X] [--target cf-pages|cf-workers|gh-pages] [--control-mode M] [--dry-run]
             (sem --capability o P0 decide o tipo pela ideia; o gate p0-go confirma)
   ${bold("forge new --idea-file")} ideia.md   ideia GRANDE/estruturada (markdown multi-linha —
             vai inteira pro prompt de todos os jobs; mais contexto = app melhor)
@@ -1679,7 +1679,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge status")}    snapshot rápido de TODAS as pipelines
   ${bold("forge stats")}     PASS por player/job, duração por job/app e mortes nos runs persistidos
   ${bold("forge decide")} <gate> <go|kill|retry> [feedback…] [--app X]
-  ${bold("forge target")} <app> <cf-pages|cf-workers|vercel|gh-pages>   troca o alvo de deploy do run (sem recomeçar)
+  ${bold("forge target")} <app> <cf-pages|cf-workers|gh-pages>   troca o alvo de deploy do run (sem recomeçar)
   ${bold("forge restart")} [--force]  reinicia o server (carrega código novo do maestro; recusa se houver job vivo)
   ${bold("forge kill")} [app]     mata o run agora (executor + pipeline) — funciona sem gate
   ${bold("forge stop")} [app]     pausa a pipeline (job atual é morto)
@@ -1875,7 +1875,7 @@ Modos: full_auto (default; gates locais + B3 direto) · autopilot_to_gate (legad
   if (cmd === "target") {
     const [appId, target] = rest;
     if (!appId || !target) {
-      throw new Error("uso: forge target <app> <cf-pages|cf-workers|vercel|gh-pages> [--subdomain X]");
+      throw new Error("uso: forge target <app> <cf-pages|cf-workers|gh-pages> [--subdomain X]");
     }
     await ensureServer();
     const r = await api("/api/pipeline/target", { appId, target, subdomain: flags.subdomain });

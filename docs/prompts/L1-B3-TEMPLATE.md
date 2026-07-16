@@ -1,4 +1,4 @@
-# L1 / B3 — Template de prompt denso (GLM 5.2 MAX)
+﻿# L1 / B3 — Template de prompt denso (GLM 5.2 MAX)
 
 > Agente de coding **não implementa** UI forte. Copia este template para  
 > `workbench/prompts-glm/L1-B3-<app>-<slug>.md`, preenche `<<< >>>`,  
@@ -27,7 +27,7 @@ GLM executa bem; **sem direção visual o resultado é form genérico**.
 Você é front-end senior mobile-first de apps anime (dark, glow, hierarchy — sem AI slop).
 
 # Contexto
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 App: apps/<<<id>>>
 Dev: <<<comando e porta — checar se porta não é Docker 3001 “Running”>>>
 Contrato: AGENTS.md · claim L1/B3 · workbench/

@@ -1,10 +1,10 @@
-# FEEDBACK / ITERATE — aplicar feedback geral do dono (1 iteração)
+﻿# FEEDBACK / ITERATE — aplicar feedback geral do dono (1 iteração)
 
 > Usado pelo autopilot no `forge feedback <app> "<texto>"`. O executor recebe o feedback
 > bruto do dono e aplica no app SEM quebrar o que já funciona.
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Loop: FEEDBACK · Job: ITERATE
 App: apps/<<<id>>>
 
@@ -27,6 +27,6 @@ Constraints:
 - Sem IP de estúdios/personagens licenciados; sem dependência nova se CSS/stdlib resolve.
 - NÃO rode git commit/push — o orquestrador Forge cuida do git.
 
-VERIFY (o orquestrador confere): npm run build -w @anime-forge/<<<id>>> EXIT 0.
+VERIFY (o orquestrador confere): npm run build -w @forge/<<<id>>> EXIT 0.
 Ao final: atualize workbench/HANDOFF.md com 2-3 linhas (o que mudou por ponto do feedback).
 ```

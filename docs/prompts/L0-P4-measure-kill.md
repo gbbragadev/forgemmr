@@ -1,7 +1,7 @@
-# L0 / P4–P5 — Measure → Kill|Scale (1 iteração)
+﻿# L0 / P4–P5 — Measure → Kill|Scale (1 iteração)
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Leia HANDOFF + PLAYBOOK.
 Loop: L0 · Steps P4 Measure + P5 Kill|Scale
 Sem código salvo se for só decisão.

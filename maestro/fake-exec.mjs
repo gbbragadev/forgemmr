@@ -4,6 +4,7 @@
  * mínimos que o verify espera, sem tocar em código real.
  *
  * FORGE_FAKE_FAIL no prompt → exit 1 (testa retry/rollback/L2).
+ * FORGE_FAKE_DELAY_MS — atraso opcional (default 0; antes era 800ms fixo).
  */
 
 import fs from "node:fs";
@@ -52,7 +53,8 @@ if (improveOut) {
   process.exit(0);
 }
 
-await sleep(800);
+const delayMs = Number(process.env.FORGE_FAKE_DELAY_MS ?? 0);
+if (Number.isFinite(delayMs) && delayMs > 0) await sleep(delayMs);
 
 if (process.env.FORGE_FAKE_ECHO !== undefined) console.log(goal.slice(0, 2000));
 
@@ -64,7 +66,12 @@ if (/FORGE_FAKE_FAIL/.test(goal)) {
 // Escreve artefato declarativo quando FORGE_FAKE_OUTFILE é set (dry-run de gameads etc.)
 const outFile = process.env.FORGE_FAKE_OUTFILE;
 if (outFile) {
-  const target = path.isAbsolute(outFile) ? outFile : path.join(ROOT, outFile);
+  // rejeita traversal; absolute é ok (dry-run grava em tmpdir de teste)
+  if (String(outFile).includes("\0") || String(outFile).split(/[/\\]/).some((p) => p === "..")) {
+    console.error("✗ FORGE_FAKE_OUTFILE inválido (.. ou null byte)");
+    process.exit(1);
+  }
+  const target = path.isAbsolute(outFile) ? path.resolve(outFile) : path.resolve(ROOT, outFile);
   const sections = (process.env.FORGE_FAKE_SECTIONS || "").split("|").filter(Boolean);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const lines = [`# ${job} — ${appId} (dry-run)`];

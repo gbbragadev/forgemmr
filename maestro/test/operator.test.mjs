@@ -10,12 +10,26 @@ test("readIntakeSource accepts inline text, files and folders with a stable dige
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-intake-"));
   fs.writeFileSync(path.join(root, "plan.md"), "# Plano\nUma pipeline de revisão.");
   fs.writeFileSync(path.join(root, ".env"), "SECRET=do-not-read");
-  const folder = await readIntakeSource(root);
+  const folder = await readIntakeSource(root, { root });
   assert.match(folder.text, /pipeline de revisão/);
   assert.doesNotMatch(folder.text, /do-not-read/);
   assert.match(folder.digest, /^sha256:[a-f0-9]{64}$/);
-  const inline = await readIntakeSource("Uma ideia curta");
+  const inline = await readIntakeSource("Uma ideia curta", { root });
   assert.equal(inline.kind, "inline");
+});
+
+test("readIntakeSource bloqueia path fora do root e hosts privados", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-intake-safe-"));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "forge-intake-out-"));
+  fs.writeFileSync(path.join(root, "ok.md"), "dentro");
+  fs.writeFileSync(path.join(outside, "segredo.md"), "não vaze");
+  try {
+    await assert.rejects(() => readIntakeSource(path.join(outside, "segredo.md"), { root }), /fora do repositório/i);
+    await assert.rejects(() => readIntakeSource("http://127.0.0.1/secret", { root }), /bloqueado/i);
+    await assert.rejects(() => readIntakeSource("http://169.254.169.254/latest", { root }), /bloqueado/i);
+  } finally {
+    fs.rmSync(outside, { recursive: true, force: true });
+  }
 });
 
 test("triage never silently changes Forge and flags high-stakes plans for review", () => {

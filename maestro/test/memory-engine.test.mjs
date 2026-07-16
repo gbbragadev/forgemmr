@@ -103,7 +103,9 @@ test("engine injeta briefing como dado não confiável e memoriza outcome e deci
     job: "MEMORY-JOB",
     playerId: "fake-memory",
   });
-  const prompt = fs.readFileSync(path.join(root, "maestro", ".run-goal.txt"), "utf8");
+  const goalPath = path.join(root, "maestro", "runs", paused.runId, "goal.txt");
+  assert.ok(fs.existsSync(goalPath), `goal por run em ${goalPath}`);
+  const prompt = fs.readFileSync(goalPath, "utf8");
   assert.match(prompt, /INÍCIO CONTEXTO NÃO CONFIÁVEL/);
   assert.match(prompt, /MEMÓRIA DO FORGE NEXUS/);
   assert.match(prompt, /Use npm\.cmd no Windows/);

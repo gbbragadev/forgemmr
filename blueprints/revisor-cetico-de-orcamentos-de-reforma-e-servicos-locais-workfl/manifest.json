@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "revisor-cetico-de-orcamentos-de-reforma-e-servicos-locais-workfl",
+  "name": "Revisor cético de orçamentos de reforma e serviços locais workflow",
+  "title": "Revisor cético de orçamentos de reforma e serviços locais — workflow",
+  "purpose": "Contrato derivado pelo Forge Operator para reforma.",
+  "activeVersion": "sha256-7668af0b1a0a32ca0e7711cbd7afaca09e69e47c69474d06766251d435982afa",
+  "archived": false,
+  "createdAt": "2026-07-16T08:35:55.425Z",
+  "updatedAt": "2026-07-16T08:35:55.425Z",
+  "derivedFrom": null,
+  "versions": [
+    {
+      "id": "sha256-7668af0b1a0a32ca0e7711cbd7afaca09e69e47c69474d06766251d435982afa",
+      "parent": null,
+      "reason": "operator-intake",
+      "createdAt": "2026-07-16T08:35:55.425Z"
+    }
+  ]
+}

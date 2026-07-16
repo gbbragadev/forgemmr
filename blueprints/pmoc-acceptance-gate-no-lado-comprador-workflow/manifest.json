@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "pmoc-acceptance-gate-no-lado-comprador-workflow",
+  "name": "PMOC Acceptance Gate no lado comprador workflow",
+  "title": "PMOC Acceptance Gate no lado comprador — workflow",
+  "purpose": "Contrato derivado pelo Forge Operator para juridico.",
+  "activeVersion": "sha256-1993f723b06ae3bd74cd6b05511304915c74ab487e6df8337eae25b8d4e3f42a",
+  "archived": false,
+  "createdAt": "2026-07-16T05:57:24.491Z",
+  "updatedAt": "2026-07-16T05:57:24.491Z",
+  "derivedFrom": null,
+  "versions": [
+    {
+      "id": "sha256-1993f723b06ae3bd74cd6b05511304915c74ab487e6df8337eae25b8d4e3f42a",
+      "parent": null,
+      "reason": "operator-intake",
+      "createdAt": "2026-07-16T05:57:24.491Z"
+    }
+  ]
+}

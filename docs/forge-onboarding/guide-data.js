@@ -202,7 +202,7 @@ export const COMMANDS = [
     command: "npm run forge -- target meu-app cf-pages",
     category: "decide",
     intent: "Trocar o alvo de deploy",
-    keywords: "vercel workers gh-pages cloudflare",
+    keywords: "workers gh-pages cloudflare pages domínio",
     note: "Troca o target sem recomeçar a ideia.",
   },
   {

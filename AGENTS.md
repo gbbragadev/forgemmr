@@ -129,8 +129,8 @@ npm run build:quiz
 
 | Free path | Preferência |
 |-----------|-------------|
-| Static export | GitHub Pages (`.github/workflows/…`) |
-| API routes | Vercel (`VERCEL_TOKEN` ou login) |
+| Static export | Cloudflare Pages → `<app>.gbbragadev.com` (ou domínio do profile) · GH Pages como alternativa |
+| API routes | Cloudflare Workers (OpenNext) → mesmo padrão de domínio |
 
 Live exemplo quiz: https://gbbragadev.github.io/anime-forge/
 

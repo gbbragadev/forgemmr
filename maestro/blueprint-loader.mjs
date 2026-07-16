@@ -10,16 +10,37 @@ export function interpolate(tpl, ctx = {}) {
   });
 }
 
+/** Id de blueprint seguro (sem path traversal). `generic` é sentinela. */
+export function assertSafeBlueprintId(id) {
+  const s = String(id || "");
+  if (s !== "generic" && !/^[a-z0-9][a-z0-9-]{0,62}$/.test(s)) {
+    throw new Error(`blueprint id inválido: ${s.slice(0, 40)}`);
+  }
+  return s;
+}
+
+/** Resolve path relativo sob root; rejeita absolute, null bytes e `..`. */
+export function assertSafeRepoRelPath(root, rel) {
+  const raw = String(rel || "");
+  if (!raw || path.isAbsolute(raw) || raw.includes("\0")) throw new Error("path inválido");
+  if (raw.split(/[/\\]/).some((p) => p === "..")) throw new Error("path não pode conter ..");
+  const resolved = path.resolve(root, raw);
+  const base = path.resolve(root);
+  if (resolved !== base && !resolved.startsWith(base + path.sep)) {
+    throw new Error("path fora do repo");
+  }
+  return resolved;
+}
+
 /**
  * Carrega um blueprint. `generic` (ou ausente) = sentinela: o engine usa os
  * defaults internos (JOBS_BY_CAPABILITY / GATES_AFTER / switch de verify).
  * Blueprints externos vêm de blueprints/<name>/blueprint.json.
  */
 export function loadBlueprint(name, { root }) {
-  const bpName = name || "generic";
+  const bpName = assertSafeBlueprintId(name || "generic");
   if (bpName === "generic") return { name: "generic", external: false };
 
-  const dir = path.join(root, "blueprints", bpName);
   const { file, manifest } = activeBlueprintFile(root, bpName);
   if (manifest?.archived) throw new Error(`blueprint "${bpName}" está arquivado`);
   if (!fs.existsSync(file)) {
@@ -40,8 +61,14 @@ export function loadBlueprint(name, { root }) {
     if (!spec || !spec.verify || !["file", "builtin"].includes(spec.verify.type)) {
       throw new Error(`blueprint "${bpName}": job "${jobId}" precisa de verify file ou builtin`);
     }
-    if (spec.verify.type === "file" && !spec.verify.path) {
-      throw new Error(`blueprint "${bpName}": job "${jobId}" precisa de verify.path`);
+    if (spec.verify.type === "file") {
+      if (!spec.verify.path) {
+        throw new Error(`blueprint "${bpName}": job "${jobId}" precisa de verify.path`);
+      }
+      const rawPath = String(spec.verify.path);
+      if (path.isAbsolute(rawPath) || rawPath.includes("\0") || rawPath.split(/[/\\]/).some((p) => p === "..")) {
+        throw new Error(`blueprint "${bpName}": verify.path inseguro em "${jobId}"`);
+      }
     }
     jobSpecs[jobId] = {
       template: spec.template || null,

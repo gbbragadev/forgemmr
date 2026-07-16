@@ -1,7 +1,7 @@
-# L2 — Handoff entre agentes (1 iteração)
+﻿# L2 — Handoff entre agentes (1 iteração)
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Loop: L2 Agent Handoff
 Eu estou trocando de provedor (Codex ↔ Claude ↔ Grok ↔ Gemini) por limite/contexto.
 

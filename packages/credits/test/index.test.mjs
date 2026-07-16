@@ -8,6 +8,10 @@ import {
   checkCredits,
   consumeCredit,
   freeRemaining,
+  parseGuestCreditState,
+  sealCredits,
+  openCredits,
+  sanitizeChatMessages,
 } from "../src/index.ts";
 
 // Helper: create a date at UTC midnight for a given YYYY-MM-DD
@@ -432,4 +436,54 @@ test("freeRemaining em dia novo restaura quota", () => {
   const remaining = freeRemaining(stateYesterday, dateAtUTC("2026-07-16"));
 
   assert.equal(remaining, 10, "quota deve ser restaurada no novo dia");
+});
+
+test("parseGuestCreditState ignora coins e weeklyUntil forjados", () => {
+  const raw = JSON.stringify({
+    day: "2026-07-16",
+    used: 1,
+    freePerDay: 99,
+    coins: 9999,
+    weeklyUntil: "2099-01-01T00:00:00.000Z",
+  });
+  const state = parseGuestCreditState(raw, 3);
+  assert.equal(state.coins, 0);
+  assert.equal(state.weeklyUntil, null);
+  assert.equal(state.freePerDay, 3);
+  assert.equal(state.used, 1);
+});
+
+test("parseGuestCreditState clampa used negativo e acima do free", () => {
+  const state = parseGuestCreditState(JSON.stringify({ used: -5, day: "2026-07-16" }), 5);
+  assert.equal(state.used, 0);
+  const state2 = parseGuestCreditState(JSON.stringify({ used: 99, day: "2026-07-16" }), 5);
+  assert.equal(state2.used, 5);
+});
+
+test("sealCredits/openCredits roundtrip e rejeita tamper", () => {
+  const secret = "test-secret-not-for-prod";
+  const sealed = sealCredits(createInitialState(5), secret);
+  const opened = openCredits(sealed, secret, 5);
+  assert.equal(opened.freePerDay, 5);
+  assert.equal(opened.used, 0);
+  const tampered = sealed.slice(0, -4) + "xxxx";
+  const fallback = openCredits(tampered, secret, 5);
+  assert.equal(fallback.used, 0);
+  assert.equal(fallback.freePerDay, 5);
+});
+
+test("sanitizeChatMessages limita roles, contagem e tamanho", () => {
+  const out = sanitizeChatMessages(
+    [
+      { role: "system", content: "nope" },
+      { role: "user", content: "a".repeat(5000) },
+      { role: "assistant", content: "ok" },
+      { role: "user", content: "   " },
+    ],
+    { maxMsg: 16, maxContent: 2000 }
+  );
+  assert.equal(out.length, 2);
+  assert.equal(out[0].role, "user");
+  assert.equal(out[0].content.length, 2000);
+  assert.equal(out[1].role, "assistant");
 });

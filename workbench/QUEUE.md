@@ -8,14 +8,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Backlog
 
-
 - [ ] **L0/P4** Measure revisor-cetico-de (5–7d) — **humano** · https://revisor-cetico-de.gbbragadev.com
-- [ ] **L0/P1** Content hooks pmoc-acceptance-gate — 15 hooks B2B + CTA piloto (pós GO condicionado P0)
-
-
-
-
-
+- [ ] **L0/P4** Measure / piloto pmoc-acceptance-gate — conversas + 1 PDF real (kill 30–45d) · hooks em `apps/pmoc-acceptance-gate/docs/content-hooks.md`
 - [ ] **L0/P4** Measure revisor-cetico-de (5–7d) — **humano** · https://revisor-cetico-de.gbbragadev.com
 - [ ] **L0/P4** Measure revisor-cetico-de (5–7d) — **humano** · https://revisor-cetico-de.gbbragadev.com
 - [ ] **L0/P4** Measure doki-call (5–7d) — **humano** · https://doki-call.gbbragadev.com
@@ -27,25 +21,47 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
-- [ ] **L0/P1** pmoc-acceptance-gate — forge autopilot
+- [ ] **L1/B3** revisor-cetico-de — forge autopilot
+- [ ] **META/P3** Corrigir feedback de deploy — interpretar domínio completo/provider e aplicar target + baseUrl + subdomain — Codex
 ## Done
 
+- [x] **L1/B2** revisor-cetico-de — forge/claude-opus (2026-07-16)
+- [x] **L1/B2** revisor-cetico-de — forge/claude-opus (2026-07-16)
+- [x] **L1/B2** revisor-cetico-de — forge/claude-opus (2026-07-16) · `content/personas/revisor-pack-v3.json` 3 lentes densas pt-BR (engenheiro-cetico/cliente-escaldado/orcamentista-experiente) = as 3 do system design aprovado · wire `app.config.ts` + fixture + test · 9/9 critérios com dono, 0 órfãos · guardrails do v2 (evidência/escalonamento) dobrados nas 3 · build EXIT 0 · test 6/6 · próximo: **L1/B3** UI Prancheta Clara
+
+- [x] **L1/B1** revisor-cetico-de — forge/claude-opus (2026-07-16)
+- [x] **L1/B1** revisor-cetico-de — forge/claude-opus (2026-07-16) · scaffold Next server capability chat (Prancheta Clara) · fluxo achados por lente → gate humano → relatório · 9 critérios versionados · build EXIT 0 · test 5/5 · smoke free path sem key · próximo: **L1/B2** (reconciliar lentes com o system design)
+
+- [x] **L1/B5** pmoc-acceptance-gate — forge/ggg-gemini3 (2026-07-16)
+- [x] **ITERATE** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **SIMULATE** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **L1/B5** pmoc-acceptance-gate — forge/ggg-gemini3 (2026-07-16)
+- [x] **L1/B5** pmoc-acceptance-gate — Gemini (agy) · ship check PASS (command execution BLOCKED by sandbox config)
+- [x] **L0/P1** revisor-cetico-de — forge/claude-opus (2026-07-16)
+- [x] **L0/P1** revisor-cetico-de — forge/claude-opus (2026-07-16) · 15 hooks pt-BR Reels/TikTok/IG + CTA `link na bio` → WhatsApp · `apps/revisor-cetico-de/docs/content-hooks.md` · próximo: gate `p1-signal` (humano)
+- [x] **DS-GEN** revisor-cetico-de — forge/claude-opus (2026-07-16)
+- [x] **L1/B4** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **L1/B4** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16) · chat+credits+health wire · smoke 200 · build EXIT 0 · test 6/6
+- [x] **FOUNDATION** revisor-cetico-de — forge/claude-opus (2026-07-16)
+- [x] **L1/B3** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **L1/B3** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16) · Fiscal Clean UI real · build EXIT 0 · test 6/6
+- [x] **L1/B2** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **L1/B2** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16) · personas v2 (5) + ruleset v2 (24 densas) · test 6/6 · build EXIT 0
+- [x] **L0/P0** revisor-cetico-de — forge/claude-opus (2026-07-16)
+- [x] **L1/B1** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **L1/B1** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16) · scaffold Next server + regras + matriz + gate · build EXIT 0 · test 5/5
+- [x] **L0/P1** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **L0/P1** pmoc-acceptance-gate — 15 hooks B2B LinkedIn/WhatsApp + CTA piloto · `apps/pmoc-acceptance-gate/docs/content-hooks.md` (2026-07-16, Grok)
 - [x] **DS-GEN** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
 - [x] **DS-GEN** pmoc-acceptance-gate — 3 HTML + design-system.md · rec. proposta 1 Fiscal Clean (2026-07-16, Grok)
 - [x] **FOUNDATION** pmoc-acceptance-gate — system-design.md (2026-07-16)
 - [x] **L0/P0** pmoc-acceptance-gate — scorecard GO condicionado (2026-07-16)
-
-
 
 - [x] **META/P3** Hardening Cloudflare Pages — production branch real + canonical deployment novo + binding/CNAME/HTTP 2xx fail-closed · revisor live HTTP 200 (2026-07-16)
 
 - [x] **META/L1** Full auto real — gates locais auditáveis, DS recomendado, B3 direto pelo time escolhido, parada em fronteiras externas · 195 pass / 1 skip (2026-07-16)
 
 - [x] **META/L1** Skill local `forge-operator` - Codex/Claude orquestram ideia -> profile/blueprint/time/pipeline -> inicio + acompanhamento real (2026-07-16)
-
-
-
-
 
 - [x] **META/L2** Gemini Antigravity + strict provider end-to-end — smoke real Gemini 3.1 Pro, 190 testes, sem API key (2026-07-15)
 - [x] **META/L1** Forge Operator + Blueprint Studio + Startup User Simulator + Run Console — 188 testes, types/builds verdes, branch local `feat/forge-operator`, sem push/deploy (2026-07-14)

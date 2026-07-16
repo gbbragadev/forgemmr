@@ -1,5 +1,5 @@
 /**
- * Deploy pipeline — Cloudflare Pages / GitHub Pages / Vercel.
+ * Deploy pipeline — Cloudflare Pages / GitHub Pages / Cloudflare Workers.
  *
  * Contrato (chamado por engine.mjs):
  *   const { deployApp } = await import("./deploy.mjs");
@@ -12,11 +12,22 @@ import fs from "node:fs";
 import path from "node:path";
 
 // Pins deliberados: deploy nunca executa código flutuante com tokens de produção.
-const WRANGLER = "wrangler@4.108.0"; // versão comprovada no package-lock/node_modules
-const VERCEL = "vercel"; // somente instalação local; adicionar ao lockfile antes de habilitar
+const WRANGLER = "wrangler@4.108.0"; // Pages (pin histórico comprovado)
+const OPENNEXT_CF = "@opennextjs/cloudflare@1.20.1"; // alinhado a apps chat no lockfile
 const CLOUDFLARE_PAGES_PRODUCTION_BRANCH = "master";
+/** Alvos oficiais: CF Pages (static) · CF Workers (API/SSR) · GH Pages. Domínio = baseUrl do profile (ex.: gbbragadev.com). */
+const SUPPORTED_TARGETS = "cf-pages | cf-workers | gh-pages";
 
 // ---------- helpers ----------
+
+/** Nome de env var seguro p/ interpolar em shell (wrangler secret put). */
+export function assertSafeEnvKey(name) {
+  const key = String(name || "").trim();
+  if (!/^[A-Z][A-Z0-9_]{0,63}$/.test(key)) {
+    throw new Error(`ai.envKey inválido: ${key.slice(0, 40)}`);
+  }
+  return key;
+}
 
 /** Fetch wrapper com timeout e retry automático para rate-limit */
 async function fetch_safe(url, opts = {}, retryCount = 0) {
@@ -436,47 +447,10 @@ async function deployToGitHubPages(pipeline, { root, log, limits, profileDeploy 
   };
 }
 
-/** Vercel deploy */
-async function deployToVercel(pipeline, { root, log, limits }) {
-  const token = process.env.VERCEL_TOKEN;
-  if (!token) {
-    return {
-      ok: false,
-      error: "VERCEL_TOKEN não está no ambiente",
-      fallbackSteps: [
-        "1. Crie token em vercel.com → Account Settings → Tokens",
-        "2. Configure VERCEL_TOKEN no ambiente",
-        "3. Redeploy",
-      ],
-    };
-  }
-
-  const { appId } = pipeline;
-  log(`▶ vercel deploy --prod ${appId}`);
-  const deployCmd = `npx --no-install ${VERCEL} deploy --prod --yes --cwd apps/${appId}`;
-  const deployRes = run(deployCmd, { VERCEL_TOKEN: token }, limits?.deployBuildTimeoutMs || 10 * 60 * 1000);
-
-  if (!deployRes.ok) {
-    return {
-      ok: false,
-      error: `vercel deploy falhou: ${deployRes.error}`,
-      fallbackSteps: [
-        "1. Verifique VERCEL_TOKEN em vercel.com",
-        "2. Execute `vercel link` em apps/" + appId,
-        "3. Redeploy",
-      ],
-    };
-  }
-
-  const match = deployRes.output.match(/https:\/\/[^\s]+/);
-  const url = match ? match[0] : `https://${appId}.vercel.app`;
-  log(`✓ ${url}`);
-  return { ok: true, url, dns: { status: "ok" } };
-}
-
 /**
  * Cloudflare Workers via OpenNext — Next.js COM rotas de API (SSR) rodando no Cloudflare.
  * (cf-pages só serve export estático: um app com /api/* perderia as rotas.)
+ * Domínio: `<subdomain>.<baseUrl>` (ex.: app.gbbragadev.com ou domínio custom no wrangler).
  */
 async function deployToCloudflareWorkers(pipeline, { root, log, limits, aiEnvKey }) {
   const { appId, deploy } = pipeline;
@@ -535,23 +509,28 @@ async function deployToCloudflareWorkers(pipeline, { root, log, limits, aiEnvKey
 
   // 3. build do worker (OpenNext converte o Next em Worker)
   log(`▶ opennextjs-cloudflare build (${appId})`);
-  const build = run(`npx --yes @opennextjs/cloudflare build`, {}, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, appDir);
+  const build = run(`npx --yes ${OPENNEXT_CF} build`, {}, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, appDir);
   if (!build.ok) {
     return {
       ok: false,
       error: "build do OpenNext falhou",
       errorTail: build.tail,
       fallbackSteps: [
-        `1. cd apps/${appId} && npx @opennextjs/cloudflare build`,
+        `1. cd apps/${appId} && npx ${OPENNEXT_CF} build`,
         "2. Rotas com APIs Node podem exigir ajuste (nodejs_compat já está ligado)",
       ],
     };
   }
 
-  // 4. secrets do produto (o app precisa da key em runtime — vai por stdin, nunca por argv/log)
-  const aiKey = aiEnvKey || "ZAI_API_KEY";
+  // 4. secrets do produto (stdin; envKey allowlist — nunca metacaracteres de shell)
+  let aiKey;
+  try {
+    aiKey = assertSafeEnvKey(aiEnvKey || "ZAI_API_KEY");
+  } catch (e) {
+    return { ok: false, error: String(e.message || e), fallbackSteps: ["Corrija profile.ai.envKey para [A-Z][A-Z0-9_]*"] };
+  }
   if (process.env[aiKey]) {
-    const put = run(`npx --yes wrangler secret put ${aiKey} --name ${appId}`, { CLOUDFLARE_API_TOKEN: CF_TOKEN }, 2 * 60 * 1000, appDir, process.env[aiKey]);
+    const put = run(`npx --yes ${WRANGLER} secret put ${aiKey} --name ${appId}`, { CLOUDFLARE_API_TOKEN: CF_TOKEN }, 2 * 60 * 1000, appDir, process.env[aiKey]);
     log(put.ok ? `✓ secret ${aiKey} publicado no worker` : `⚠ secret ${aiKey} não publicado (${String(put.error).slice(0, 60)}) — o app pode falhar em runtime`);
   } else {
     log(`⚠ ${aiKey} não está no ambiente — publique depois: wrangler secret put ${aiKey} --name ${appId}`);
@@ -559,7 +538,7 @@ async function deployToCloudflareWorkers(pipeline, { root, log, limits, aiEnvKey
 
   // 5. deploy
   log(`▶ wrangler deploy → ${domain}`);
-  const dep = run(`npx --yes wrangler deploy`, { CLOUDFLARE_API_TOKEN: CF_TOKEN }, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, appDir);
+  const dep = run(`npx --yes ${WRANGLER} deploy`, { CLOUDFLARE_API_TOKEN: CF_TOKEN }, limits?.deployBuildTimeoutMs || 10 * 60 * 1000, appDir);
   if (!dep.ok) {
     return {
       ok: false,
@@ -586,6 +565,12 @@ export async function deployApp(pipeline, opts) {
   const { deploy, appId } = pipeline;
   const { log } = opts;
 
+  // Legado: pipelines antigas com target vercel → Workers no domínio do profile (não Vercel).
+  if (deploy.target === "vercel") {
+    log(`⚠ target "vercel" foi removido — usando cf-workers em ${deploy.subdomain || appId}.${deploy.baseUrl || "domínio do profile"}`);
+    deploy.target = "cf-workers";
+  }
+
   log(`🚀 deploy ${appId} via ${deploy.target}`);
 
   try {
@@ -598,13 +583,10 @@ export async function deployApp(pipeline, opts) {
     if (deploy.target === "cf-workers") {
       return await deployToCloudflareWorkers(pipeline, opts);
     }
-    if (deploy.target === "vercel") {
-      return await deployToVercel(pipeline, opts);
-    }
     return {
       ok: false,
       error: `target desconhecido: ${deploy.target}`,
-      fallbackSteps: ["Targets suportados: cf-pages | cf-workers | vercel | gh-pages"],
+      fallbackSteps: [`Targets suportados: ${SUPPORTED_TARGETS}`],
     };
   } catch (e) {
     return {

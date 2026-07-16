@@ -1,7 +1,7 @@
-# L1 / B1 — Scaffold app (1 iteração)
+﻿# L1 / B1 — Scaffold app (1 iteração)
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Leia AGENTS.md + HANDOFF + QUEUE + scorecard do app se existir.
 Loop: L1 Build · Job: B1 Scaffold
 Claim exclusivo no app novo.
@@ -12,11 +12,11 @@ Pré-condição:
 
 Tarefa:
 1. apps/<id>/ (clone padrão mais próximo: waifu-chat chat | anime-quiz se static)
-2. package.json name @anime-forge/<id>
+2. package.json name @forge/<id>
 3. app.config.ts: id, seo, capabilities, personas/arquétipos, disclaimer
 4. Fluxo core mínimo (chat OU quiz OU outra capability claimada)
 5. Scripts root se precisar (dev:<id>, build:<id>)
-6. VERIFY: npm run build -w @anime-forge/<id> (ou build:quiz)
+6. VERIFY: npm run build -w @forge/<id> (ou build:quiz)
 
 Constraints:
 - YAGNI visual: texto seco / UI mínima é ACEITO no B1

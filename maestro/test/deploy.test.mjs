@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { cloudflarePagesDeployCommand, deployToCloudflarePages, waitUrl } from "../deploy.mjs";
+import { assertSafeEnvKey, cloudflarePagesDeployCommand, deployToCloudflarePages, waitUrl } from "../deploy.mjs";
 
 function fixture(appId = "demo-app") {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-deploy-"));
@@ -71,6 +71,14 @@ test("Cloudflare Pages usa master como branch de produção de projetos novos", 
   assert.match(command, /--project-name revisor-cetico-de/);
   assert.match(command, /--branch master/);
   assert.throws(() => cloudflarePagesDeployCommand("app;malicioso"), /appId inválido/i);
+});
+
+test("assertSafeEnvKey aceita nomes de env e rejeita metacaracteres de shell", () => {
+  assert.equal(assertSafeEnvKey("ZAI_API_KEY"), "ZAI_API_KEY");
+  assert.equal(assertSafeEnvKey("OPEN_ROUTER_API_KEY"), "OPEN_ROUTER_API_KEY");
+  assert.throws(() => assertSafeEnvKey("evil; calc"), /inválido/i);
+  assert.throws(() => assertSafeEnvKey("a$(id)"), /inválido/i);
+  assert.throws(() => assertSafeEnvKey("lowercase"), /inválido/i);
 });
 
 test("health pós-deploy rejeita 404 e aceita resposta 2xx", async () => {

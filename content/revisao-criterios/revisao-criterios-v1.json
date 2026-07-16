@@ -1,0 +1,52 @@
+{
+  "version": "v1",
+  "escopo": "Reforma residencial leve — Grande SP",
+  "limite": "Revisão documental e comercial com aceite humano. Não é laudo, parecer de engenharia, aprovação técnica, acusação de fraude nem garantia de preço correto.",
+  "criterios": [
+    {
+      "id": "itens-ausentes",
+      "titulo": "Itens ausentes",
+      "descricao": "Serviço ou material que o objetivo do comprador exige e nenhuma proposta descreve. Ausência é fato documental: registra o que não está escrito, sem afirmar intenção do fornecedor."
+    },
+    {
+      "id": "material-vs-padrao-local",
+      "titulo": "Especificação de material vs. padrão local",
+      "descricao": "Material sem marca, linha, dimensão ou norma declarada, ou abaixo do padrão usual da região para o uso pretendido. Comparar especificações entre propostas, nunca declarar material impróprio sem evidência."
+    },
+    {
+      "id": "escopo-ambiguo",
+      "titulo": "Escopo ambíguo",
+      "descricao": "Texto que admite mais de uma leitura de quantidade, área, acabamento ou limite de serviço — a origem clássica de discussão depois da assinatura."
+    },
+    {
+      "id": "garantias",
+      "titulo": "Garantias reais",
+      "descricao": "Prazo, cobertura e forma de acionamento da garantia de serviço e de material. Garantia citada sem prazo ou sem cobertura é lacuna, não promessa."
+    },
+    {
+      "id": "responsabilidades",
+      "titulo": "Responsabilidades",
+      "descricao": "Quem fornece material, quem remove entulho, quem responde por dano a terceiros, quem trata água/luz da obra e quem cuida de aprovação em condomínio."
+    },
+    {
+      "id": "pagamento",
+      "titulo": "Condições de pagamento",
+      "descricao": "Cronograma versus entrega física, tamanho do sinal, vínculo entre parcela e etapa concluída e proteção do comprador em caso de abandono."
+    },
+    {
+      "id": "aditivos-provaveis",
+      "titulo": "Aditivos prováveis",
+      "descricao": "Ponto do escopo com chance concreta de virar custo extra (medição por m² sem levantamento, 'a definir', imprevisto de demolição leve). Descrever a probabilidade e a origem documental, nunca prometer valor final."
+    },
+    {
+      "id": "risco-retrabalho",
+      "titulo": "Risco de retrabalho",
+      "descricao": "Sequência de serviço, prazo de cura, compatibilidade entre etapas e preparo de base que, do jeito descrito, tende a exigir refação."
+    },
+    {
+      "id": "perguntas-ao-fornecedor",
+      "titulo": "Perguntas ao fornecedor",
+      "descricao": "Pergunta objetiva que o comprador deve fazer antes de assinar para fechar a lacuna. É o entregável mais acionável e mantém o serviço no campo documental."
+    }
+  ]
+}

@@ -57,7 +57,7 @@ test("todos os writers sensíveis usam helpers privados e limpam prompts no suce
   const improver = source("maestro/improver.mjs");
 
   assert.match(engine, /openPrivateFile\(rawPath\)/);
-  assert.match(engine, /writePrivateFile\([^\n]*\.run-goal\.txt/);
+  assert.match(engine, /writePrivateFile\([^\n]*goal\.txt/);
   assert.match(engine, /status === "done"[\s\S]*cleanupExternalizedPrompts\(root\)/);
   assert.match(server, /openPrivateFile\(rawLogPath\)/);
   assert.match(server, /writePrivateFile\(goalFile/);

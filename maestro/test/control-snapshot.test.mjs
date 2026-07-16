@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { buildControlSnapshot } from "../control/snapshot.mjs";
+import { buildControlSnapshot, clearControlSnapshotCache } from "../control/snapshot.mjs";
 import { createOperationStore } from "../control/store.mjs";
 
 function fixtureRoot() {
@@ -56,6 +56,7 @@ test("snapshot reúne a fábrica, ordena pipelines e descreve somente ações v�
   const root = fixtureRoot();
   const secret = "control-secret-123456789";
   process.env.CONTROL_SECRET_TOKEN = secret;
+  clearControlSnapshotCache();
   try {
     const snapshot = buildControlSnapshot({
       root,
@@ -115,13 +116,33 @@ test("snapshot reúne a fábrica, ordena pipelines e descreve somente ações v�
 
 test("versão ignora o relógio, mas muda quando o estado muda", () => {
   const root = fixtureRoot();
+  clearControlSnapshotCache();
   try {
     const first = buildControlSnapshot({ root, engineManager: engineWith("x", "paused_gate"), operations: [], now: new Date(0) });
+    clearControlSnapshotCache();
     const later = buildControlSnapshot({ root, engineManager: engineWith("x", "paused_gate"), operations: [], now: new Date(1000) });
+    clearControlSnapshotCache();
     const changed = buildControlSnapshot({ root, engineManager: engineWith("x", "blocked"), operations: [], now: new Date(1000) });
     assert.equal(first.version, later.version);
     assert.notEqual(first.version, changed.version);
   } finally {
+    clearControlSnapshotCache();
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("snapshot cache reusa valor no TTL quando pipelines não mudam", () => {
+  const root = fixtureRoot();
+  clearControlSnapshotCache();
+  try {
+    const engine = engineWith("x", "paused_gate");
+    const t0 = new Date("2026-07-14T12:00:00.000Z");
+    const a = buildControlSnapshot({ root, engineManager: engine, operations: [], now: t0 });
+    const b = buildControlSnapshot({ root, engineManager: engine, operations: [], now: new Date(t0.getTime() + 500) });
+    assert.equal(a, b);
+    assert.equal(a.version, b.version);
+  } finally {
+    clearControlSnapshotCache();
     fs.rmSync(root, { recursive: true, force: true });
   }
 });

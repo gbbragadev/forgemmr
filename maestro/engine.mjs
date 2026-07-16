@@ -25,7 +25,7 @@ import {
   writePrivateFile,
 } from "./adapters.mjs";
 import * as workbench from "./workbench.mjs";
-import { loadBlueprint, interpolate } from "./blueprint-loader.mjs";
+import { loadBlueprint, interpolate, assertSafeRepoRelPath } from "./blueprint-loader.mjs";
 import { improvePrompt } from "./improver.mjs";
 import { recordDecision, writeApproval } from "./decisions.mjs";
 import { applySimulationResult, simulationArtifactPaths, validateSimulationReport } from "./simulator.mjs";
@@ -347,6 +347,87 @@ export function slugify(s) {
     .join("-");
 }
 
+const DEPLOY_HOST_LABEL = "[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?";
+const DEPLOY_HOST_RE = new RegExp(`(?:https?://)?(${DEPLOY_HOST_LABEL}(?:\\.${DEPLOY_HOST_LABEL})+)`, "i");
+
+function deployHostname(value, { allowSingleLabel = false } = {}) {
+  const text = String(value || "").trim().toLowerCase();
+  const domain = text.match(DEPLOY_HOST_RE)?.[1]?.replace(/\.$/, "") || null;
+  if (domain) return domain;
+  if (allowSingleLabel && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(text)) return text;
+  return null;
+}
+
+/** Aplica `sub.exemplo.com` como subdomain=`sub` + baseUrl=`exemplo.com`. */
+export function applyDeployDestination(deploy, destination) {
+  if (!deploy || !destination) return { valid: false, changed: false };
+  const hostname = deployHostname(destination, { allowSingleLabel: true });
+  if (!hostname) return { valid: false, changed: false };
+
+  const labels = hostname.split(".");
+  let subdomain = deploy.subdomain;
+  let baseUrl = deploy.baseUrl;
+  if (labels.length === 1) {
+    subdomain = slugify(hostname);
+  } else if (labels.length === 2) {
+    baseUrl = hostname;
+  } else {
+    const configuredBase = deployHostname(deploy.baseUrl);
+    if (configuredBase && hostname.endsWith(`.${configuredBase}`)) {
+      baseUrl = configuredBase;
+      subdomain = hostname.slice(0, -(configuredBase.length + 1));
+    } else {
+      baseUrl = labels.slice(-2).join(".");
+      subdomain = labels.slice(0, -2).join(".");
+    }
+  }
+
+  if (!subdomain || !baseUrl) return { valid: false, changed: false };
+  const changed = deploy.subdomain !== subdomain || deploy.baseUrl !== baseUrl;
+  if (changed) {
+    deploy.subdomain = subdomain;
+    deploy.baseUrl = baseUrl;
+    deploy.url = null;
+    deploy.dns = { status: "pending" };
+  }
+  return { valid: true, changed, hostname, subdomain, baseUrl };
+}
+
+/** Interpreta feedback natural de deploy sem enviar o texto ao shell. */
+export function applyDeployFeedback(pipeline, feedback, { deployContext = false } = {}) {
+  const text = String(feedback || "").trim();
+  if (!pipeline?.deploy || !text) return { changed: false };
+  const normalized = text.toLowerCase();
+  const hasDeployIntent = /\b(deploy|publique|publicar|publica|producao|produção|dominio|domínio|host|hosped)/i.test(normalized)
+    || /\b(cloudflare|cf|workers?|pages?|github)\b/i.test(normalized);
+  if (!deployContext && !hasDeployIntent) return { changed: false };
+
+  let target = null;
+  if (/\b(github|gh)\s*pages?\b/i.test(normalized)) target = "gh-pages";
+  else if (/\bcloudflare\s*pages?\b|\bcf\s*pages?\b/i.test(normalized)) target = "cf-pages";
+  else if (/\b(?:cloudflare\s*)?workers?\b|\bcf\s*workers?\b/i.test(normalized)) target = "cf-workers";
+  else if (/\bcloudflare\b|\bcf\b/i.test(normalized)) target = pipeline.capability === "chat" ? "cf-workers" : "cf-pages";
+
+  let changed = false;
+  const destination = deployHostname(text);
+  const destinationResult = destination ? applyDeployDestination(pipeline.deploy, destination) : { valid: false, changed: false };
+  changed ||= destinationResult.changed;
+
+  if (target && pipeline.deploy.target !== target) {
+    pipeline.deploy.target = target;
+    pipeline.deploy.url = null;
+    pipeline.deploy.dns = { status: "pending" };
+    changed = true;
+  }
+  if (target || destinationResult.valid) pipeline.deploy.autoTarget = false;
+
+  return {
+    changed,
+    target: target || null,
+    destination: destinationResult.valid ? `${pipeline.deploy.subdomain}.${pipeline.deploy.baseUrl}` : null,
+  };
+}
+
 /**
  * Resolve a lista de jobs + jobSpecs para uma pipeline. generic = defaults
  * internos (jobSpecs null → engine usa JOB_TEMPLATES/GATES_AFTER/switch).
@@ -391,8 +472,9 @@ const PROFILE_DEFAULTS = {
   i18n: { defaultLocale: "pt-BR", locales: ["pt-BR"], rule: "single" },
   ui: { theme: "", designSystem: "", tokenPrefix: "--af-" },
   // staticHost: app sem backend (export estático) · serverHost: app com rotas de API
-  // alvos: cf-pages (estático) · cf-workers (Next SSR no Cloudflare, via OpenNext) · vercel · gh-pages
-  deploy: { baseUrl: "example.com", staticHost: "cf-pages", serverHost: "cf-workers", ghPagesUrl: "https://gbbragadev.github.io/anime-forge" },
+  // alvos: cf-pages (estático) · cf-workers (Next SSR no Cloudflare/OpenNext) · gh-pages
+  // domínio: baseUrl do profile (ex. gbbragadev.com) ou custom no wrangler — sem Vercel
+  deploy: { baseUrl: "gbbragadev.com", staticHost: "cf-pages", serverHost: "cf-workers", ghPagesUrl: "https://gbbragadev.github.io/anime-forge" },
   git: { targetBranch: "master", commitPrefix: "forge" },
   legal: { ipRules: [] },
   capabilities: ["static", "quiz", "chat"],
@@ -486,7 +568,7 @@ export function buildProfileMd(data) {
     namespace: oneline(namespace),
     niche: oneline(niche),
     i18n: { defaultLocale: "pt-BR", locales, rule: i18nRule },
-    deploy: { baseUrl: oneline(baseUrl), staticHost: "cf-pages", serverHost: "vercel" },
+    deploy: { baseUrl: oneline(baseUrl), staticHost: "cf-pages", serverHost: "cf-workers" },
     git: { targetBranch: "master", commitPrefix: "forge" },
     capabilities,
   };
@@ -930,7 +1012,12 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     // caminho declarativo (blueprints externos): verify por arquivo + seções
     const spec = p.jobSpecs && p.jobSpecs[job];
     if (spec && spec.verify && spec.verify.type === "file") {
-      const f = path.join(root, spec.verify.path);
+      let f;
+      try {
+        f = assertSafeRepoRelPath(root, spec.verify.path);
+      } catch {
+        return { pass: false, detail: `verify.path inseguro: ${spec.verify.path}` };
+      }
       if (!fs.existsSync(f)) return { pass: false, detail: `faltou ${spec.verify.path}` };
       if (spec.verify.sections && spec.verify.sections.length) {
         const txt = fs.readFileSync(f, "utf8");
@@ -1072,7 +1159,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       const rawPath = path.join(runDir, `${job.replace("/", "-")}-${Date.now()}.raw.log`);
       const rawFd = openPrivateFile(rawPath);
 
-      writePrivateFile(path.join(root, "maestro", ".run-goal.txt"), prompt);
+      writePrivateFile(path.join(runDir, "goal.txt"), prompt);
       const mlabel = player.modelLabel ? ` · ${player.modelLabel}${player.effort ? " " + String(player.effort).toUpperCase() : ""}` : "";
       log(`▶ ${job} → ${player.name}${mlabel} (${player.cli}${player.env ? "/" + player.env : ""})`);
       log(`  raw → ${path.relative(root, rawPath)}`);
@@ -1680,7 +1767,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     return snapshot();
   }
 
-  /** static (output: "export") → cf-pages · senão app server → vercel */
+  /** static (output: "export") → cf-pages · senão app server → cf-workers */
   function detectCapability(appId) {
     for (const f of ["next.config.ts", "next.config.mjs", "next.config.js"]) {
       try {
@@ -1735,6 +1822,17 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
     const capability = detectCapability(appId);
     const prevDeploy = lastDeployFor(appId);
+    const deployConfig = {
+      target: params.target || prevDeploy?.target || (capability === "chat" ? profile.deploy.serverHost : profile.deploy.staticHost),
+      autoTarget: !params.target,
+      subdomain: slugify(prevDeploy?.subdomain || appId),
+      baseUrl: prevDeploy?.baseUrl || profile.deploy.baseUrl,
+      url: null,
+      dns: { status: "pending" },
+    };
+    if (params.subdomain && !applyDeployDestination(deployConfig, params.subdomain).valid) {
+      throw new Error(`destino de deploy inválido: ${params.subdomain}`);
+    }
     pipeline = {
       runId: new Date().toISOString().replace(/[:.]/g, "-"),
       appId,
@@ -1756,18 +1854,16 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       gates: [],
       history: [],
       cooldowns: {},
-      deploy: {
-        target: params.target || prevDeploy?.target || (capability === "chat" ? profile.deploy.serverHost : profile.deploy.staticHost),
-        subdomain: slugify(params.subdomain || prevDeploy?.subdomain || appId),
-        baseUrl: prevDeploy?.baseUrl || profile.deploy.baseUrl,
-        url: null,
-        dns: { status: "pending" },
-      },
+      deploy: deployConfig,
       startedAt: new Date().toISOString(),
       endedAt: null,
     };
+    const feedbackRouting = applyDeployFeedback(pipeline, feedbackText);
     log(`🔁 forge feedback · app=${appId} · fb${n} · team=${team}${dryRun ? " · DRY-RUN" : ""}`);
     log(`   "${feedbackText.slice(0, 140)}"`);
+    if (feedbackRouting.changed) {
+      log(`⌖ feedback de deploy aplicado → ${pipeline.deploy.target} · ${pipeline.deploy.subdomain}.${pipeline.deploy.baseUrl}`);
+    }
     workbench.handoffUpdate(paths, pipeline);
     save();
     advanceLoop();
@@ -1837,6 +1933,14 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     const gate = pipeline.gates.find((g) => g.id === gateId && !g.decision);
     if (!gate) throw new Error(`gate "${gateId}" não está pendente`);
     if (!gate.choices.includes(choice)) throw new Error(`escolha "${choice}" inválida — opções: ${gate.choices.join("|")}`);
+
+    const isDeployGate = gate.id === "deploy" || gate.id === "blocked-P3" || gate.afterJob === "P3";
+    if (choice !== "kill" && feedback && isDeployGate) {
+      const routing = applyDeployFeedback(pipeline, feedback, { deployContext: true });
+      if (routing.changed) {
+        log(`⌖ feedback de deploy aplicado → ${pipeline.deploy.target} · ${pipeline.deploy.subdomain}.${pipeline.deploy.baseUrl}`);
+      }
+    }
 
     gate.decision = choice;
     gate.decidedAt = new Date().toISOString();
@@ -1958,7 +2062,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     } catch {}
   }
 
-  const DEPLOY_TARGETS = ["cf-pages", "cf-workers", "vercel", "gh-pages"];
+  const DEPLOY_TARGETS = ["cf-pages", "cf-workers", "gh-pages"];
 
   function setControlMode(mode) {
     if (!pipeline) throw new Error("nenhuma pipeline");
@@ -1989,15 +2093,25 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     return snapshot();
   }
 
-  /** troca o alvo de deploy DESTE run (sem recomeçar). Ex.: run travado por VERCEL_TOKEN ausente. */
+  /** troca o alvo de deploy DESTE run (sem recomeçar). Ex.: run com target errado ou domínio custom. */
   function setTarget(target, subdomain) {
     if (!pipeline) return { ok: false, error: "nenhuma pipeline" };
+    // legado: "vercel" → cf-workers (upload só em baseUrl/domínio específico, nunca Vercel)
+    if (target === "vercel") target = "cf-workers";
     if (!DEPLOY_TARGETS.includes(target)) {
       return { ok: false, error: `alvo inválido: ${target} — use ${DEPLOY_TARGETS.join(" | ")}` };
     }
+    if (subdomain) {
+      const destination = applyDeployDestination(pipeline.deploy, subdomain);
+      if (!destination.valid) return { ok: false, error: `destino de deploy inválido: ${subdomain}` };
+    }
+    const targetChanged = pipeline.deploy.target !== target;
     pipeline.deploy.target = target;
     pipeline.deploy.autoTarget = false; // escolha explícita do dono manda no profile
-    if (subdomain) pipeline.deploy.subdomain = slugify(subdomain);
+    if (targetChanged) {
+      pipeline.deploy.url = null;
+      pipeline.deploy.dns = { status: "pending" };
+    }
     log(`✔ alvo de deploy: ${target} → ${pipeline.deploy.subdomain}.${pipeline.deploy.baseUrl}`);
     save();
     return { ok: true, deploy: pipeline.deploy };

@@ -1,7 +1,7 @@
-# L1 / B5 — Ship check (1 iteração)
+﻿# L1 / B5 — Ship check (1 iteração)
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Loop: L1 · Job: B5 Ship check
 App: <<< waifu-chat | anime-quiz | … >>>
 Claim curto.

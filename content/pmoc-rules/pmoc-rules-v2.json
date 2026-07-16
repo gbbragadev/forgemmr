@@ -1,0 +1,175 @@
+{
+  "version": "pmoc-rules-v2",
+  "normativeRegime": "documental-contratual-mvp",
+  "description": "Regras documentais de pré-aceite PMOC (lado comprador), pack B2 densificado. Completude e coerência contratual — não diagnosticam HVAC/QAI, não provam visita física e não atestam fraude material. Decisão final sempre humana.",
+  "rules": [
+    {
+      "id": "COV-01",
+      "class": "coverage",
+      "severity": "high",
+      "description": "Equipamento do inventário com periodicidade devida no período deve constar no relatório mensal. Lacuna típica: ativo no inventário-base sem linha de presença. Não prova se a visita física ocorreu — só ausência documental no pacote. Pedido usual: incluir linha do ativo com data/rotina do período.",
+      "version": "2"
+    },
+    {
+      "id": "COV-02",
+      "class": "coverage",
+      "severity": "high",
+      "description": "Quantidade de equipamentos do escopo contratado presentes no relatório não pode ser inferior ao contratado no período. Compara lista de equipamentos cobertos vs linhas present=true. Não julga capacidade técnica nem qualidade do ar.",
+      "version": "2"
+    },
+    {
+      "id": "COV-03",
+      "class": "coverage",
+      "severity": "medium",
+      "description": "Quando o contrato exige cobertura total, equipamento «sem ocorrência» ainda precisa de presença explícita no relatório. Evita omissão disfarçada de «nada a relatar». Escopo documental, não CMMS.",
+      "version": "2"
+    },
+    {
+      "id": "COV-04",
+      "class": "coverage",
+      "severity": "high",
+      "description": "Anexos obrigatórios do contrato (ex.: ART/TRT, relatório mensal, inventário) devem constar no pacote do período. Lista vem do ContractScope.anexosObrigatorios. Ausência = pendência administrativa para atesto, não laudo técnico.",
+      "version": "2"
+    },
+    {
+      "id": "COV-05",
+      "class": "coverage",
+      "severity": "medium",
+      "description": "Janela de medição do relatório (periodStart/End) deve coincidir com a janela contratada do período. Divergência impede conferência de cobertura e datas de evidência. Ajuste canônico ou reenvio do relatório do ciclo correto.",
+      "version": "2"
+    },
+    {
+      "id": "COV-06",
+      "class": "coverage",
+      "severity": "medium",
+      "description": "Cada unidade listada no contrato deve aparecer em ao menos uma linha do relatório do período. Útil em portfólios multi-unidade. Não inventa visitas por unidade — só presença documental.",
+      "version": "2"
+    },
+    {
+      "id": "COV-07",
+      "class": "coverage",
+      "severity": "low",
+      "description": "Fornecedor declarado no relatório deve coincidir com o fornecedor do contrato (comparação textual normalizada). Divergência sugere pacote de outro prestador ou erro de extrato — conferir antes do atesto.",
+      "version": "2"
+    },
+    {
+      "id": "INT-01",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Mesmo fingerprint de evidência fotográfica em mais de um item do lote indica reaproveitamento documental entre equipamentos/linhas. Sinal de conflito de evidência no pacote — não afirma fraude material nem invalida automaticamente o prestador. Pedido usual: fotos distintas por ativo com metadado de data.",
+      "version": "2"
+    },
+    {
+      "id": "INT-02",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Assinatura do responsável técnico deve estar presente no relatório (campo signaturePresent). Critério MVP: presença documental. Não verifica validade criptográfica, gov.br, VALIDAR/ITI nem força jurídica universal.",
+      "version": "2"
+    },
+    {
+      "id": "INT-03",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Quando há assinatura, o papel do signatário (signerRoleActual) deve corresponder ao papel esperado (tipicamente RT). Papel ausente ou divergente = pendência de identificação do responsável no pacote.",
+      "version": "2"
+    },
+    {
+      "id": "INT-04",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Data da assinatura deve existir se a assinatura está presente e cair na janela documental aceitável em relação à medição (início do período até margem curta após o fim). Fora da janela ou sem data = coerência temporal questionável no documento — não prova nem nega visita física.",
+      "version": "2"
+    },
+    {
+      "id": "INT-05",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Identificação do responsável técnico (nome e registro) deve constar no relatório. Campos rtName e rtRegistro. Incompleto impede rastreio administrativo do atesto; não substitui consulta a conselho profissional fora do app.",
+      "version": "2"
+    },
+    {
+      "id": "INT-06",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Marca e/ou modelo informados na linha do relatório devem coincidir com o inventário-base do ativo. Divergência de cadastro — pedir correção de ficha ou do relatório. Não é diagnóstico de desempenho do equipamento.",
+      "version": "2"
+    },
+    {
+      "id": "INT-07",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Capacidade do equipamento no relatório deve coincidir com o inventário (ex.: BTU/h ou TR declarados). Divergência documental de ficha técnica; sem juízo de carga térmica ou QAI.",
+      "version": "2"
+    },
+    {
+      "id": "INT-08",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Patrimônio (tag/plaqueta) no relatório deve coincidir com o inventário do ativo. Rastreio patrimonial do pacote de medição.",
+      "version": "2"
+    },
+    {
+      "id": "INT-09",
+      "class": "integrity",
+      "severity": "high",
+      "description": "Documento de assinatura/relatório deve estar legível (documentReadable). Arquivo corrompido ou ilegível impede conferência — pedir reenvio, não «adivinhar» conteúdo. Não é validação crypto de assinatura.",
+      "version": "2"
+    },
+    {
+      "id": "INT-10",
+      "class": "integrity",
+      "severity": "medium",
+      "description": "Data de captura da evidência fotográfica (capturedAt), quando informada, deve cair na janela do período contratado. Foto fora do ciclo = conflito temporal documental; não comprova geolocalização da visita.",
+      "version": "2"
+    },
+    {
+      "id": "INT-11",
+      "class": "integrity",
+      "severity": "low",
+      "description": "Evidências referenciadas nas linhas do relatório (evidenceIds) devem existir no pacote de evidências. Referência órfã = pacote incompleto para auditoria da matriz.",
+      "version": "2"
+    },
+    {
+      "id": "COR-01",
+      "class": "corrective",
+      "severity": "high",
+      "description": "Defeito ou ocorrência apontada na linha exige trilha: ação executada, OS, ou recomendação formal ao contratante. Narrativa de problema sem fechamento documental é candidata a pedido de correção ou retenção de atesto — não julga se a falha técnica é real.",
+      "version": "2"
+    },
+    {
+      "id": "COR-02",
+      "class": "corrective",
+      "severity": "high",
+      "description": "Troca de peça deve vincular OS, autorização/ação ou ocorrência no pacote. Peça sem vínculo impede reconstruir o que entrou na medição. Não é controle de estoque CMMS.",
+      "version": "2"
+    },
+    {
+      "id": "COR-03",
+      "class": "corrective",
+      "severity": "medium",
+      "description": "Indício de problema futuro registrado na linha deve gerar recomendação formal ao contratante. Sem recomendação, o comprador recebe alerta sem trilha de decisão. Escopo documental, não prognóstico de HVAC.",
+      "version": "2"
+    },
+    {
+      "id": "COR-04",
+      "class": "corrective",
+      "severity": "medium",
+      "description": "Ocorrência aberta sem ação, OS ou recomendação (inclui postergação justificada) permanece sem trilha de fechamento. Fiscal pode reter atesto até saneamento documental.",
+      "version": "2"
+    },
+    {
+      "id": "COR-05",
+      "class": "corrective",
+      "severity": "medium",
+      "description": "Quando o contrato exige referência à fatura/nota do período, o pacote deve informar invoiceRef. Liga medição ao ciclo de pagamento no eixo documental — o app não processa billing nem valida NF-e fiscalmente.",
+      "version": "2"
+    },
+    {
+      "id": "COR-06",
+      "class": "corrective",
+      "severity": "low",
+      "description": "Serviço corretivo ou sob demanda reportado em ativo que não existe no inventário-base quebra o vínculo inventário–relatório. Pedir inclusão no inventário ou correção do assetId. Não é ordem de serviço de campo.",
+      "version": "2"
+    }
+  ]
+}

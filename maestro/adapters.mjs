@@ -148,7 +148,6 @@ export function makeRedactor() {
   const names = new Set([
     "GLM_API_KEY",
     "CLOUDFLARE_API_TOKEN",
-    "VERCEL_TOKEN",
     "ANTHROPIC_AUTH_TOKEN",
     "ANTHROPIC_API_KEY",
     "OPEN_ROUTER_API_KEY",

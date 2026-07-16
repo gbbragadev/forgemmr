@@ -283,8 +283,10 @@ function startRun(goal, opts = {}, runtime = {}) {
   state.pid = null;
   broadcastStatus();
 
-  // Goal em arquivo — evita quebra de args no Windows/shell
-  const goalFile = path.join(__dirname, ".run-goal.txt");
+  // Goal em arquivo por ad-hoc run — evita race com pipelines concorrentes
+  const goalDir = path.join(__dirname, "runs", `adhoc-${Date.now()}`);
+  fs.mkdirSync(goalDir, { recursive: true });
+  const goalFile = path.join(goalDir, "goal.txt");
   try {
     writePrivateFile(goalFile, fullGoal);
   } catch (e) {

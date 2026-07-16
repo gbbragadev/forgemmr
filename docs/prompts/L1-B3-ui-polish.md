@@ -1,4 +1,4 @@
-# L1 / B3 — UI polish (1 iteração)
+﻿# L1 / B3 — UI polish (1 iteração)
 
 > **Regra de ouro:** frontend forte → **não implementar** no Grok/Codex/Claude coding.  
 > Gerar prompt **denso** com `docs/prompts/L1-B3-TEMPLATE.md` → salvar em  
@@ -7,7 +7,7 @@
 ## O que o agente coding faz nesta iteração
 
 ```
-Repo: C:\Dev\anime-forge
+Repo: C:\Dev\forge
 Loop: L1 · Job: B3 (delegado GLM)
 Claim: gerar prompt (não código UI pesado), salvo se VERIFY pós-GLM.
 
