@@ -1749,8 +1749,6 @@ Modos: full_auto (default; gates locais + B3 direto) · autopilot_to_gate (legad
     const operation = await executeControlAction("pipeline.ship", {
       target: flags.target || "cf-workers",
       subdomain: flags.subdomain,
-      controlMode: flags.controlMode || "full_auto",
-      dryRun: Boolean(flags.dryRun),
     }, appId);
     console.log(fg(GREEN, `✓ ship reaberto para ${appId} — gate deploy pendente`));
     if (operation.result?.runId) console.log(dim(`  run ${operation.result.runId}`));

@@ -475,28 +475,36 @@ async function deployToCloudflareWorkers(pipeline, { root, log, limits, aiEnvKey
     if (!r.ok) return { ok: false, error: `npm install do adapter falhou: ${r.error}`, fallbackSteps: [`Rode: npm install -D ${need.join(" ")} -w @forge/${appId}`] };
   }
 
-  // 2. config do worker (scaffold só se faltar — não sobrescreve ajuste manual)
+  // 2. config do worker (cria se faltar; se existir, só corrige routes.pattern se estiver errado)
   const wranglerPath = path.join(appDir, "wrangler.jsonc");
+  const wranglerScaffold = {
+    $schema: "node_modules/wrangler/config-schema.json",
+    name: appId,
+    main: ".open-next/worker.js",
+    compatibility_date: "2025-03-01",
+    compatibility_flags: ["nodejs_compat", "global_fetch_strictly_public"],
+    assets: { directory: ".open-next/assets", binding: "ASSETS" },
+    services: [{ binding: "WORKER_SELF_REFERENCE", service: appId }],
+    routes: [{ pattern: domain, custom_domain: true }],
+  };
   if (!fs.existsSync(wranglerPath)) {
-    fs.writeFileSync(
-      wranglerPath,
-      JSON.stringify(
-        {
-          $schema: "node_modules/wrangler/config-schema.json",
-          name: appId,
-          main: ".open-next/worker.js",
-          compatibility_date: "2025-03-01",
-          compatibility_flags: ["nodejs_compat", "global_fetch_strictly_public"],
-          assets: { directory: ".open-next/assets", binding: "ASSETS" },
-          services: [{ binding: "WORKER_SELF_REFERENCE", service: appId }],
-          routes: [{ pattern: domain, custom_domain: true }],
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
+    fs.writeFileSync(wranglerPath, JSON.stringify(wranglerScaffold, null, 2), "utf8");
     log(`✓ wrangler.jsonc criado (domínio ${domain})`);
+  } else {
+    try {
+      const raw = fs.readFileSync(wranglerPath, "utf8");
+      // jsonc: remove comentários de linha simples o suficiente p/ parse
+      const cfg = JSON.parse(raw.replace(/^\s*\/\/.*$/gm, ""));
+      const pattern = cfg?.routes?.[0]?.pattern;
+      if (pattern && pattern !== domain) {
+        cfg.routes = [{ pattern: domain, custom_domain: true }];
+        cfg.name = cfg.name || appId;
+        fs.writeFileSync(wranglerPath, JSON.stringify(cfg, null, 2) + "\n", "utf8");
+        log(`✓ wrangler.jsonc domínio atualizado: ${pattern} → ${domain}`);
+      }
+    } catch (e) {
+      log(`⚠ wrangler.jsonc existente não atualizado: ${String(e).slice(0, 120)}`);
+    }
   }
   const openNextPath = path.join(appDir, "open-next.config.ts");
   if (!fs.existsSync(openNextPath)) {
