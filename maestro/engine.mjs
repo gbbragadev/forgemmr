@@ -13,7 +13,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { spawn, execFileSync, execSync } from "node:child_process";
+import { spawn, execFileSync, exec } from "node:child_process";
+import { promisify } from "node:util";
 import {
   buildSpawn,
   cleanupExternalizedPrompts,
@@ -31,6 +32,9 @@ import { applySimulationResult, simulationArtifactPaths, validateSimulationRepor
 
 // porta do Maestro HQ (server.mjs) — usada nos prompts de gate visual (preview)
 const HQ_PORT = Number(process.env.MAESTRO_PORT || 8799);
+
+// async exec wrapper: um build de minutos NÃO pode congelar o event loop do server
+const execAsync = promisify(exec);
 
 const JOB_TEMPLATES = {
   "L0/P0": "L0-P0-scorecard.md",
@@ -921,7 +925,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
   // ---------- verify ----------
 
-  function verify(job) {
+  async function verify(job) {
     const p = pipeline;
     // caminho declarativo (blueprints externos): verify por arquivo + seções
     const spec = p.jobSpecs && p.jobSpecs[job];
@@ -1024,11 +1028,12 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     if (!/^@?[a-z0-9._-]+$/.test(profile.namespace))
       return { pass: false, detail: `namespace inválido no profile: ${profile.namespace}` };
     try {
-      execSync(`npm run build -w ${profile.namespace}/${p.appId}`, {
+      // async: um build de minutos NÃO pode congelar o event loop do server (SSE/gates/N pipelines)
+      await execAsync(`npm run build -w ${profile.namespace}/${p.appId}`, {
         cwd: root,
-        stdio: "pipe",
         timeout: 10 * 60 * 1000,
         encoding: "utf8",
+        maxBuffer: 32 * 1024 * 1024,
       });
       return { pass: true, detail: "build exit 0" };
     } catch (e) {
@@ -1230,7 +1235,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
           break; // próximo player, sem contar attempt
         }
 
-        const v = verify(job);
+        const v = await verify(job);
         p.history.push({
           job,
           playerId: player.id,
@@ -1410,7 +1415,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       save();
       return;
     }
-    const v = verify(job);
+    const v = await verify(job);
     if (v.pass) {
       checkpoint(`review-${job}`);
       log(`✓ review de ${job} aplicado (${v.detail})`);
