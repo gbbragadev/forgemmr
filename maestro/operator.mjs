@@ -331,7 +331,7 @@ export function createForgeOperator({ root, factoryAdmin, engineManager, runFact
         capability: input.capability || decision.capability,
         target: input.target,
         dryRun: Boolean(input.dryRun),
-        controlMode: input.controlMode || "autopilot_to_gate",
+        controlMode: input.controlMode || "full_auto",
       });
       return { applied: true, proposalFile, proposal, profile, blueprint, pipeline };
     },

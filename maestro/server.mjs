@@ -919,9 +919,9 @@ export function createMaestroServer({
       const body = await readBody(req);
       const action = url.pathname.split("/").pop();
       if (action === "start") {
-        sendJson(res, 200, { ok: true, pipeline: engine.start(body) });
+        sendJson(res, 200, { ok: true, pipeline: engine.start({ ...body, controlMode: body.controlMode || "full_auto" }) });
       } else if (action === "feedback") {
-        sendJson(res, 200, { ok: true, pipeline: engine.startFeedback(body) });
+        sendJson(res, 200, { ok: true, pipeline: engine.startFeedback({ ...body, controlMode: body.controlMode || "full_auto" }) });
       } else if (action === "decide") {
         sendJson(res, 200, { ok: true, pipeline: engine.decide(body.appId, body.gateId, body.choice, body.feedback) });
       } else if (action === "stop") {

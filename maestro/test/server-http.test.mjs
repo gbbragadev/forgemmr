@@ -94,7 +94,7 @@ test("createMaestroServer expõe HTTP real sem iniciar a porta 8799 ao importar"
   });
   assert.equal(accepted.status, 200);
   assert.equal((await accepted.json()).pipeline.appId, "control-probe");
-  assert.deepEqual(engine.calls, [{ idea: "probe" }]);
+  assert.deepEqual(engine.calls, [{ idea: "probe", controlMode: "full_auto" }]);
 
   const freshSnapshot = await (await fetch(`${baseUrl}/api/control/snapshot`)).json();
   const execute = await fetch(`${baseUrl}/api/control/actions/execute`, {

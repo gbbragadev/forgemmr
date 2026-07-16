@@ -84,6 +84,8 @@ test("Control Center consumes the closed control-plane API without a command esc
   assert.match(js, /event\.appId\s*===\s*pipeline\.appId/);
   assert.match(js, /Saída completa/);
   assert.match(js, /Progresso ao vivo/);
+  assert.match(js, /Full auto/);
+  assert.match(js, /Automático até gate/);
   assert.doesNotMatch(js, /\beval\s*\(/);
   assert.doesNotMatch(js, /\.innerHTML\s*=/);
   assert.doesNotMatch(js, /(?:shell|terminal|command)\s*:/i);

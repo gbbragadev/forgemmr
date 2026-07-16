@@ -144,7 +144,7 @@ CLAIM → IMPLEMENT|PROMPT → VERIFY → FIX* → HANDOFF
 |-----|---------------|----------------------|-------------|
 | **B1 Scaffold** | App roda, fluxo core, build verde | Beleza anime / share card final | Codex/Grok |
 | **B2 Personas** | Pack JSON originais | UI | Grok/Gemini |
-| **B3 UI** | Apelo visual shareable | Lógica nova / API | **GLM via prompt denso** |
+| **B3 UI** | Apelo visual shareable | Lógica nova / API | **GLM preferido; player do time em strict** |
 | **B4 Wire API** | chat/credits/health | Redesign | Codex |
 | **B5 Ship check** | Checklist PASS/N-A + Next P3/P4 | Features novas | qualquer |
 | **SIMULATE** | JSON+HTML com 5 personas e fixes priorizados | Pesquisa real / métricas inventadas | qualquer |
@@ -154,15 +154,17 @@ CLAIM → IMPLEMENT|PROMPT → VERIFY → FIX* → HANDOFF
 
 ```
 B1  = “dá pra usar”     → texto seco OK
-B3  = “dá pra printar”  → prompt GLM denso obrigatório se frontend forte
+B3  = “dá pra printar”  → implementação direta no full_auto; prompt GLM nos modos legados
 ```
 
-Agente em B3:
-1. **Não** implementar UI pesada  
-2. Escrever `workbench/prompts-glm/L1-B3-<app>-<tema>.md` com checklist completo  
-3. QUEUE: “prompt GLM pronto”  
-4. User cola no GLM → GLM fecha claim + build  
-5. Grok/Codex pode só **VERIFY** pós-GLM se pedido  
+Agente em B3 no `full_auto`:
+1. Implementar a UI diretamente com `docs/prompts/L1-B3-ui-implement.md`.
+2. Seguir a proposta escolhida automaticamente a partir de `design-system.md`.
+3. Alterar arquivos reais de interface e manter o fluxo funcional.
+4. Passar o build; sem diff visual real, o verify reprova.
+5. Respeitar time strict: Grok-only continua Grok-only, sem fallback escondido.
+
+Nos modos legados, manter o fluxo de prompt denso em `workbench/prompts-glm/` e handoff manual para GLM.
 
 Template: `docs/prompts/L1-B3-TEMPLATE.md` · exemplos em `workbench/prompts-glm/`.
 

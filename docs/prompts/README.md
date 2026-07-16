@@ -12,6 +12,7 @@ Cole o bloco do arquivo no Codex / Claude / Grok / Gemini / GLM.
 | `L1-B1-scaffold.md` | L1 | B1 funcional (visual seco OK) |
 | `L1-B2-personas.md` | L1 | B2 |
 | `L1-B3-ui-polish.md` | L1 | B3 — **gera** prompt GLM, não codifica UI |
+| `L1-B3-ui-implement.md` | L1 | B3 — implementação visual direta no `full_auto` |
 | **`L1-B3-TEMPLATE.md`** | L1 | template denso p/ `workbench/prompts-glm/` |
 | `L1-B4-wire-api.md` | L1 | B4 |
 | `L1-B5-ship-check.md` | L1 | B5 PASS/FAIL/N-A |

@@ -1,0 +1,13 @@
+{
+  "name": "Full Grok Example",
+  "emoji": "⚡",
+  "fallbackPolicy": "strict",
+  "members": [
+    {
+      "provider": "grok",
+      "model": "default",
+      "effort": "high",
+      "roles": ["Estrategista", "Engenheiro", "Designer", "QA", "Revisor"]
+    }
+  ]
+}

@@ -12,7 +12,7 @@ export function createEngineActionHandlers({ root, engineManager, factoryAdmin, 
         capability: input.capability === "auto" ? undefined : input.capability,
         target: input.target === "auto" ? undefined : input.target,
         dryRun: Boolean(input.dryRun),
-        controlMode: input.controlMode || "autopilot_to_gate",
+        controlMode: input.controlMode || "full_auto",
       });
     },
     "pipeline.feedback": ({ appId, input }) =>

@@ -4,7 +4,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { createEngineManager } from "../engine.mjs";
+import {
+  createEngineManager,
+  hasVisualImplementationChanges,
+  jobExecutionMode,
+  parseRecommendedDesignProposal,
+} from "../engine.mjs";
 
 function fixtureRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-control-mode-"));
@@ -97,11 +102,11 @@ test("manual pausa entre jobs, persiste no restart e exige continue explícito",
   }
 });
 
-test("autopilot continua até o fim, mas gate contratual vence o modo manual", async () => {
+test("autopilot_to_gate preserva os gates contratuais legados", async () => {
   const root = fixtureRoot();
   try {
     const mgr = manager(root);
-    mgr.start({ idea: "pipeline automática", appId: "auto-app", team: "dry-run", blueprint: "control-test" });
+    mgr.start({ idea: "pipeline automática", appId: "auto-app", team: "dry-run", blueprint: "control-test", controlMode: "autopilot_to_gate" });
     const automatic = await waitFor(
       () => mgr.snapshot()["auto-app"],
       (pipeline) => pipeline?.status === "done",
@@ -119,6 +124,100 @@ test("autopilot continua até o fim, mas gate contratual vence o modo manual", a
     assert.equal(gated.gates.find((gate) => !gate.decision)?.id, "p0-go");
     assert.equal(gated.controlPause, null);
     mgr.decide("gate-app", "p0-go", "kill");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("full_auto decide gates locais e para antes do deploy", async () => {
+  const root = fixtureRoot();
+  try {
+    const mgr = manager(root);
+    mgr.start({ idea: "app static realmente automático", appId: "full-auto-app", team: "dry-run", capability: "static", controlMode: "full_auto" });
+
+    const stopped = await waitFor(
+      () => mgr.snapshot()["full-auto-app"],
+      (pipeline) => pipeline?.status === "paused_gate" && pipeline.gates.find((gate) => !gate.decision)?.id === "deploy",
+      "full auto chegar ao gate externo",
+      45000,
+    );
+
+    assert.equal(stopped.controlMode, "full_auto");
+    assert.equal(stopped.dsChoice, "2");
+    assert.deepEqual(
+      stopped.gates.filter((gate) => gate.automatic).map((gate) => [gate.id, gate.decision, gate.decidedBy]),
+      [
+        ["p0-go", "go", "orchestrator"],
+        ["foundation-review", "go", "orchestrator"],
+        ["ds-pick", "2", "orchestrator"],
+        ["b3-visual", "go", "orchestrator"],
+      ],
+    );
+    assert.equal(stopped.gates.find((gate) => !gate.decision)?.id, "deploy");
+    mgr.decide("full-auto-app", "deploy", "kill");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("full_auto para em sinal externo e não inventa validação de mercado", async () => {
+  const root = fixtureRoot();
+  try {
+    const mgr = manager(root);
+    mgr.start({ idea: "GO condicionado com validação externa", appId: "signal-app", team: "dry-run", capability: "static", controlMode: "full_auto" });
+    const stopped = await waitFor(
+      () => mgr.snapshot()["signal-app"],
+      (pipeline) => pipeline?.status === "paused_gate" && pipeline.gates.find((gate) => !gate.decision)?.id === "p1-signal",
+      "gate de sinal externo",
+      30000,
+    );
+    assert.equal(stopped.gates.find((gate) => !gate.decision)?.automatic, undefined);
+    mgr.decide("signal-app", "p1-signal", "kill");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("B3 usa implementação direta somente no full_auto", () => {
+  assert.equal(jobExecutionMode("L1/B3", "full_auto"), "direct");
+  assert.equal(jobExecutionMode("L1/B3", "autopilot_to_gate"), "delegated_prompt");
+  assert.equal(jobExecutionMode("L1/B1", "full_auto"), "standard");
+});
+
+test("B3 full_auto exige diff real de interface", () => {
+  assert.equal(hasVisualImplementationChanges(" M src/app/page.tsx\n?? docs/prompt.md"), true);
+  assert.equal(hasVisualImplementationChanges(" M src\\components\\Hero.jsx"), true);
+  assert.equal(hasVisualImplementationChanges("?? docs/prompts/design.md\n M README.md"), false);
+});
+
+test("full_auto escolhe somente recomendacao explicita do design-system", () => {
+  assert.equal(parseRecommendedDesignProposal("Recomendação automática: proposta 3"), "3");
+  assert.equal(parseRecommendedDesignProposal("## Escolha recomendada\nProposta 1"), "1");
+  assert.equal(parseRecommendedDesignProposal("Três propostas sem decisão final"), null);
+});
+
+test("trocar uma pipeline pausada para full_auto resolve gate local e retoma", async () => {
+  const root = fixtureRoot();
+  try {
+    const mgr = manager(root);
+    mgr.start({ idea: "retomada automática", appId: "switch-app", team: "dry-run", capability: "static", controlMode: "autopilot_to_gate" });
+    await waitFor(
+      () => mgr.snapshot()["switch-app"],
+      (pipeline) => pipeline?.status === "paused_gate" && pipeline.gates.find((gate) => !gate.decision)?.id === "p0-go",
+      "p0 legado",
+    );
+
+    mgr.setControlMode("switch-app", "full_auto");
+    const resumed = await waitFor(
+      () => mgr.snapshot()["switch-app"],
+      (pipeline) => pipeline?.gates.some((gate) => gate.id === "p0-go" && gate.automatic),
+      "decisão automática do gate existente",
+    );
+    assert.equal(resumed.controlMode, "full_auto");
+    assert.notEqual(resumed.gates.find((gate) => !gate.decision)?.id, "p0-go");
+    mgr.kill("switch-app");
+    await waitFor(() => mgr.snapshot()["switch-app"], (pipeline) => pipeline?.status === "killed", "kill da retomada");
+    await new Promise((resolve) => setTimeout(resolve, 500));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

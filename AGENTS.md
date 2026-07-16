@@ -22,11 +22,18 @@ L2 HANDOFF  → limite → HANDOFF.md → outro agente → mesmo job
 | `pode decidir e seguir` | Decide + executa próximo step lógico |
 | `siga até decisão minha` | Encadeia até gate humano (measure, key, billing, domínio) |
 | `outra ideia` / `próximo app` | **Novo L0** — ver PLAYBOOK § *Como setar outra ideia* + `docs/prompts/L0-NOVA-IDEIA.md` |
-| UI / apelo visual | Prompt denso GLM — **não** implementar UI forte aqui |
+| UI / apelo visual | `full_auto`: implementar direto pelo player do time · legado: prompt GLM denso |
 
 - Uma sessão default = **uma** iteração (exceto “siga até decisão” com gates).
 - QUEUE vazia sem pedido → **perguntar**, não inventar app.
 - App anterior **Done** (ship) e user quer próxima aposta → **não** continue no app antigo; P0 da ideia nova.
+
+## Orquestrador conversacional
+
+- Codex e Claude Code operam a fabrica com `.agents/skills/forge-operator/SKILL.md`.
+- Pedidos como "tive uma ideia", "crie o time/pipeline", "inicie" e "acompanhe" acionam essa skill.
+- A sessao atual e o orquestrador; os players do time executam jobs e o orquestrador acompanha eventos ate conclusao, blocker ou gate humano.
+- No Codex: `$forge-operator`. No Claude Code: `/forge-operator`. Linguagem natural equivalente tambem deve acionar a skill.
 
 ## Antes de editar
 
@@ -97,7 +104,7 @@ npm run build:quiz
 | P1 Content hooks | L0 | Grok/Gemini | 15 hooks + CTA URL |
 | B1 Scaffold | L1 | Codex/Grok | funcional; visual seco OK |
 | B2 Personas | L1 | Grok/Gemini | originais/arquétipos |
-| B3 UI polish | L1 | **GLM 5.2 MAX** | via prompt denso `workbench/prompts-glm/` |
+| B3 UI polish | L1 | **GLM 5.2 MAX** preferido | `full_auto`: implementação direta; time strict usa seu próprio provider |
 | B4 Wire API | L1 | Codex | health + stream |
 | B5 Ship check | L1 | qualquer | PASS/FAIL/**N-A** |
 | SIMULATE | L1 | qualquer | 5 personas; JSON+HTML; no máx. 1 rodada segura ITERATE→B5 |
@@ -107,8 +114,9 @@ npm run build:quiz
 ## Regras
 
 - YAGNI / ponytail no **B1**; apelo visual no **B3** (não misturar)
-- **Frontend forte:** não implementar — gerar prompt com `docs/prompts/L1-B3-TEMPLATE.md`
-- **Prompts GLM = brief de design** (lição: ~4/10 → ~7.5/10). Checklist: `workbench/prompts-glm/README.md`
+- **Frontend forte em `full_auto`:** implementar no app com `docs/prompts/L1-B3-ui-implement.md`; diff real de interface + build são obrigatórios.
+- **Modos legados:** gerar prompt com `docs/prompts/L1-B3-TEMPLATE.md`. GLM continua preferido quando fizer parte do time.
+- **Time strict:** respeitar o provider escolhido também no B3; nunca trocar provider nem gerar handoff manual escondido.
 - karpathy-guidelines se disponível (simplicidade, surgical, goal-driven)
 - VERIFY falhou → fix ≤3 → senão BLOCK + L2
 - SIMULATE é heurística, não pesquisa real; fixes protegidos nunca são autoaplicados
@@ -132,7 +140,7 @@ Live exemplo quiz: https://gbbragadev.github.io/anime-forge/
 - [ ] VERIFY (`build` / `build:quiz`) se tocou código
 - [ ] HANDOFF / QUEUE / CLAIMS atualizados
 - [ ] Claim liberado
-- [ ] Se B3: prompt denso versionado em `workbench/prompts-glm/`
+- [ ] Se B3: `full_auto` = diff real de UI + build; legado = prompt denso versionado em `workbench/prompts-glm/`
 
 ## Fora de escopo (até job na QUEUE)
 

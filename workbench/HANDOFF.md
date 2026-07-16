@@ -1,5 +1,15 @@
 # HANDOFF
 
+## Last iteration — META/L1 full auto real (2026-07-16, Codex)
+- **Modo padrão:** Central, CLI, HTTP e Forge Operator iniciam em `full_auto`; `autopilot_to_gate` continua disponível como legado.
+- **Gates locais:** P0 GO/GO condicionado, fundação, escolha recomendada do design-system e validações visuais são decididos pelo orquestrador com ator, escolha e motivo persistidos.
+- **Fronteiras humanas:** sinal de mercado, deploy, domínio, billing, provider login, segredo, legal, P4/P5, blocker ou ausência de evidência continuam pausando.
+- **B3 real:** o Designer do time escolhido implementa diretamente via `docs/prompts/L1-B3-ui-implement.md`; prompt para terceiro não conta. Verify exige diff de UI e build verde.
+- **Provider:** política `strict` continua sem fallback oculto; escolher full Grok mantém Grok também no B3.
+- **Skill:** `.agents/skills/forge-operator/SKILL.md` e adaptador Claude atualizados para operar/acompanhar o novo modo.
+- **VERIFY:** testes focados 18/18; `npm run typecheck` PASS (9 workspaces); `npm run build:all` PASS (5 apps); `npm test` **196 total / 195 pass / 0 fail / 1 skip**; validators das duas skills PASS.
+- **Sem push/deploy.** Próximo uso: `$forge-operator tive uma ideia... crie profile/blueprint/time se necessário, inicie em full_auto e acompanhe`.
+
 ## Loop ativo
 **L1/B5 revisor-cetico-de Done** (2026-07-16) — ship check static **PASS**. Próximo: **P3 deploy** (static export → CF Pages / GH Pages) **somente com autorização** · ou polish B3 real (GLM 5.2 MAX + brief `workbench/prompts-glm/L1-B3-revisor-cetico-de-obra-clareza.md`) se quiser UI antes do ship. Sem push/deploy nesta iteração.
 *(Forge Operator integrado localmente; gates, self-modification, push/deploy e decisões irreversíveis continuam humanos)*

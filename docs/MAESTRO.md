@@ -40,7 +40,8 @@ processos e não reinicia uma pipeline viva.
 3. Escolha um time. Use `dry-run` quando quiser validar o fluxo sem gastar quota.
 4. Selecione profile/blueprint quando o caso exigir; `generic` e `auto` servem como padrão.
 5. Escolha o modo de controle:
-   - **autopilot_to_gate:** avança sozinho até uma decisão humana;
+   - **full_auto (padrão):** decide gates locais verificados, escolhe o design recomendado, implementa B3 e para somente em sinal externo, blocker ou deploy;
+   - **autopilot_to_gate:** comportamento legado; avança entre jobs, mas para em todo gate contratual;
    - **guided:** também pausa nas fronteiras de fase;
    - **manual:** pausa depois de cada job.
 6. Clique em **Iniciar pipeline**.

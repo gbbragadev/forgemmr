@@ -48,7 +48,30 @@ const JOB_TEMPLATES = {
 
 // rótulos curtos por job (fonte única — TUI importa; index.html espelha em literal)
 export const JOB_SHORT = { "L0/P0": "P0", FOUNDATION: "Fundação", "DS-GEN": "Design", "L0/P1": "P1", "L1/B1": "B1", "L1/B2": "B2", "L1/B3": "B3", "L1/B4": "B4", "L1/B5": "B5", SIMULATE: "simular", P3: "ship", ITERATE: "iterar" };
-export const CONTROL_MODES = ["autopilot_to_gate", "guided", "manual"];
+export const CONTROL_MODES = ["full_auto", "autopilot_to_gate", "guided", "manual"];
+
+export function jobExecutionMode(job, controlMode) {
+  if (job !== "L1/B3") return "standard";
+  return controlMode === "full_auto" ? "direct" : "delegated_prompt";
+}
+
+export function hasVisualImplementationChanges(statusOutput) {
+  return String(statusOutput)
+    .split(/\r?\n/)
+    .map((line) => line.slice(3).trim().replaceAll("\\", "/"))
+    .filter(Boolean)
+    .some((file) => /(?:^|\/)(?:src|app|pages|components|styles)\/|\.(?:css|scss|sass|less|tsx|jsx|html)$/i.test(file));
+}
+
+export function parseRecommendedDesignProposal(text) {
+  const normalized = String(text)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const match = normalized.match(
+    /(?:recomendacao automatica|recomendacao|escolha recomendada|proposta recomendada)\s*:?\s*(?:proposta\s*)?([123])\b/i,
+  );
+  return match?.[1] || null;
+}
 
 function normalizeControlMode(mode, { fallback = false } = {}) {
   const normalized = mode || "autopilot_to_gate";
@@ -70,9 +93,30 @@ function controlPhase(job) {
 }
 
 function shouldPauseForControl(pipeline, completedJob, nextJob) {
-  if (!nextJob || pipeline.controlMode === "autopilot_to_gate") return false;
+  if (!nextJob || ["full_auto", "autopilot_to_gate"].includes(pipeline.controlMode)) return false;
   if (pipeline.controlMode === "manual") return true;
   return pipeline.controlMode === "guided" && controlPhase(completedJob) !== controlPhase(nextJob);
+}
+
+function recommendedDesignProposal(root, pipeline) {
+  try {
+    const text = fs.readFileSync(path.join(root, runDocRel(pipeline.appId, "design-system")), "utf8");
+    const choice = parseRecommendedDesignProposal(text);
+    if (choice) return { choice, reason: `design-system recomenda a proposta ${choice}` };
+  } catch {}
+  return null;
+}
+
+function automaticGateDecision(root, pipeline, gate) {
+  if (pipeline.controlMode !== "full_auto") return null;
+  if (gate.id === "p0-go" && ["go", "conditional_go"].includes(pipeline.p0Verdict)) {
+    return { choice: "go", reason: `scorecard verificado: ${pipeline.p0Verdict}` };
+  }
+  if (gate.id === "foundation-review") return { choice: "go", reason: "system design passou no verify estrutural" };
+  if (gate.id === "ds-pick") return recommendedDesignProposal(root, pipeline);
+  if (gate.id === "b3-visual") return { choice: "go", reason: "B3 alterou a interface e o build passou" };
+  if (gate.id === "iterate-visual") return { choice: "go", reason: "iteracao passou no verify" };
+  return null;
 }
 
 /**
@@ -716,9 +760,13 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
   function buildPrompt(job, player, extraFeedback, memoryBriefing = "") {
     const p = pipeline;
     const spec = p.jobSpecs && p.jobSpecs[job];
-    const template = spec
-      ? spec.templateRef || (spec.verify?.type === "builtin" ? JOB_TEMPLATES[job] : null)
-      : JOB_TEMPLATES[job];
+    const executionMode = jobExecutionMode(job, p.controlMode);
+    const template =
+      executionMode === "direct"
+        ? "L1-B3-ui-implement.md"
+        : spec
+          ? spec.templateRef || (spec.verify?.type === "builtin" ? JOB_TEMPLATES[job] : null)
+          : JOB_TEMPLATES[job];
     const lines = [
       `Job: ${job}`,
       `App: ${p.appId}`,
@@ -731,8 +779,8 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       template
         ? `Siga EXATAMENTE o template ${spec?.templateRef ? template : `docs/prompts/${template}`} — preencha os campos <<< >>> com: App id=${p.appId}, Capability=${p.capability}, IDEIA=${p.idea}.`
         : "",
-      job === "L1/B3"
-        ? `Você é um coding agent com acesso aos arquivos: aplique você mesmo o brief denso de docs/prompts/L1-B3-TEMPLATE.md (não gere prompt para terceiros — VOCÊ é quem implementa a UI).`
+      executionMode === "direct"
+        ? `Contrato full-auto: implemente a UI diretamente no app. Não gere prompt para terceiros; o verify exige mudança real de interface mais build verde.`
         : "",
       job === "SIMULATE"
         ? `Contrato de saída: grave apps/${p.appId}/docs/simulations/${p.runId}.json e gere apps/${p.appId}/docs/simulations/${p.runId}.html com integrations/startup-user-simulator/startup-user-simulator/scripts/generate_report.py. Exatamente cinco personas; scores são heurísticas, não taxa prevista. Marque auto_apply=true apenas em fixes reversíveis que não toquem auth, billing, dados, deploy, domínio, segurança ou decisões legais.`
@@ -854,6 +902,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       const verdict = txt.split("\n").slice(0, 10).join("\n");
       const go = /\bGO\b/.test(txt) && !/\bNO-?GO\b/.test(verdict);
       p.conditionalGo = go && /\bGO(?:\s*-\s*|\s+)condicionado\b/i.test(verdict);
+      p.p0Verdict = go ? (p.conditionalGo ? "conditional_go" : "go") : "review";
       return { pass: true, detail: go ? "scorecard: GO; mercado declarado" : "scorecard: revisar GO/NO-GO no gate; mercado declarado" };
     }
     if (job === "L0/P1") {
@@ -883,8 +932,18 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       });
       if (invalid.length) return { pass: false, detail: `propostas ausentes ou ocas: ${invalid.map((n) => `proposal-${n}.html`).join(", ")}` };
       if (!fs.existsSync(md)) return { pass: false, detail: `faltou ${path.relative(root, md)}` };
-      if (!hasSubstantialText(fs.readFileSync(md, "utf8"))) return { pass: false, detail: "design-system.md sem conteúdo útil" };
-      return { pass: true, detail: "3 propostas substanciais + design-system.md útil" };
+      const designSystem = fs.readFileSync(md, "utf8");
+      if (!hasSubstantialText(designSystem)) return { pass: false, detail: "design-system.md sem conteúdo útil" };
+      const recommendation = parseRecommendedDesignProposal(designSystem);
+      if (p.controlMode === "full_auto" && !recommendation) {
+        return { pass: false, detail: "design-system.md sem recomendação automática explícita (proposta 1, 2 ou 3)" };
+      }
+      return {
+        pass: true,
+        detail: recommendation
+          ? `3 propostas substanciais + recomendação automática ${recommendation}`
+          : "3 propostas substanciais + design-system.md útil",
+      };
     }
     if (job === "SIMULATE") {
       const artifacts = simulationArtifactPaths(root, p);
@@ -905,6 +964,15 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       return { pass: true, detail: `simulação válida: ${validation.detail}` };
     }
     if (p.dryRun) return { pass: true, detail: "dry-run: verify de build pulado" };
+    if (jobExecutionMode(job, p.controlMode) === "direct") {
+      let changed = "";
+      try {
+        changed = gitApp(p.appId, ["status", "--porcelain"]);
+      } catch {}
+      if (!hasVisualImplementationChanges(changed)) {
+        return { pass: false, detail: "B3 full_auto não alterou arquivos de interface do app" };
+      }
+    }
     // appId nasce do slugify(), mas revalida aqui: é interpolado em shell (npm.cmd exige shell no Windows)
     if (!/^[a-z0-9-]+$/.test(p.appId)) return { pass: false, detail: `appId inválido: ${p.appId}` };
     // namespace vem do profile (config) e é interpolado em shell — valida formato @scope
@@ -1357,6 +1425,14 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
             const gate = { ...base, afterJob: job, createdAt: new Date().toISOString(), decision: null };
             pipeline.gates.push(gate);
             pipeline.status = "paused_gate";
+            const automatic = automaticGateDecision(root, pipeline, gate);
+            if (automatic) {
+              log(`⚙ FULL AUTO ${gate.id} → ${automatic.choice}: ${automatic.reason}`);
+              save();
+              decide(gate.id, automatic.choice, automatic.reason, { actor: "orchestrator", automatic: true });
+              workbench.handoffUpdate(paths, pipeline);
+              continue;
+            }
             log(`⏸ GATE ${gate.id}: ${gate.prompt}`);
             workbench.handoffUpdate(paths, pipeline);
             save();
@@ -1697,7 +1773,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     return snapshot();
   }
 
-  function decide(gateId, choice, feedback) {
+  function decide(gateId, choice, feedback, { actor = "owner", automatic = false } = {}) {
     if (!pipeline) throw new Error("nenhuma pipeline ativa");
     const gate = pipeline.gates.find((g) => g.id === gateId && !g.decision);
     if (!gate) throw new Error(`gate "${gateId}" não está pendente`);
@@ -1705,11 +1781,13 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
     gate.decision = choice;
     gate.decidedAt = new Date().toISOString();
+    gate.decidedBy = actor;
+    if (automatic) gate.automatic = true;
     if (feedback) gate.feedback = feedback;
     const memoryFeedback = feedback
       ? makeRedactor()(String(feedback).slice(0, 2_000))
       : "";
-    log(`✔ gate ${gateId} → ${choice}${feedback ? ` (${feedback.slice(0, 80)})` : ""}`);
+    log(`✔ gate ${gateId} → ${choice}${automatic ? " [automático]" : ""}${feedback ? ` (${feedback.slice(0, 80)})` : ""}`);
 
     // capability auto: GO no p0-go aplica o tipo proposto pelo P0 (jobs da sequência + alvo de deploy)
     if (gate.id === "p0-go" && choice === "go" && pipeline.capabilityAuto) {
@@ -1757,7 +1835,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
         appId: pipeline.appId,
         runId: pipeline.runId,
         job: gate.afterJob || pipeline.currentJob,
-        actor: "owner",
+        actor,
         summary: `Gate ${gateId} decidido: ${choice}${memoryFeedback ? ` — ${memoryFeedback}` : ""}`,
         outcome: choice,
         evidenceRefs: [path.relative(root, PIPELINE_PATH)],
@@ -1793,7 +1871,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       appId: pipeline.appId,
       runId: pipeline.runId,
       job: gate.afterJob || pipeline.currentJob,
-      actor: "owner",
+      actor,
       summary: `Gate ${gateId} decidido: ${choice}${memoryFeedback ? ` — ${memoryFeedback}` : ""}`,
       outcome: choice,
       evidenceRefs: [path.relative(root, PIPELINE_PATH)],
@@ -1819,6 +1897,15 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     pipeline.controlMode = normalizeControlMode(mode);
     log(`✔ modo de controle: ${pipeline.controlMode}`);
     save();
+    if (pipeline.controlMode === "full_auto") {
+      const pending = pipeline.gates.find((gate) => !gate.decision);
+      const automatic = pending ? automaticGateDecision(root, pipeline, pending) : null;
+      if (automatic) {
+        log(`⚙ FULL AUTO retomando ${pending.id} → ${automatic.choice}: ${automatic.reason}`);
+        return decide(pending.id, automatic.choice, automatic.reason, { actor: "orchestrator", automatic: true });
+      }
+      if (pipeline.status === "paused_control") return continuePipeline();
+    }
     return snapshot();
   }
 

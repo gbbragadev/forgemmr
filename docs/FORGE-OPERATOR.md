@@ -76,6 +76,20 @@ Gemini roda pela assinatura do Antigravity (`agy`), não pelo cliente legado `ge
 detecta o executável `agy` e oferece os aliases retornados por `agy models`; a autenticação é herdada
 do aplicativo Antigravity, sem API key ou comando de login inventado.
 
+## Modos de controle
+
+- `full_auto` é o padrão da Central, CLI e Operator. Ele decide gates locais somente quando o verify
+  produziu evidência objetiva: GO do P0, fundação válida, proposta recomendada pelo design-system e
+  validação visual com diff real de interface mais build verde. Toda decisão grava ator e motivo.
+- `autopilot_to_gate` mantém o comportamento legado: encadeia jobs, mas para em todos os gates
+  contratuais.
+- `guided` pausa entre fases; `manual` pausa entre jobs.
+
+Mesmo em `full_auto`, o Forge para em sinal de mercado, deploy, domínio, billing, login de provider,
+segredos, alegações legais, P4/P5, blocker ou gate sem evidência suficiente. No B3, o Designer do
+time selecionado implementa a UI diretamente; times `strict` nunca trocam provider nem simulam a
+execução entregando um prompt manual para outro agente.
+
 ## Run Console
 
 Cada linha é persistida em `.control/run-events.jsonl` com sequência, timestamp, `appId`, `runId`,

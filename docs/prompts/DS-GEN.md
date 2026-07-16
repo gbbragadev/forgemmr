@@ -36,6 +36,10 @@ código. Para CADA proposta: nome da direção + tabela de tokens (cores HEX, fo
 spacing base, sombra) + 1 linha de "quando escolher esta". Assim, seja qual for a escolhida (1/2/3),
 o build de UI tem os tokens exatos para aplicar.
 
+Ao final do mesmo arquivo, inclua exatamente `Recomendação automática: proposta N` (N = 1, 2 ou 3)
+e um parágrafo curto justificando a escolha por clareza, adequação ao nicho e capacidade de execução.
+O modo `full_auto` usa essa linha; os outros modos continuam mostrando as três opções ao dono.
+
 Regras:
 - Coerente com guardrails/nicho/tom do profile e com o system design aprovado. Não contradiga.
 - Self-contained de verdade: nada de recurso externo (o preview roda no Maestro HQ, offline).

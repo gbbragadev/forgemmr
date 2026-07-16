@@ -15,6 +15,16 @@ const API = Object.freeze({
 const SECTION_IDS = ["overview", "new-pipeline", "pipelines", "decisions", "factory", "metrics", "memory", "activity"];
 const PIPELINE_STEPS = ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "SIMULATE", "P3", "P4", "P5"];
 const TEAM_ROLES = ["Estrategista", "Engenheiro", "Designer", "QA", "Revisor"];
+const CONTROL_MODE_LABELS = Object.freeze({
+  full_auto: "Full auto",
+  autopilot_to_gate: "Automático até gate",
+  guided: "Guiado por fase",
+  manual: "Manual por job",
+});
+
+function controlModeLabel(mode) {
+  return CONTROL_MODE_LABELS[mode] || mode || CONTROL_MODE_LABELS.autopilot_to_gate;
+}
 
 const state = {
   snapshot: null,
@@ -399,7 +409,7 @@ function renderPipelineDetail(pipeline) {
   const detail = element("div", { className: "panel pipeline-detail" }, [
     element("header", { className: "pipeline-hero" }, [
       element("div", {}, [
-        element("span", { className: "eyebrow", text: pipeline.controlMode || "AUTOPILOT_TO_GATE" }),
+        element("span", { className: "eyebrow", text: controlModeLabel(pipeline.controlMode) }),
         element("h3", { text: pipeline.appId }),
         element("span", { className: "meta-line", text: pipeline.idea || "Ideia não informada" }),
       ]),
@@ -411,7 +421,7 @@ function renderPipelineDetail(pipeline) {
         element("h3", { text: "Estado atual" }),
         element("p", { text: `Job: ${pipeline.currentJob || "nenhum"}` }),
         element("p", { text: `Target: ${pipeline.deploy?.target || pipeline.target || "automático"}` }),
-        element("p", { text: `Modo: ${pipeline.controlMode || "autopilot_to_gate"}` }),
+        element("p", { text: `Modo: ${controlModeLabel(pipeline.controlMode)}` }),
       ]),
       element("article", { className: "card" }, [
         element("h3", { text: latestError ? "Erro recente" : "Saúde da execução" }),
@@ -1116,7 +1126,10 @@ function renderActionField(field) {
   if (field.type === "textarea") {
     input = element("textarea", { attrs: { name: field.name, required: field.required, rows: 4 } });
   } else if (field.type === "select") {
-    input = element("select", { attrs: { name: field.name, required: field.required } }, (field.options || []).map((option) => element("option", { text: option, attrs: { value: option } })));
+    input = element("select", { attrs: { name: field.name, required: field.required } }, (field.options || []).map((option) => element("option", {
+      text: ["controlMode", "mode"].includes(field.name) ? controlModeLabel(option) : option,
+      attrs: { value: option },
+    })));
     if (!field.options?.length) {
       input.append(element("option", { text: "Nenhuma opção disponível", attrs: { value: "", disabled: true, selected: true } }));
       input.disabled = true;

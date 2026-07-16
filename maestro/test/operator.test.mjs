@@ -55,7 +55,9 @@ test("operator applies only a safe approved intake and preserves the decision ar
     approved: true,
   });
   assert.equal(result.applied, true);
-  assert.ok(calls.some(([kind]) => kind === "start"));
+  const start = calls.find(([kind]) => kind === "start");
+  assert.ok(start);
+  assert.equal(start[1].controlMode, "full_auto");
   assert.ok(fs.existsSync(result.proposalFile));
 
   calls.length = 0;

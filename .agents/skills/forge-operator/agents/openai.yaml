@@ -1,0 +1,4 @@
+interface:
+  display_name: "Forge Operator"
+  short_description: "Orquestre ideias e pipelines do Forge"
+  default_prompt: "Use $forge-operator para transformar minha ideia em time e pipeline, iniciar e acompanhar ate o proximo gate humano."

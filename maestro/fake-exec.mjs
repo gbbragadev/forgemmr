@@ -127,7 +127,7 @@ if (job === "L0/P0") {
           (d, i) =>
             `## Proposta ${i + 1}: ${d}\n| token | valor |\n|---|---|\n| primária | #c44dff |\n| bg | #0a0612 |\n| radius | 10px |\n| font | system-ui |\n\nQuando escolher: exemplo dry-run.\n`
         )
-        .join("\n"),
+        .join("\n") + "\n## Recomendação automática\n\nRecomendação automática: proposta 2\n\nEquilibra clareza, adequação ao nicho e execução no dry-run.\n",
     "utf8"
   );
   console.log(`✓ escreveu 3 propostas + ${path.relative(ROOT, md)}`);

@@ -24,6 +24,7 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Done
 
+- [x] **META/L1** Full auto real — gates locais auditáveis, DS recomendado, B3 direto pelo time escolhido, parada em fronteiras externas · 195 pass / 1 skip (2026-07-16)
 
 - [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16)
 - [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16) · ship check static: build EXIT 0 · smoke 18/18 · disclaimer+gate humano · `.env.example` porta 3003 · Next: P3 deploy (CF Pages/GH Pages) autorizado

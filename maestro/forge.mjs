@@ -927,7 +927,7 @@ async function wizard() {
     console.log(dim("setup cancelado"));
     process.exit(0);
   }
-  const r = await api("/api/pipeline/start", payload);
+  const r = await api("/api/pipeline/start", { ...payload, controlMode: "full_auto" });
   console.log(fg(GREEN, `✓ pipeline iniciada: ${r.pipeline.appId} · team ${r.pipeline.team} · profile ${r.pipeline.profileName || "?"}`));
   await attachTUI(r.pipeline.appId);
 }
@@ -1080,7 +1080,7 @@ async function feedbackWizard() {
     console.log(dim("feedback cancelado"));
     process.exit(0);
   }
-  const r = await api("/api/pipeline/feedback", payload);
+  const r = await api("/api/pipeline/feedback", { ...payload, controlMode: "full_auto" });
   console.log(fg(GREEN, `🔁 iteração iniciada: ${r.pipeline.appId} (fb${r.pipeline.iterationNum}) · team ${r.pipeline.team}`));
   await attachTUI(r.pipeline.appId);
 }
@@ -1655,7 +1655,7 @@ async function main() {
 ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · profile-driven)
 
   ${bold("forge")}           tela de setup interativa (ideia → time → tipo → RUN)
-  ${bold("forge ingest")} <texto|arquivo|pasta|URL> [--team X] [--review-only] [--apply]
+  ${bold("forge ingest")} <texto|arquivo|pasta|URL> [--team X] [--control-mode M] [--review-only] [--apply]
             tria profile/blueprint, grava a decisão e inicia ideias seguras ou explicitamente aprovadas
   ${bold("forge evolve")} <texto|arquivo|pasta|URL> [--executor codex|grok|claude|gemini] [--apply]
             propõe mudança no próprio Forge; sem --apply nunca executa o coding agent
@@ -1665,7 +1665,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge profile show")}   imprime o profile atual
   ${bold("forge team")}          monta um time na TUI (Provedor→Modelo→Effort→Funções) e grava no roster
   ${bold("forge new")} "<ideia>" [--team X] [--app-id X] [--capability static|quiz|chat]
-            [--subdomain X] [--target cf-pages|vercel] [--dry-run]
+            [--subdomain X] [--target cf-pages|vercel] [--control-mode M] [--dry-run]
             (sem --capability o P0 decide o tipo pela ideia; o gate p0-go confirma)
   ${bold("forge new --idea-file")} ideia.md   ideia GRANDE/estruturada (markdown multi-linha —
             vai inteira pro prompt de todos os jobs; mais contexto = app melhor)
@@ -1687,6 +1687,7 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
   ${bold("forge roster")}    players e team presets
 
 Teams: grok-solo (default) · grok-glm-front · quality · dry-run
+Modos: full_auto (default; gates locais + B3 direto) · autopilot_to_gate (legado) · guided · manual
 `);
     return;
   }
@@ -1700,7 +1701,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
       team: flags.team || "grok-solo",
       capability: flags.capability,
       target: flags.target,
-      controlMode: flags.controlMode || "autopilot_to_gate",
+      controlMode: flags.controlMode || "full_auto",
       reviewOnly: Boolean(flags.reviewOnly),
       dryRun: Boolean(flags.dryRun),
       approved: Boolean(flags.apply || flags.approved),
@@ -1732,7 +1733,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     const operation = await executeControlAction("pipeline.simulate", {
       team: flags.team,
       dryRun: Boolean(flags.dryRun),
-      controlMode: flags.controlMode || "autopilot_to_gate",
+      controlMode: flags.controlMode || "full_auto",
     }, appId);
     console.log(fg(GREEN, `✓ simulação iniciada para ${appId}`));
     if (operation.result?.runId) console.log(dim(`  run ${operation.result.runId}`));
@@ -1774,6 +1775,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
       subdomain: flags.subdomain,
       target: flags.target,
       dryRun: flags.dryRun,
+      controlMode: flags.controlMode || "full_auto",
     });
     console.log(fg(GREEN, `✓ pipeline iniciada: ${r.pipeline.appId} · team ${r.pipeline.team}`));
     await attachTUI(r.pipeline.appId);
@@ -1792,6 +1794,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
       subdomain: flags.subdomain,
       target: flags.target,
       dryRun: flags.dryRun,
+      controlMode: flags.controlMode || "full_auto",
     });
     console.log(fg(GREEN, `🔁 iteração de feedback iniciada: ${r.pipeline.appId} (fb${r.pipeline.iterationNum}) · team ${r.pipeline.team}`));
     await attachTUI(r.pipeline.appId);
@@ -1826,7 +1829,7 @@ Teams: grok-solo (default) · grok-glm-front · quality · dry-run
     }
     const project = JSON.parse(fs.readFileSync(path.join(pdir, "project.json"), "utf8"));
     await ensureServer();
-    const r = await api("/api/pipeline/start", { idea: project.idea || slug, appId: slug, slug, blueprint: project.blueprint, team: flags.team });
+    const r = await api("/api/pipeline/start", { idea: project.idea || slug, appId: slug, slug, blueprint: project.blueprint, team: flags.team, controlMode: flags.controlMode || "full_auto" });
     console.log(fg(GREEN, `✓ pipeline ${project.blueprint} iniciada: ${r.pipeline.slug}`));
     await attachTUI(r.pipeline.appId);
     return;
