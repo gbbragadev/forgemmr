@@ -594,10 +594,24 @@ function sendControlError(res, error) {
   });
 }
 
+const MAX_BODY_BYTES = 5 * 1024 * 1024; // protege o processo de OOM
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on("data", (c) => chunks.push(c));
+    let size = 0;
+    req.on("data", (c) => {
+      size += c.length;
+      if (size > MAX_BODY_BYTES) {
+        // pausar stream para não consumir mais dados antes de rejeitar
+        req.pause();
+        const err = new Error("body excede o limite de 5 MB");
+        err.status = 413;
+        reject(err);
+        return;
+      }
+      chunks.push(c);
+    });
     req.on("end", () => {
       try {
         const raw = Buffer.concat(chunks).toString("utf8");
@@ -608,6 +622,21 @@ function readBody(req) {
     });
     req.on("error", reject);
   });
+}
+
+// stream com guarda: arquivo pode sumir no meio (apps/out é reescrito por builds)
+function streamFile(res, filePath, type) {
+  const stream = fs.createReadStream(filePath);
+  stream.on("error", () => {
+    if (!res.headersSent) {
+      res.writeHead(500);
+      res.end();
+    } else {
+      res.destroy(); // headers já foram: derruba a conexão p/ sinalizar truncamento
+    }
+  });
+  res.writeHead(200, { "Content-Type": type });
+  stream.pipe(res);
 }
 
 export function createMaestroServer({
@@ -895,7 +924,8 @@ export function createMaestroServer({
       }, { root, spawnImpl });
       sendJson(res, result.ok ? 200 : 409, result);
     } catch (e) {
-      sendJson(res, 400, { ok: false, error: String(e) });
+      const status = Number.isInteger(e?.status) ? e.status : 400;
+      sendJson(res, status, { ok: false, error: String(e) });
     }
     return;
   }
@@ -956,7 +986,8 @@ export function createMaestroServer({
         sendJson(res, 404, { ok: false, error: `ação desconhecida: ${action}` });
       }
     } catch (e) {
-      sendJson(res, 409, { ok: false, error: e instanceof Error ? e.message : String(e) });
+      const status = Number.isInteger(e?.status) ? e.status : 409;
+      sendJson(res, status, { ok: false, error: e instanceof Error ? e.message : String(e) });
     }
     return;
   }
@@ -971,8 +1002,7 @@ export function createMaestroServer({
         const candidate = path.resolve(appsDir, app, "out", "." + url.pathname);
         if (!insideDir(path.join(appsDir, app, "out"), candidate)) continue;
         if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
-          res.writeHead(200, { "Content-Type": contentType(candidate) });
-          fs.createReadStream(candidate).pipe(res);
+          streamFile(res, candidate, contentType(candidate));
           return;
         }
       }
@@ -987,8 +1017,7 @@ export function createMaestroServer({
     const kitDir = path.join(root, "marketing", "ig-kit");
     const f = path.resolve(kitDir, "." + url.pathname.slice("/ig-kit".length));
     if (insideDir(kitDir, f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
-      res.writeHead(200, { "Content-Type": contentType(f) });
-      fs.createReadStream(f).pipe(res);
+      streamFile(res, f, contentType(f));
       return;
     }
     res.writeHead(404);
@@ -1001,8 +1030,7 @@ export function createMaestroServer({
     const docsDir = path.join(root, "docs");
     const f = path.resolve(docsDir, "." + url.pathname.slice("/docs".length));
     if (insideDir(docsDir, f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
-      res.writeHead(200, { "Content-Type": contentType(f) });
-      fs.createReadStream(f).pipe(res);
+      streamFile(res, f, contentType(f));
       return;
     }
     res.writeHead(404);
@@ -1015,8 +1043,7 @@ export function createMaestroServer({
     const appsDir = path.join(root, "apps");
     const f = path.resolve(root, "." + url.pathname);
     if (insideDir(appsDir, f) && /\.(md|html)$/i.test(f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
-      res.writeHead(200, { "Content-Type": contentType(f) });
-      fs.createReadStream(f).pipe(res);
+      streamFile(res, f, contentType(f));
       return;
     }
     res.writeHead(404);
@@ -1029,8 +1056,7 @@ export function createMaestroServer({
     const propDir = path.join(__dirname, "proposals");
     const f = path.resolve(propDir, "." + url.pathname.slice("/proposals".length));
     if (insideDir(propDir, f) && fs.existsSync(f) && fs.statSync(f).isFile()) {
-      res.writeHead(200, { "Content-Type": contentType(f) });
-      fs.createReadStream(f).pipe(res);
+      streamFile(res, f, contentType(f));
       return;
     }
     res.writeHead(404);
@@ -1058,8 +1084,7 @@ export function createMaestroServer({
     if (fs.existsSync(f) && fs.statSync(f).isDirectory()) f = path.join(f, "index.html");
     if (!fs.existsSync(f) && fs.existsSync(`${f}.html`)) f = `${f}.html`;
     if (fs.existsSync(f) && fs.statSync(f).isFile()) {
-      res.writeHead(200, { "Content-Type": contentType(f) });
-      fs.createReadStream(f).pipe(res);
+      streamFile(res, f, contentType(f));
       return;
     }
     res.writeHead(404);
@@ -1077,8 +1102,7 @@ export function createMaestroServer({
     return;
   }
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-    res.writeHead(200, { "Content-Type": contentType(filePath) });
-    fs.createReadStream(filePath).pipe(res);
+    streamFile(res, filePath, contentType(filePath));
     return;
   }
 
