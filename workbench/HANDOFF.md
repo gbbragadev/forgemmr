@@ -1146,10 +1146,10 @@ O principal risco é tentar resolver, de início, mais do que o problema documen
 O segundo risco é regulatório. Como a referência de qualidade do ar mencionada na lei foi alterada no plano infralegal, qualquer módulo que tente concluir conformidade técnica de ambiente interno precisa governança normativa séria e atualização constante. Por isso, faz sentido que o MVP fique no eixo “contrato–inventário–relatório–evidência–fatura”, deixando diagnóstico técnico e juízo de qualidade do ar para fases posteriores, possivelmente com especialistas no loop. citeturn22view0turn24view0
 
 A recomendação, portanto, é positiva. Entre as ideias de software B2B documental no Brasil, esta tem três qualidades raras ao mesmo tempo: obrigação legal clara, artefatos verificáveis já existentes e ponto econômico de decisão bem definido antes do pagamento. Em resumo, **há uma tese forte de produto** para um PMOC Acceptance Gate do lado comprador, desde que ele seja vendido como revisor documental com trilha de exceções e aceite humano, e não como perito técnico de HVAC. citeturn22view0turn23view0turn20view0turn2view2turn12view1
-- **Team:** ggg · **Status:** blocked
-- **Job atual:** DS-GEN (3/11)
+- **Team:** ggg · **Status:** killed
+- **Job atual:** — (3/11)
 - **Branch:** pipeline/pmoc-acceptance-gate · checkpoints: 2
-- **⏸ GATE pendente:** `blocked-DS-GEN` — DS-GEN bloqueado: todos os players do preset esgotados. retry (zera tentativas) ou kill? → `forge decide blocked-DS-GEN go|kill`
-- BLOCKED: todos os players do preset esgotados
-_Atualizado 2026-07-16T06:39:10.269Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/pmoc-acceptance-gate.json_
+- **⏸ GATE pendente:** `stopped` — pipeline parada manualmente — retry (recomeça o job atual) ou kill? → `forge decide stopped go|kill`
+- pipeline encerrada: killed
+_Atualizado 2026-07-16T06:47:29.433Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/pmoc-acceptance-gate.json_
 <!-- forge:end:pmoc-acceptance-gate -->
