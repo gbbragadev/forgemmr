@@ -33,7 +33,7 @@ Full: `docs/AGENT-PIPELINE.md` · B3 template: `docs/prompts/L1-B3-TEMPLATE.md`
 ## Commands
 
 ```bash
-cd C:\Dev\anime-forge
+cd C:\Dev\forge
 npm install
 npm run dev        # waifu-chat
 npm run dev:quiz   # anime-quiz
