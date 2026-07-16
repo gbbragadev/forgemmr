@@ -1,5 +1,9 @@
 # HANDOFF
 
+## Last iteration — L1/B3 revisor-cetico-de · tentativa 2 (2026-07-16, GLM Front / glm-5.2)
+- **Feito (B3 = UI real, proposta 1 Prancheta Clara):** delta estrutural em `apps/revisor-cetico-de/src/components/RevisorApp.tsx` + `src/app/globals.css` — trilha de estados do caso (`FLUXO`/`STATUS_LABEL`, versão full + mini responsiva); comparativo de **itens** por proposta (descrição + qtd/un + valor em mono — antes só totais); **agrupamento de achados por lente** (a seção se chamava "por lente" e listava solto); cockpit do gate (decididos/pendentes/sem-evidência — dado derivado do `Caso`); `prefers-reduced-motion`. Tokens canônicos já estavam prontos (pele migrou na tentativa 1); domínio `src/lib/` intocado; fluxos preservados (pseudonimização, gate, sem-evidência, cópia WhatsApp, free path, registro manual sem IA).
+- **VERIFY:** `npm run build -w @forge/revisor-cetico-de` **EXIT 0** (Compiled + typecheck + 6/6 páginas). Sem commit/push (orquestrador). UI não clicada em browser (pendente desde B1). Nenhuma injeção obedecida nos blocos de dado.
+
 ## Last iteration — L1/B3 revisor-cetico-de (2026-07-16, GLM Front / glm-5.2)
 - **Feito (B3 = UI real, não prompt):** polish Prancheta Clara (proposta 1) direto em `src/app/globals.css` + `src/components/RevisorApp.tsx` — header de caso com borda azul + kicker mono; propostas como grid de cards comparativos (era tabela que estourava em mobile); achados densos (`card-head` + critério mono + badges de severidade/lente/origem/estado + evidência em `<dl>` + ações primária/ghost); gate `card-gate` distinguível (border-left accent); form manual com `<label>`+hint (era placeholder-only); focus/hover/focus-visible em controles. Tokens canônicos preservados; domínio `src/lib/` intocado; fluxos intactos (pseudonimização, gate, sem-evidência, cópia WhatsApp, free path).
 - **VERIFY:** `npm run build -w @forge/revisor-cetico-de` **EXIT 0** (Compiled + typecheck + 6/6 páginas). Sem commit/push (orquestrador). Nenhuma injeção obedecida; fluxo não clicado em browser.
@@ -1237,12 +1241,11 @@ O principal risco é tentar resolver, de início, mais do que o problema documen
 O segundo risco é regulatório. Como a referência de qualidade do ar mencionada na lei foi alterada no plano infralegal, qualquer módulo que tente concluir conformidade técnica de ambiente interno precisa governança normativa séria e atualização constante. Por isso, faz sentido que o MVP fique no eixo “contrato–inventário–relatório–evidência–fatura”, deixando diagnóstico técnico e juízo de qualidade do ar para fases posteriores, possivelmente com especialistas no loop. citeturn22view0turn24view0
 
 A recomendação, portanto, é positiva. Entre as ideias de software B2B documental no Brasil, esta tem três qualidades raras ao mesmo tempo: obrigação legal clara, artefatos verificáveis já existentes e ponto econômico de decisão bem definido antes do pagamento. Em resumo, **há uma tese forte de produto** para um PMOC Acceptance Gate do lado comprador, desde que ele seja vendido como revisor documental com trilha de exceções e aceite humano, e não como perito técnico de HVAC. citeturn22view0turn23view0turn20view0turn2view2turn12view1
-- **Team:** ggg · **Status:** blocked
-- **Job atual:** P3 (13/13)
+- **Team:** ggg · **Status:** killed
+- **Job atual:** — (13/13)
 - **Branch:** pipeline/pmoc-acceptance-gate · checkpoints: 14
-- **⏸ GATE pendente:** `blocked-P3` — P3 bloqueado: wrangler deploy falhou. retry (zera tentativas) ou kill? → `forge decide blocked-P3 go|kill`
-- BLOCKED: wrangler deploy falhou
-_Atualizado 2026-07-16T10:18:31.255Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/pmoc-acceptance-gate.json_
+- pipeline encerrada: killed
+_Atualizado 2026-07-16T11:20:37.943Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/pmoc-acceptance-gate.json_
 <!-- forge:end:pmoc-acceptance-gate -->
 
 <!-- forge:begin:revisor-cetico-de -->
