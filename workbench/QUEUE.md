@@ -9,6 +9,10 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 ## Backlog
 
 
+- [ ] **L0/P4** Measure revisor-cetico-de (5–7d) — **humano** · https://revisor-cetico-de.gbbragadev.com
+- [ ] **L0/P1** Content hooks pmoc-acceptance-gate — 15 hooks B2B + CTA piloto (pós GO condicionado P0)
+
+
 
 
 
@@ -25,11 +29,23 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 
 
+- [ ] **DS-GEN** pmoc-acceptance-gate — forge autopilot
+
+- [ ] **DS-GEN** pmoc-acceptance-gate — forge autopilot
+
+- [ ] **ITERATE** revisor-cetico-de — forge autopilot
 ## Done
 
+
+
+- [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16)
+- [x] **ITERATE** revisor-cetico-de — forge/claude-frontend (2026-07-16)
+- [x] **FOUNDATION** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **FOUNDATION** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **FOUNDATION** pmoc-acceptance-gate — system-design.md (Arquitetura/Dados/Decisões/Padrões/Riscos) · gate documental + humano · Next: L0/P1 hooks — forge/ggg-grok1 (2026-07-16)
+- [x] **L0/P0** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16)
+- [x] **L0/P0** pmoc-acceptance-gate — forge/ggg-grok1 (2026-07-16) · scorecard **GO condicionado** · Tipo: chat · `apps/pmoc-acceptance-gate/docs/scorecard.md` · Next: L0/P1 hooks
 - [x] **META/P3** Hardening Cloudflare Pages — production branch real + canonical deployment novo + binding/CNAME/HTTP 2xx fail-closed · revisor live HTTP 200 (2026-07-16)
-
-
 
 - [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16)
 - [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16) · ship check pós-ITERATE: build EXIT 0 · smoke 18/18 · disclaimer+gate · Next P3/P4 humano
