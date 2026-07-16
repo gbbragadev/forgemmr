@@ -6,6 +6,9 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 |------|-------|------|-----|------------|-------|-------|
 
 | — | — | — | — | — | — | livre |
+_(L1/B5 revisor-cetico-de liberado 2026-07-16 — Grok 4.5 / grok-solo · ship check static pós-ITERATE PASS · `npm run build -w @forge/revisor-cetico-de` EXIT 0 · `node apps/revisor-cetico-de/scripts/b5-smoke.mjs` 18/18 · sem código · sem git · claim liberado)_
+_(ITERATE revisor-cetico-de liberado 2026-07-16 — Grok 4.5 / grok-solo · 3 auto_apply SIMULATE: eyebrow copiloto, caseStatusLabel pt-BR, resumo WhatsApp+perguntas no topo do relatório · gate copy piloto · `npm run build -w @forge/revisor-cetico-de` EXIT 0 · sem git · claim liberado)_
+_(SIMULATE revisor-cetico-de liberado 2026-07-16 — Grok 4.5 / grok-solo · JSON+HTML `2026-07-16T04-52-11-152Z` · 5 personas · validateSimulationReport PASS · sem código/build/git · claim liberado)_
 _(META/L1 full-auto liberado 2026-07-16 — Codex · gates locais auditáveis · DS recomendado · B3 direto com diff UI + build · code review corrigido · 195 pass / 1 skip + regressão 24/24 · sem push/deploy)_
 _(L1/B5 revisor-cetico-de liberado 2026-07-16 — Grok 4.5 / grok-solo · ship check static PASS · `npm run build -w @forge/revisor-cetico-de` EXIT 0 · `node apps/revisor-cetico-de/scripts/b5-smoke.mjs` 18/18 · `.env.example` documenta porta 3003 · sem push/deploy · claim liberado)_
 _(META/L1 forge-operator-skill liberado 2026-07-16 - Codex - skill canonica Codex + adaptador Claude Code - snapshot/observe/time dry-run PASS - sem criar pipeline/time de teste)_

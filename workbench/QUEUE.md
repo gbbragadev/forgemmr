@@ -11,6 +11,8 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 
 
+
+- [ ] **L0/P4** Measure revisor-cetico-de (5–7d) — **humano** · https://revisor-cetico-de.gbbragadev.com
 - [ ] **L0/P4** Measure revisor-cetico-de (5–7d) — **humano** · https://revisor-cetico-de.gbbragadev.com
 - [ ] **L0/P4** Measure doki-call (5–7d) — **humano** · https://doki-call.gbbragadev.com
 - [ ] **L0/P4** Measure anima-deck (5–7d) — **humano** · https://anima-deck.gbbragadev.com
@@ -22,8 +24,18 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 ## Doing
 
 
+
 ## Done
 
+
+
+
+- [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16)
+- [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16) · ship check pós-ITERATE: build EXIT 0 · smoke 18/18 · disclaimer+gate · Next P3/P4 humano
+- [x] **ITERATE** revisor-cetico-de — forge/grok-solo (2026-07-16)
+- [x] **ITERATE** revisor-cetico-de — forge/grok-solo (2026-07-16) · 3 auto_apply SIMULATE (eyebrow, status pt-BR, WhatsApp no topo + perguntas) · build EXIT 0
+- [x] **SIMULATE** revisor-cetico-de — forge/grok-solo (2026-07-16)
+- [x] **SIMULATE** revisor-cetico-de — forge/grok-solo (2026-07-16) · `docs/simulations/2026-07-16T04-52-11-152Z.{json,html}` · 5 personas · validateSimulationReport PASS
 - [x] **META/L1** Full auto real — gates locais auditáveis, DS recomendado, B3 direto pelo time escolhido, parada em fronteiras externas · 195 pass / 1 skip (2026-07-16)
 
 - [x] **L1/B5** revisor-cetico-de — forge/grok-solo (2026-07-16)
