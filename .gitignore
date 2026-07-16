@@ -61,3 +61,6 @@ maestro/.prompts/
 
 # runtime e dados locais do Forge Nexus
 .forge-nexus/
+
+# lixo de redirecionamento Windows e resultados de run E2E
+maestro/e2e-result.md

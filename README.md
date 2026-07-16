@@ -282,5 +282,5 @@ arquivados e restaurados na área Fábrica. Veja [`docs/FORGE-OPERATOR.md`](docs
 - ✅ Biblioteca de **profiles** (vertical trocável) e **teams** montáveis na TUI
 - ✅ **Prompt-improver** com fallback em cascata e seleção de skills/subagentes
 - ✅ Loop de **feedback** sobre app já publicado (ITERATE → redeploy)
-- ✅ Deploy Cloudflare Pages / Vercel · dry-run E2E sem quota · 59 testes
+- ✅ Deploy Cloudflare Pages / Vercel · dry-run E2E sem quota · 204 testes
 - ⏳ Billing (Stripe/Pix) · capability `image` · P4 (measure → kill|scale) automatizado

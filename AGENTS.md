@@ -73,7 +73,7 @@ Novo app 1 prompt: `docs/prompts/NOVO-APP.md` (ainda exige P0 na prática).
 ## Comandos
 
 ```bash
-cd C:\Dev\anime-forge
+cd C:\Dev\forge
 npm install
 npm run dev          # waifu-chat :3000
 npm run dev:quiz     # anime-quiz :3000 (um por vez)
