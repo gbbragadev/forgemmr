@@ -1,4 +1,4 @@
-# PMOC Acceptance Gate no lado comprador — ProjectProfile
+﻿# PMOC Acceptance Gate no lado comprador — ProjectProfile
 > setado por `forge profile init` · edite à vontade; o bloco forge-config abaixo é lido pela engine.
 
 ```forge-config
@@ -14,7 +14,7 @@
     "rule": "single"
   },
   "deploy": {
-    "baseUrl": "example.com",
+    "baseUrl": "gbbragadev.com",
     "staticHost": "cf-pages",
     "serverHost": "cf-workers"
   },

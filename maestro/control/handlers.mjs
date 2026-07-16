@@ -19,6 +19,14 @@ export function createEngineActionHandlers({ root, engineManager, factoryAdmin, 
       engineManager.startFeedback({ appId, feedbackText: input.feedback }),
     "pipeline.simulate": ({ appId, input }) =>
       engineManager.startSimulation({ appId, team: input.team, dryRun: Boolean(input.dryRun), controlMode: input.controlMode }),
+    "pipeline.ship": ({ appId, input }) =>
+      engineManager.startShip({
+        appId,
+        target: input?.target,
+        subdomain: input?.subdomain,
+        controlMode: input?.controlMode || "full_auto",
+        dryRun: Boolean(input?.dryRun),
+      }),
     "gate.decide": ({ appId, input }) =>
       engineManager.decide(appId, input.gateId, input.choice, input.feedback),
     "pipeline.stop": ({ appId }) => engineManager.stop(appId),

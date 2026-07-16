@@ -1661,6 +1661,8 @@ ${bold(fg(PURPLE, "🎼 forge"))} — Maestro Autopilot (starter genérico · pr
             propõe mudança no próprio Forge; sem --apply nunca executa o coding agent
   ${bold("forge simulate")} <app> [--team X] [--dry-run]
             roda cinco personas no app concluído e permite no máximo uma melhoria automática segura
+  ${bold("forge ship")} <app> [--target cf-workers|cf-pages|gh-pages] [--subdomain X]
+            reviver kill/done só no P3 (gate deploy → Cloudflare em gbbragadev.com)
   ${bold("forge profile init")}   wizard que autora .forge/profile.md (nicho, stack, contexto, idiomas)
   ${bold("forge profile show")}   imprime o profile atual
   ${bold("forge team")}          monta um time na TUI (Provedor→Modelo→Effort→Funções) e grava no roster
@@ -1737,6 +1739,22 @@ Modos: full_auto (default; gates locais + B3 direto) · autopilot_to_gate (legad
     }, appId);
     console.log(fg(GREEN, `✓ simulação iniciada para ${appId}`));
     if (operation.result?.runId) console.log(dim(`  run ${operation.result.runId}`));
+    return;
+  }
+
+  if (cmd === "ship") {
+    const appId = rest[0];
+    if (!appId) throw new Error("uso: forge ship <app> [--target cf-workers|cf-pages] [--subdomain X]");
+    await ensureServer();
+    const operation = await executeControlAction("pipeline.ship", {
+      target: flags.target || "cf-workers",
+      subdomain: flags.subdomain,
+      controlMode: flags.controlMode || "full_auto",
+      dryRun: Boolean(flags.dryRun),
+    }, appId);
+    console.log(fg(GREEN, `✓ ship reaberto para ${appId} — gate deploy pendente`));
+    if (operation.result?.runId) console.log(dim(`  run ${operation.result.runId}`));
+    console.log(dim(`  forge decide deploy go --app ${appId}`));
     return;
   }
 

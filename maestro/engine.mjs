@@ -501,6 +501,14 @@ const PROFILE_DEFAULTS = {
 };
 
 /** Lê .forge/profile.md: bloco ```forge-config``` (JSON, knobs) + corpo markdown (narrativo). */
+/** Deploy só Cloudflare/GH Pages — vercel legado vira Workers. */
+export function normalizeDeployHost(host, { forChat = true } = {}) {
+  const h = String(host || "").trim();
+  if (!h || h === "vercel") return forChat ? "cf-workers" : "cf-pages";
+  if (h === "gh-pages-path") return "gh-pages";
+  return h;
+}
+
 export function loadProfile(root) {
   const p = path.join(root, ".forge", "profile.md");
   let knobs = {};
@@ -541,6 +549,11 @@ export function loadProfile(root) {
       jobMaxTurns: { ...d.limits.jobMaxTurns, ...(knobs.limits?.jobMaxTurns || {}) },
     },
   };
+  prof.deploy.staticHost = normalizeDeployHost(prof.deploy.staticHost, { forChat: false });
+  prof.deploy.serverHost = normalizeDeployHost(prof.deploy.serverHost, { forChat: true });
+  if (!prof.deploy.baseUrl || prof.deploy.baseUrl === "example.com") {
+    prof.deploy.baseUrl = d.deploy.baseUrl;
+  }
   prof.narrative = narrative;
   return prof;
 }
@@ -1400,6 +1413,12 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
   async function runShip() {
     const p = pipeline;
+    // legado vercel / host errado: sempre CF no domínio do profile
+    const chatty = p.capability === "chat" || p.capability === "server";
+    p.deploy.target = normalizeDeployHost(p.deploy.target, { forChat: chatty });
+    if (!p.deploy.baseUrl || p.deploy.baseUrl === "example.com") {
+      p.deploy.baseUrl = profile.deploy.baseUrl || "gbbragadev.com";
+    }
     const base = p.deploy.baseUrl || profile.deploy.baseUrl;
     const branch = profile.git.targetBranch;
     log(`🚀 P3 ship — merge ${branch} + deploy ${p.deploy.target} → ${p.deploy.subdomain}.${base}`);
@@ -1928,6 +1947,93 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     return snapshot();
   }
 
+  /**
+   * Reviver run morta/concluída só para ship (P3). App já buildou — não recomeça P0–B5.
+   * Abre gate deploy (cf-workers/cf-pages em gbbragadev.com) e, no go, roda o deploy.
+   */
+  function startShip(params = {}) {
+    if (pipeline && ["running", "paused_gate", "paused_control", "blocked"].includes(pipeline.status)) {
+      throw activeRunError();
+    }
+    profile = loadProfile(root);
+    const appId = slugify(params.appId || pipeline?.appId || "");
+    if (!appId || !fs.existsSync(path.join(root, "apps", appId))) {
+      throw new Error(`app "${params.appId || appId}" não existe em apps/ — forge ship <app>`);
+    }
+    const prev = pipeline && pipeline.appId === appId ? pipeline : null;
+    const capability = prev?.capability || detectCapability(appId);
+    const chatty = capability === "chat" || capability === "server";
+    const prevDeploy = prev?.deploy || lastDeployFor(appId) || {};
+    const deployConfig = {
+      target: normalizeDeployHost(
+        params.target || prevDeploy.target || (chatty ? profile.deploy.serverHost : profile.deploy.staticHost),
+        { forChat: chatty }
+      ),
+      autoTarget: false,
+      subdomain: slugify(params.subdomain || prevDeploy.subdomain || appId),
+      baseUrl:
+        params.baseUrl ||
+        (prevDeploy.baseUrl && prevDeploy.baseUrl !== "example.com" ? prevDeploy.baseUrl : null) ||
+        profile.deploy.baseUrl ||
+        "gbbragadev.com",
+      url: null,
+      dns: { status: "pending" },
+    };
+    if (params.subdomain && !applyDeployDestination(deployConfig, params.subdomain).valid) {
+      throw new Error(`destino de deploy inválido: ${params.subdomain}`);
+    }
+
+    ensureAppRepo(appId);
+    // parte do último checkpoint / master para o ship mergear o que já está no app
+    try {
+      gitApp(appId, ["checkout", profile.git.targetBranch]);
+    } catch {}
+    const baseRef = gitApp(appId, ["rev-parse", "HEAD"]);
+    let n = 1;
+    while (gitApp(appId, ["branch", "--list", `pipeline/${appId}-ship${n}`])) n++;
+    const branch = `pipeline/${appId}-ship${n}`;
+    gitApp(appId, ["checkout", "-b", branch]);
+
+    const domain = `${deployConfig.subdomain}.${deployConfig.baseUrl}`;
+    pipeline = {
+      runId: new Date().toISOString().replace(/[:.]/g, "-"),
+      appId,
+      idea: prev?.idea || `ship ${appId}`,
+      mode: "ship",
+      team: prev?.team || params.team || "grok-solo",
+      capability,
+      dryRun: Boolean(params.dryRun),
+      status: "paused_gate",
+      controlMode: normalizeControlMode(params.controlMode || "full_auto"),
+      controlPause: null,
+      profileName: profile.name,
+      jobs: ["P3"],
+      jobIndex: 0,
+      currentJob: null,
+      git: { branch, baseRef, checkpoints: [], lastCheckpoint: baseRef },
+      gates: [
+        {
+          id: "deploy",
+          afterJob: null,
+          prompt: `Redeploy ${appId} via ${deployConfig.target} → https://${domain} ? (reviver após kill/done — só P3)`,
+          payload: `deploy:${deployConfig.target}:${deployConfig.subdomain}`,
+          choices: ["go", "kill"],
+          createdAt: new Date().toISOString(),
+          decision: null,
+        },
+      ],
+      history: Array.isArray(prev?.history) ? prev.history.slice(-20) : [],
+      cooldowns: {},
+      deploy: deployConfig,
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+    };
+    log(`🚀 forge ship · app=${appId} · ${deployConfig.target} → https://${domain}`);
+    workbench.handoffUpdate(paths, pipeline, "ship: gate deploy pendente (reviver)");
+    save();
+    return snapshot();
+  }
+
   function decide(gateId, choice, feedback, { actor = "owner", automatic = false } = {}) {
     if (!pipeline) throw new Error("nenhuma pipeline ativa");
     const gate = pipeline.gates.find((g) => g.id === gateId && !g.decision);
@@ -2179,6 +2285,18 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       const saved = JSON.parse(fs.readFileSync(PIPELINE_PATH, "utf8"));
       saved.controlMode = normalizeControlMode(saved.controlMode, { fallback: true });
       saved.controlPause = saved.controlPause || null;
+      if (saved.deploy) {
+        const chatty = saved.capability === "chat" || saved.capability === "server";
+        const before = saved.deploy.target;
+        saved.deploy.target = normalizeDeployHost(saved.deploy.target, { forChat: chatty });
+        if (!saved.deploy.baseUrl || saved.deploy.baseUrl === "example.com") {
+          saved.deploy.baseUrl = "gbbragadev.com";
+        }
+        if (before !== saved.deploy.target) {
+          // reescreve disco já no boot — evita UI mostrar vercel
+          fs.writeFileSync(PIPELINE_PATH, JSON.stringify(saved, null, 2), "utf8");
+        }
+      }
       const now = Date.now();
       for (const [playerId, until] of Object.entries(saved.cooldowns || {})) {
         const untilMs = Date.parse(until);
@@ -2204,7 +2322,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     }
   }
 
-  return { start, startFeedback, startSimulation, decide, stop, kill, resume, snapshot, setTarget, setControlMode, continuePipeline };
+  return { start, startFeedback, startSimulation, startShip, decide, stop, kill, resume, snapshot, setTarget, setControlMode, continuePipeline };
 }
 
 /**
@@ -2294,6 +2412,11 @@ export function createEngineManager({ root, emitLog, emitPipeline, memory = null
       const appId = slugify(params.appId || "");
       if (!appId) throw new Error("simulação exige appId");
       return engineFor(appId).startSimulation(params);
+    },
+    startShip(params) {
+      const appId = slugify(params.appId || "");
+      if (!appId) throw new Error("ship exige appId");
+      return engineFor(appId).startShip(params);
     },
     decide(appId, gateId, choice, feedback) {
       return target(appId).decide(gateId, choice, feedback);
