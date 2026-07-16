@@ -297,6 +297,28 @@ function panelHeader(title, meta = "") {
   return element("header", { className: "panel-header" }, [element("h3", { text: title }), element("span", { text: meta })]);
 }
 
+/** Status que exigem atenção do dono — sobem na lista de pipelines. */
+function isActivePipeline(pipeline) {
+  return ["running", "paused_gate", "paused_control", "blocked"].includes(pipeline.status);
+}
+
+/** Subtítulo curto da lista: job atual, nunca a ideia inteira (evita scroll infinito). */
+function pipelineListSubtitle(pipeline) {
+  if (pipeline.currentJob) return String(pipeline.currentJob);
+  const idea = String(pipeline.idea || "").replace(/\s+/g, " ").trim();
+  if (!idea) return "sem job atual";
+  return idea.length > 72 ? `${idea.slice(0, 69)}…` : idea;
+}
+
+function sortPipelinesForList(pipelines) {
+  const rank = (p) => (isActivePipeline(p) ? 0 : p.status === "done" ? 2 : 1);
+  return [...pipelines].sort((a, b) => {
+    const d = rank(a) - rank(b);
+    if (d !== 0) return d;
+    return String(a.appId || "").localeCompare(String(b.appId || ""));
+  });
+}
+
 function pipelineSummary(pipeline) {
   const open = element("button", { className: "button button-secondary", text: "Abrir", attrs: { type: "button" } });
   open.addEventListener("click", () => {
@@ -362,7 +384,7 @@ function wizardStep(index, label, current = false) {
 
 function renderPipelines() {
   const target = clear(byId("pipelines-content"));
-  const pipelines = state.snapshot.pipelines;
+  const pipelines = sortPipelinesForList(state.snapshot.pipelines || []);
   if (!pipelines.length) {
     const create = element("button", { className: "button button-primary", text: "Criar primeira pipeline", attrs: { type: "button" } });
     create.addEventListener("click", () => showSection("new-pipeline"));
@@ -370,14 +392,23 @@ function renderPipelines() {
     return;
   }
 
-  const selected = pipelines.find((pipeline) => pipeline.appId === state.selectedAppId) || pipelines[0];
+  // Lista ordena ativas primeiro; se não há seleção, abre a primeira em atenção.
+  const selectedExisting = pipelines.find((pipeline) => pipeline.appId === state.selectedAppId);
+  const selected = selectedExisting || pipelines.find(isActivePipeline) || pipelines[0];
   state.selectedAppId = selected.appId;
-  const list = element("div", { className: "panel pipeline-list", attrs: { "aria-label": "Lista de pipelines" } }, pipelines.map((pipeline) => {
+
+  const active = pipelines.filter(isActivePipeline);
+  const rest = pipelines.filter((pipeline) => !isActivePipeline(pipeline));
+
+  const makeRow = (pipeline) => {
     const row = element("button", {
-      className: `pipeline-row${pipeline.appId === selected.appId ? " is-selected" : ""}`,
+      className: `pipeline-row${pipeline.appId === selected.appId ? " is-selected" : ""}${isActivePipeline(pipeline) ? " is-active" : ""}`,
       attrs: { type: "button", "aria-pressed": pipeline.appId === selected.appId },
     }, [
-      element("div", {}, [element("strong", { text: pipeline.appId }), element("span", { text: pipeline.currentJob || pipeline.idea || "sem job atual" })]),
+      element("div", { className: "pipeline-row-copy" }, [
+        element("strong", { text: pipeline.appId }),
+        element("span", { text: pipelineListSubtitle(pipeline) }),
+      ]),
       badge(humanStatus(pipeline.status), statusTone(pipeline.status)),
     ]);
     row.addEventListener("click", () => {
@@ -385,8 +416,19 @@ function renderPipelines() {
       renderPipelines();
     });
     return row;
-  }));
+  };
 
+  const listChildren = [];
+  if (active.length) {
+    listChildren.push(element("div", { className: "pipeline-list-label", text: `Em atenção · ${active.length}` }));
+    listChildren.push(...active.map(makeRow));
+  }
+  if (rest.length) {
+    listChildren.push(element("div", { className: "pipeline-list-label", text: `Arquivo · ${rest.length}` }));
+    listChildren.push(...rest.map(makeRow));
+  }
+
+  const list = element("div", { className: "panel pipeline-list", attrs: { "aria-label": "Lista de pipelines" } }, listChildren);
   target.append(element("div", { className: "pipelines-layout" }, [list, renderPipelineDetail(selected)]));
 }
 
@@ -411,7 +453,11 @@ function renderPipelineDetail(pipeline) {
       element("div", {}, [
         element("span", { className: "eyebrow", text: controlModeLabel(pipeline.controlMode) }),
         element("h3", { text: pipeline.appId }),
-        element("span", { className: "meta-line", text: pipeline.idea || "Ideia não informada" }),
+        element("span", {
+          className: "meta-line meta-line-clamp",
+          text: pipeline.idea || "Ideia não informada",
+          attrs: { title: pipeline.idea || "" },
+        }),
       ]),
       badge(humanStatus(pipeline.status), statusTone(pipeline.status)),
     ]),

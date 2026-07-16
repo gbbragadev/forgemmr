@@ -86,6 +86,10 @@ test("Control Center consumes the closed control-plane API without a command esc
   assert.match(js, /Progresso ao vivo/);
   assert.match(js, /Full auto/);
   assert.match(js, /Automático até gate/);
+  assert.match(js, /function\s+sortPipelinesForList\b/);
+  assert.match(js, /function\s+pipelineListSubtitle\b/);
+  assert.match(js, /Em atenção/);
+  assert.doesNotMatch(js, /pipeline\.currentJob\s*\|\|\s*pipeline\.idea/);
   assert.doesNotMatch(js, /\beval\s*\(/);
   assert.doesNotMatch(js, /\.innerHTML\s*=/);
   assert.doesNotMatch(js, /(?:shell|terminal|command)\s*:/i);
@@ -105,4 +109,7 @@ test("Control Center visual contract is responsive, accessible and tokenized", (
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /\.run-console/);
   assert.match(css, /\.run-console-line/);
+  assert.match(css, /\.pipeline-list-label/);
+  assert.match(css, /line-clamp:\s*2/);
+  assert.match(css, /\.meta-line-clamp/);
 });
