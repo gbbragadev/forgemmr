@@ -1,5 +1,12 @@
 # HANDOFF
 
+## Last iteration — publicação discovery-first no GitHub (2026-07-19, Codex)
+
+- **Git:** commit `2fa3690` publicado na branch `feat/forge-discovery-first`; PR draft <https://github.com/gbbragadev/forgemmr/pull/1> contra `master`.
+- **README:** descreve a TUI prompt-first, o novo loop discovery-first e a influência de STORM, ai-brainstorm, Khoj e DeepDiagram na nova ETAPA 1, com decisões MIT/AGPL explícitas.
+- **VERIFY antes da publicação:** `npm run typecheck` PASS · `npm run build:all` PASS · `npm run tui:test` **19/19** · suíte completa **328 pass / 2 fail baseline / 1 skip** · escopo sem secrets, `.env`, PID, runtime local, outputs, `node_modules` ou artefatos Playwright.
+- **Limite de deploy:** publicação GitHub concluída. Deploy runtime Always-On não foi executado porque ainda não existe profile/identidade/hostname do `forge-nexus`; não inventar esses valores.
+
 ## Last iteration — TUI utilizável + handoff da ETAPA 1 (2026-07-19, Codex)
 
 - **Correção imediata:** TUI agora é prompt-first: digitar mostra o texto, `Enter` envia, primeira mensagem cria a room automaticamente, Codex é o executor padrão, setas funcionam sem `Tab`, `?` mostra ajuda e formulários usam setas por campo/opção. Submissão duplicada foi bloqueada; teses têm seleção visível e são filtradas por room.
