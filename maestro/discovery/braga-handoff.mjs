@@ -110,7 +110,13 @@ export function exportPreparedHandoff({ root, target, contract }) {
   const resolvedRoot = path.resolve(root);
   const resolved = path.resolve(root, target);
   const relative = path.relative(resolvedRoot, resolved);
-  if (path.isAbsolute(target) || relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
+  if (
+    path.posix.isAbsolute(target)
+    || path.win32.isAbsolute(target)
+    || relative === ""
+    || relative.startsWith("..")
+    || path.isAbsolute(relative)
+  ) {
     throw new Error("caminho de export precisa ficar dentro do root");
   }
   fs.mkdirSync(path.dirname(resolved), { recursive: true });

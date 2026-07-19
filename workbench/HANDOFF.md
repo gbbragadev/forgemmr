@@ -5,6 +5,7 @@
 - **Git:** commit `2fa3690` publicado na branch `feat/forge-discovery-first`; PR draft <https://github.com/gbbragadev/forgemmr/pull/1> contra `master`.
 - **README:** descreve a TUI prompt-first, o novo loop discovery-first e a influência de STORM, ai-brainstorm, Khoj e DeepDiagram na nova ETAPA 1, com decisões MIT/AGPL explícitas.
 - **VERIFY antes da publicação:** `npm run typecheck` PASS · `npm run build:all` PASS · `npm run tui:test` **19/19** · suíte completa **328 pass / 2 fail baseline / 1 skip** · escopo sem secrets, `.env`, PID, runtime local, outputs, `node_modules` ou artefatos Playwright.
+- **CI hardening pós-publicação:** pacotes core agora declaram `@types/node`; export Braga rejeita caminhos absolutos Windows/POSIX em qualquer host; parse de créditos deixou de depender do relógio e normaliza somente no uso. Instalação limpa `npm ci` + typecheck PASS; suíte local **330 pass / 0 fail / 1 skip**.
 - **Limite de deploy:** publicação GitHub concluída. Deploy runtime Always-On não foi executado porque ainda não existe profile/identidade/hostname do `forge-nexus`; não inventar esses valores.
 
 ## Last iteration — TUI utilizável + handoff da ETAPA 1 (2026-07-19, Codex)
