@@ -1,3 +1,10 @@
+import { attentionCounts, listAttention } from "/operator/attention.mjs";
+import {
+  isActivePipeline,
+  pipelineListSubtitle,
+  sortPipelinesForList,
+} from "/operator/pipeline-view.mjs";
+
 const API = Object.freeze({
   snapshot: "/api/control/snapshot",
   token: "/api/token",
@@ -12,7 +19,17 @@ const API = Object.freeze({
   memoryImportApply: "/api/memory/import/apply",
 });
 
-const SECTION_IDS = ["overview", "new-pipeline", "pipelines", "decisions", "factory", "metrics", "memory", "activity"];
+/** Four operator surfaces (big bang UI). Legacy names alias in showSection. */
+const SECTION_IDS = ["home", "idea", "run", "factory"];
+const SECTION_ALIASES = Object.freeze({
+  overview: "home",
+  "new-pipeline": "idea",
+  pipelines: "run",
+  decisions: "home",
+  metrics: "factory",
+  memory: "factory",
+  activity: "factory",
+});
 const PIPELINE_STEPS = ["L0/P0", "FOUNDATION", "DS-GEN", "L0/P1", "L1/B1", "L1/B2", "L1/B3", "L1/B4", "L1/B5", "SIMULATE", "P3", "P4", "P5"];
 const TEAM_ROLES = ["Estrategista", "Engenheiro", "Designer", "QA", "Revisor"];
 const CONTROL_MODE_LABELS = Object.freeze({
@@ -29,7 +46,8 @@ function controlModeLabel(mode) {
 const state = {
   snapshot: null,
   token: "",
-  activeSection: "overview",
+  activeSection: "home",
+  factoryTab: "setup",
   selectedAppId: null,
   currentAction: null,
   eventSource: null,
@@ -197,7 +215,12 @@ async function loadSnapshot({ quiet = false } = {}) {
     setConnection(true);
     byId("state-version").textContent = `estado ${state.snapshot.version}`;
     renderAll();
-    if (state.activeSection === "memory" && !state.memory.loading) void loadMemoryOverview({ quiet: true });
+    if (
+      (state.activeSection === "factory" && state.factoryTab === "memory") &&
+      !state.memory.loading
+    ) {
+      void loadMemoryOverview({ quiet: true });
+    }
     if (!quiet) notify("Central atualizada.");
     return state.snapshot;
   } catch (error) {
@@ -210,8 +233,8 @@ async function loadSnapshot({ quiet = false } = {}) {
 }
 
 function renderUnavailable() {
-  for (const id of SECTION_IDS) {
-    const target = byId(`${id}-content`);
+  for (const id of ["home-content", "idea-content", "run-content", "factory-setup"]) {
+    const target = byId(id);
     if (target) clear(target).append(emptyState("Nexus indisponível", "Abra a central pelo atalho do Forge e tente novamente."));
   }
 }
@@ -244,45 +267,113 @@ function actionCard(action) {
 }
 
 function renderOverview() {
+  renderHome();
+}
+
+function renderHome() {
   const snapshot = state.snapshot;
-  const target = clear(byId("overview-content"));
+  const target = clear(byId("home-content"));
+  if (!target) return;
   target.classList.remove("loading-grid");
   target.setAttribute("aria-busy", "false");
 
-  const active = snapshot.pipelines.filter((pipeline) => ["running", "paused_gate", "paused_control", "blocked"].includes(pipeline.status));
-  const installed = snapshot.providers.filter((provider) => provider.installed !== false).length;
-  const successful = snapshot.operations.filter((operation) => operation.status === "succeeded").length;
+  const items = listAttention(snapshot);
+  const counts = attentionCounts(items);
+  const installed = (snapshot.providers || []).filter((p) => p.installed !== false).length;
+
   const kpis = element("div", { className: "kpi-strip" }, [
-    kpi("Pipelines ativas", active.length, `${snapshot.pipelines.length} registradas`),
-    kpi("Decisões pendentes", snapshot.decisions.length, snapshot.decisions.length ? "exigem você" : "fila limpa"),
-    kpi("Providers prontos", installed, `${snapshot.providers.length} conhecidos`),
-    kpi("Operações concluídas", successful, `${snapshot.operations.length} no histórico`),
+    kpi("Pedem você", counts.gates + counts.stuck, counts.total ? "na fila de atenção" : "fila limpa"),
+    kpi("Rodando", counts.running, "ao vivo agora"),
+    kpi("Pipelines", (snapshot.pipelines || []).length, "registradas"),
+    kpi("Providers", installed, `${(snapshot.providers || []).length} conhecidos`),
   ]);
 
-  const pipelinePanel = element("div", { className: "panel" }, [
-    panelHeader("Trabalho em curso", `${active.length} em atenção`),
-    element("div", { className: "panel-body" }, active.length
-      ? [element("div", { className: "stack-list" }, active.slice(0, 6).map((pipeline) => pipelineSummary(pipeline)))]
-      : [emptyState("Nenhuma execução ativa", "A fábrica está calma. Crie uma pipeline quando tiver uma aposta pronta.")]),
+  const attentionList = items.length
+    ? element(
+        "div",
+        { className: "attention-list" },
+        items.map((item) => attentionCard(item))
+      )
+    : emptyState(
+        "Nada pedindo você",
+        "A fábrica está calma. Lance uma ideia ou abra Run para acompanhar.",
+        (() => {
+          const b = element("button", {
+            className: "button button-primary",
+            text: "Nova ideia",
+            attrs: { type: "button" },
+          });
+          b.addEventListener("click", () => showSection("idea"));
+          return b;
+        })()
+      );
+
+  const decisionActions = (snapshot.actions || []).filter(
+    (action) => action.id === "gate.decide" || (action.id === "p5.decide" && action.enabled)
+  );
+  const decisionBlock =
+    decisionActions.length > 0
+      ? element("div", { className: "panel" }, [
+          panelHeader("Decidir agora", `${decisionActions.length} ação(ões)`),
+          element(
+            "div",
+            { className: "panel-body decision-grid" },
+            decisionActions.map((action) => {
+              const appId = appIdFromScope(action.scope);
+              return element("article", { className: "decision-card" }, [
+                element("div", { className: "card-actions" }, [
+                  badge(appId || "fábrica", "warning"),
+                  riskBadge(action.risk),
+                ]),
+                element("h3", { text: action.label }),
+                element("p", { text: action.description }),
+                renderDecisionContext(action, appId),
+                actionButton(action, "Revisar e decidir"),
+              ]);
+            })
+          ),
+        ])
+      : null;
+
+  target.append(
+    kpis,
+    element("div", { className: "panel" }, [
+      panelHeader("Fila de atenção", `${counts.total} item(ns)`),
+      element("div", { className: "panel-body" }, [attentionList]),
+    ]),
+    decisionBlock
+  );
+}
+
+function attentionCard(item) {
+  const tone =
+    item.kind === "gate" || item.kind === "p4"
+      ? "warning"
+      : item.kind === "running"
+        ? "success"
+        : "danger";
+  const openRun = element("button", {
+    className: "button button-secondary",
+    text: item.appId ? "Abrir Run" : "Ver",
+    attrs: { type: "button" },
+  });
+  openRun.addEventListener("click", () => {
+    if (item.appId) state.selectedAppId = item.appId;
+    showSection("run");
+  });
+  const actions = [openRun];
+  if (item.actionId && item.scope) {
+    const action = findAction(item.actionId, item.scope);
+    if (action) actions.unshift(actionButton(action, "Decidir"));
+  }
+  return element("div", { className: `attention-card kind-${item.kind}` }, [
+    element("div", { className: "item-copy" }, [
+      element("div", { className: "card-actions" }, [badge(item.kind, tone)]),
+      element("strong", { text: item.title }),
+      element("span", { text: item.reason }),
+    ]),
+    element("div", { className: "card-actions" }, actions),
   ]);
-
-  const decisionActions = snapshot.actions.filter((action) => action.id === "gate.decide" || (action.id === "p5.decide" && action.enabled));
-  const decisionPanel = snapshot.decisions.length || decisionActions.length
-    ? element("div", { className: "decision-callout" }, [
-        element("span", { className: "eyebrow", text: "SUA ATENÇÃO" }),
-        element("h3", { text: `${Math.max(snapshot.decisions.length, decisionActions.length)} decisão(ões) aguardando` }),
-        element("p", { text: "Revise o contexto antes de liberar o próximo trecho da fábrica." }),
-        element("button", { className: "button button-accent", text: "Abrir decisões", attrs: { type: "button" } }),
-      ])
-    : element("div", { className: "decision-callout" }, [
-        element("span", { className: "eyebrow", text: "SEM GATES PENDENTES" }),
-        element("h3", { text: "A fila humana está limpa" }),
-        element("p", { text: "O Forge Nexus só volta a chamar quando uma decisão real for necessária." }),
-      ]);
-  const decisionButton = decisionPanel.querySelector("button");
-  if (decisionButton) decisionButton.addEventListener("click", () => showSection("decisions"));
-
-  target.append(kpis, element("div", { className: "overview-grid" }, [pipelinePanel, decisionPanel]));
 }
 
 function kpi(label, value, note) {
@@ -297,33 +388,11 @@ function panelHeader(title, meta = "") {
   return element("header", { className: "panel-header" }, [element("h3", { text: title }), element("span", { text: meta })]);
 }
 
-/** Status que exigem atenção do dono — sobem na lista de pipelines. */
-function isActivePipeline(pipeline) {
-  return ["running", "paused_gate", "paused_control", "blocked"].includes(pipeline.status);
-}
-
-/** Subtítulo curto da lista: job atual, nunca a ideia inteira (evita scroll infinito). */
-function pipelineListSubtitle(pipeline) {
-  if (pipeline.currentJob) return String(pipeline.currentJob);
-  const idea = String(pipeline.idea || "").replace(/\s+/g, " ").trim();
-  if (!idea) return "sem job atual";
-  return idea.length > 72 ? `${idea.slice(0, 69)}…` : idea;
-}
-
-function sortPipelinesForList(pipelines) {
-  const rank = (p) => (isActivePipeline(p) ? 0 : p.status === "done" ? 2 : 1);
-  return [...pipelines].sort((a, b) => {
-    const d = rank(a) - rank(b);
-    if (d !== 0) return d;
-    return String(a.appId || "").localeCompare(String(b.appId || ""));
-  });
-}
-
 function pipelineSummary(pipeline) {
   const open = element("button", { className: "button button-secondary", text: "Abrir", attrs: { type: "button" } });
   open.addEventListener("click", () => {
     state.selectedAppId = pipeline.appId;
-    showSection("pipelines");
+    showSection("run");
   });
   return element("div", { className: "stack-item" }, [
     element("div", { className: "item-copy" }, [
@@ -335,7 +404,12 @@ function pipelineSummary(pipeline) {
 }
 
 function renderNewPipeline() {
-  const target = clear(byId("new-pipeline-content"));
+  renderIdea();
+}
+
+function renderIdea() {
+  const target = clear(byId("idea-content"));
+  if (!target) return;
   const action = findAction("pipeline.start", "factory");
   if (!action) {
     target.append(emptyState("Criação indisponível", "O catálogo não ofereceu uma ação segura para iniciar pipelines."));
@@ -344,7 +418,7 @@ function renderNewPipeline() {
 
   const form = element("form", { className: "wizard-main", attrs: { id: "pipeline-wizard" } }, [
     element("h3", { text: "Descreva a aposta" }),
-    element("p", { text: "O Forge Nexus monta o caminho e para nos gates que exigem sua decisão." }),
+    element("p", { text: "A fábrica monta o caminho e para só nos gates que precisam de você." }),
     element("div", { className: "form-fields" }, action.fields.map((field) => renderActionField(field))),
     element("div", { className: "form-actions" }, [
       element("button", { className: "button button-primary", text: "Iniciar pipeline", attrs: { type: "submit", disabled: !action.enabled } }),
@@ -358,7 +432,7 @@ function renderNewPipeline() {
     try {
       await executeAction(action, collectFormInput(form, action));
       form.reset();
-      showSection("pipelines");
+      showSection("run");
     } catch (error) {
       notify(error.message, { error: true });
     } finally {
@@ -367,12 +441,12 @@ function renderNewPipeline() {
   });
 
   const rail = element("aside", { className: "panel wizard-rail" }, [
-    element("span", { className: "eyebrow", text: "FLUXO GUIADO" }),
+    element("span", { className: "eyebrow", text: "FLUXO" }),
     element("ol", { className: "wizard-steps" }, [
-      wizardStep("01", "Ideia e mercado", true),
-      wizardStep("02", "Configuração da fábrica"),
-      wizardStep("03", "Modo de controle"),
-      wizardStep("04", "Revisão nos gates"),
+      wizardStep("01", "Ideia", true),
+      wizardStep("02", "Time e modo"),
+      wizardStep("03", "Run ao vivo"),
+      wizardStep("04", "Gates com você"),
     ]),
   ]);
   target.append(element("div", { className: "wizard-layout" }, [rail, element("div", { className: "panel" }, [form])]));
@@ -383,16 +457,20 @@ function wizardStep(index, label, current = false) {
 }
 
 function renderPipelines() {
-  const target = clear(byId("pipelines-content"));
+  renderRun();
+}
+
+function renderRun() {
+  const target = clear(byId("run-content"));
+  if (!target) return;
   const pipelines = sortPipelinesForList(state.snapshot.pipelines || []);
   if (!pipelines.length) {
     const create = element("button", { className: "button button-primary", text: "Criar primeira pipeline", attrs: { type: "button" } });
-    create.addEventListener("click", () => showSection("new-pipeline"));
-    target.append(emptyState("Nenhuma pipeline registrada", "Comece por uma ideia; todo o restante acontece aqui na central.", create));
+    create.addEventListener("click", () => showSection("idea"));
+    target.append(emptyState("Nenhuma pipeline registrada", "Comece por uma ideia; o Run acompanha daqui.", create));
     return;
   }
 
-  // Lista ordena ativas primeiro; se não há seleção, abre a primeira em atenção.
   const selectedExisting = pipelines.find((pipeline) => pipeline.appId === state.selectedAppId);
   const selected = selectedExisting || pipelines.find(isActivePipeline) || pipelines[0];
   state.selectedAppId = selected.appId;
@@ -413,7 +491,7 @@ function renderPipelines() {
     ]);
     row.addEventListener("click", () => {
       state.selectedAppId = pipeline.appId;
-      renderPipelines();
+      renderRun();
     });
     return row;
   };
@@ -523,7 +601,8 @@ function renderPipelineMemory(pipeline) {
   const openMemory = element("button", { className: "button button-secondary", text: "Abrir memória do app", attrs: { type: "button" } });
   openMemory.addEventListener("click", () => {
     state.memory.project = `app-${pipeline.appId}`;
-    showSection("memory");
+    state.factoryTab = "memory";
+    showSection("factory");
     void loadMemoryOverview();
   });
   const promote = findAction("memory.rule.write", "factory");
@@ -577,7 +656,7 @@ function renderPipelineMemory(pipeline) {
 
 async function loadPipelineMemory(appId) {
   state.memory.pipelines[appId] = { loading: true };
-  renderPipelines();
+  renderRun();
   const project = `app-${appId}`;
   try {
     const [overview, briefing] = await Promise.all([
@@ -588,28 +667,12 @@ async function loadPipelineMemory(appId) {
   } catch (error) {
     state.memory.pipelines[appId] = { loading: false, error: error.message, overview: null, briefing: { items: [], text: "" } };
   }
-  renderPipelines();
+  renderRun();
 }
 
 function renderDecisions() {
-  const target = clear(byId("decisions-content"));
-  const decisionActions = state.snapshot.actions.filter((action) => action.id === "gate.decide" || (action.id === "p5.decide" && action.enabled));
-  if (!decisionActions.length) {
-    target.append(emptyState("Nenhuma decisão pendente", "O Forge Nexus continua até o próximo gate contratual ou pausa configurada."));
-    return;
-  }
-  target.append(element("div", { className: "decision-grid" }, decisionActions.map((action) => {
-    const appId = appIdFromScope(action.scope);
-    const context = renderDecisionContext(action, appId);
-    return element("article", { className: "decision-card" }, [
-      element("div", { className: "card-actions" }, [badge(appId || "fábrica", "warning"), riskBadge(action.risk)]),
-      element("h3", { text: action.label }),
-      element("p", { text: action.description }),
-      context,
-      element("div", { className: "effect-box" }, [element("strong", { text: "Efeito esperado" }), element("span", { text: action.expectedEffect })]),
-      actionButton(action, "Revisar e decidir"),
-    ]);
-  })));
+  /* Gates live on Home + Run; keep function for tests and call sites. */
+  renderHome();
 }
 
 function renderDecisionContext(action, appId) {
@@ -669,7 +732,8 @@ function renderDecisionContext(action, appId) {
 }
 
 function renderFactory() {
-  const target = clear(byId("factory-content"));
+  const setup = clear(byId("factory-setup"));
+  if (!setup) return;
   const snapshot = state.snapshot;
   const factoryActions = snapshot.actions.filter((action) => action.scope === "factory" && action.id !== "pipeline.start");
   const providers = snapshot.providers.length
@@ -706,13 +770,38 @@ function renderFactory() {
       ])))
     : emptyState("Sem blueprints", "A pipeline genérica permanece disponível.");
 
-  target.append(element("div", { className: "factory-grid" }, [
+  setup.append(element("div", { className: "factory-grid" }, [
     factoryCard("Providers", `${snapshot.providers.length} integrações conhecidas`, providers),
     factoryCard("Profiles", `${snapshot.profiles.length} configurações`, profiles),
     factoryCard("Times", `${snapshot.teams.length} composições`, teams),
     factoryCard("Blueprints", `${snapshot.blueprints.length} caminhos`, blueprints),
     element("article", { className: "panel card-wide" }, [panelHeader("Ações da fábrica", "catálogo allowlisted"), element("div", { className: "panel-body action-list" }, factoryActions.map(actionCard))]),
   ]));
+
+  renderMetrics();
+  renderMemory();
+  renderActivity();
+  applyFactoryTab();
+}
+
+function applyFactoryTab() {
+  const tab = state.factoryTab || "setup";
+  const map = {
+    setup: "factory-setup",
+    metrics: "metrics-content",
+    memory: "memory-content",
+    activity: "activity-content",
+  };
+  for (const [key, id] of Object.entries(map)) {
+    const el = byId(id);
+    if (el) el.hidden = key !== tab;
+  }
+  document.querySelectorAll("[data-factory-tab]").forEach((button) => {
+    const active = button.dataset.factoryTab === tab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  if (tab === "memory" && state.snapshot && !state.memory.loading) void loadMemoryOverview({ quiet: true });
 }
 
 function factoryCard(title, meta, content) {
@@ -1125,14 +1214,10 @@ async function inspectOperation(id) {
 
 function renderAll() {
   if (!state.snapshot) return;
-  renderOverview();
-  renderNewPipeline();
-  renderPipelines();
-  renderDecisions();
+  renderHome();
+  renderIdea();
+  renderRun();
   renderFactory();
-  renderMetrics();
-  renderMemory();
-  renderActivity();
 }
 
 function renderActionField(field) {
@@ -1169,7 +1254,7 @@ function renderActionField(field) {
   }
 
   let input;
-  if (field.type === "textarea") {
+  if (field.type === "textarea" || field.type === "json") {
     input = element("textarea", { attrs: { name: field.name, required: field.required, rows: 4 } });
   } else if (field.type === "select") {
     input = element("select", { attrs: { name: field.name, required: field.required } }, (field.options || []).map((option) => element("option", {
@@ -1341,7 +1426,8 @@ function connectEvents() {
       const payload = JSON.parse(event.data);
       state.events.push({ ...payload, receivedAt: new Date().toISOString() });
       if (state.events.length > 200) state.events.splice(0, state.events.length - 200);
-      if (state.activeSection === "activity" && state.snapshot) renderActivity();
+      if (state.activeSection === "run" && state.snapshot) renderRun();
+      if (state.activeSection === "factory" && state.factoryTab === "activity" && state.snapshot) renderActivity();
       clearTimeout(state.refreshTimer);
       state.refreshTimer = setTimeout(() => loadSnapshot({ quiet: true }).catch(() => {}), 220);
     } catch {
@@ -1350,26 +1436,53 @@ function connectEvents() {
   });
 }
 
+function resolveSection(sectionId) {
+  const raw = sectionId || "home";
+  if (SECTION_IDS.includes(raw)) return raw;
+  return SECTION_ALIASES[raw] || "home";
+}
+
 function showSection(sectionId) {
-  if (!SECTION_IDS.includes(sectionId)) return;
-  state.activeSection = sectionId;
-  for (const id of SECTION_IDS) byId(id).hidden = id !== sectionId;
+  const resolved = resolveSection(sectionId);
+  if (sectionId === "metrics") state.factoryTab = "metrics";
+  if (sectionId === "memory") state.factoryTab = "memory";
+  if (sectionId === "activity") state.factoryTab = "activity";
+  if (sectionId === "decisions") {
+    /* stay home — gates are there */
+  }
+
+  state.activeSection = resolved;
+  for (const id of SECTION_IDS) {
+    const el = byId(id);
+    if (el) el.hidden = id !== resolved;
+  }
   document.querySelectorAll("[data-section]").forEach((button) => {
-    const active = button.dataset.section === sectionId;
+    const active = button.dataset.section === resolved;
     button.classList.toggle("is-active", active);
     if (active) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
   document.body.classList.remove("nav-open");
   byId("mobile-menu").setAttribute("aria-expanded", "false");
-  history.replaceState(null, "", `#${sectionId}`);
+  history.replaceState(null, "", `#${resolved}`);
   byId("workspace").focus({ preventScroll: true });
-  if (sectionId === "memory" && state.snapshot && !state.memory.loading) void loadMemoryOverview({ quiet: true });
+  if (resolved === "factory") applyFactoryTab();
+  if (resolved === "factory" && state.factoryTab === "memory" && state.snapshot && !state.memory.loading) {
+    void loadMemoryOverview({ quiet: true });
+  }
+  if (resolved === "run" && state.snapshot) renderRun();
+  if (resolved === "home" && state.snapshot) renderHome();
 }
 
 function bindInterface() {
   document.querySelectorAll("[data-section]").forEach((button) => button.addEventListener("click", () => showSection(button.dataset.section)));
   document.querySelectorAll("[data-go-section]").forEach((button) => button.addEventListener("click", () => showSection(button.dataset.goSection)));
+  document.querySelectorAll("[data-factory-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.factoryTab = button.dataset.factoryTab || "setup";
+      applyFactoryTab();
+    });
+  });
   byId("mobile-menu").addEventListener("click", () => {
     const open = document.body.classList.toggle("nav-open");
     byId("mobile-menu").setAttribute("aria-expanded", String(open));
@@ -1380,12 +1493,12 @@ function bindInterface() {
   byId("action-cancel").addEventListener("click", () => byId("action-dialog").close());
   byId("action-form").addEventListener("submit", submitCurrentAction);
   byId("action-dialog").addEventListener("close", () => { state.currentAction = null; });
-  window.addEventListener("hashchange", () => showSection(location.hash.slice(1) || "overview"));
+  window.addEventListener("hashchange", () => showSection(location.hash.slice(1) || "home"));
 }
 
 async function start() {
   bindInterface();
-  showSection(SECTION_IDS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview");
+  showSection(resolveSection(location.hash.slice(1) || "home"));
   connectEvents();
   try {
     await loadSnapshot({ quiet: true });

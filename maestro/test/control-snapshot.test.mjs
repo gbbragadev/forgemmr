@@ -74,13 +74,10 @@ test("snapshot reúne a fábrica, ordena pipelines e descreve somente ações v�
     assert.equal(snapshot.decisions[0].gateId, "p0-go");
     assert.equal(snapshot.server.localOnly, true);
 
-    const start = snapshot.actions.find((action) => action.id === "pipeline.start");
-    assert.equal(start.risk, "safe");
-    assert.equal(start.enabled, true);
-    assert.ok(start.fields.find((field) => field.name === "team").options.includes("dry-run"));
-    assert.deepEqual(start.fields.find((field) => field.name === "controlMode").options, [
-      "full_auto", "autopilot_to_gate", "guided", "manual",
-    ]);
+    assert.equal(snapshot.actions.some((action) => action.id === "pipeline.start"), false);
+    const discoveryAction = snapshot.actions.find((action) => action.id === "room.create");
+    assert.equal(discoveryAction.enabled, false);
+    assert.match(discoveryAction.blockedReason, /DiscoveryWorkspace/);
     for (const actionId of ["operator.ingest", "operator.evolve", "profile.create", "profile.activate", "blueprint.save", "blueprint.migrate", "team.save", "providers.refresh", "provider.login"]) {
       assert.ok(snapshot.actions.some((action) => action.id === actionId), `ação de fábrica ausente: ${actionId}`);
     }

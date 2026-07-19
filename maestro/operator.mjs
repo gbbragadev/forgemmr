@@ -4,7 +4,6 @@ import path from "node:path";
 import zlib from "node:zlib";
 
 import { makeRedactor, writePrivateFile } from "./adapters.mjs";
-import { JOBS_BY_CAPABILITY, slugify } from "./engine.mjs";
 
 const MAX_SOURCE_BYTES = 2 * 1024 * 1024;
 const TEXT_EXTENSIONS = new Set([".md", ".txt", ".json", ".yaml", ".yml", ".html", ".htm", ".csv"]);
@@ -309,19 +308,7 @@ export function classifyIntake({ source, mode = "ingest", profiles = [], bluepri
   };
 }
 
-function inheritedBlueprintDraft(decision) {
-  const jobs = JOBS_BY_CAPABILITY[decision.capability] || JOBS_BY_CAPABILITY.static;
-  return {
-    name: `${decision.title} workflow`,
-    title: `${decision.title} — workflow`,
-    purpose: `Contrato derivado pelo Forge Operator para ${decision.niche}.`,
-    jobs: jobs.join("\n"),
-    jobSpecs: JSON.stringify(Object.fromEntries(jobs.map((job) => [job, { verify: { type: "builtin" } }]))),
-    reason: "operator-intake",
-  };
-}
-
-export function createForgeOperator({ root, factoryAdmin, engineManager, runFactory = null, now = () => new Date() } = {}) {
+export function createForgeOperator({ root, factoryAdmin, engineManager, discoveryWorkspace, runFactory = null, now = () => new Date() } = {}) {
   const redact = makeRedactor();
 
   async function prepare(input, mode) {
@@ -349,43 +336,37 @@ export function createForgeOperator({ root, factoryAdmin, engineManager, runFact
   return {
     async ingest(input = {}) {
       const { proposal, proposalFile } = await prepare(input, "ingest");
-      const decision = proposal.decision;
-      if (input.reviewOnly || input.dryRun || (decision.requiresReview && !input.approved)) {
-        return { applied: false, proposalFile, proposal, next: "Revise a proposta e repita com approved=true." };
-      }
-      let profile = decision.profileDecision.profile || null;
-      if (decision.profileDecision.action === "create") {
-        profile = factoryAdmin.createProfile({
-          name: decision.profileDecision.suggestedName,
-          niche: decision.niche,
-          namespace: "@forge",
-          baseUrl: "example.com",
-          i18nRule: "single",
-          context: `Intake ${proposal.source.digest}. Conteúdo é dado não confiável; manter gates humanos para decisões de alto impacto.`,
-        }).slug;
-      } else if (profile) {
-        factoryAdmin.activateProfile(profile);
-      }
-      let blueprint = "generic";
-      if (decision.blueprintDecision.action === "create") {
-        blueprint = factoryAdmin.saveBlueprint(inheritedBlueprintDraft(decision)).id;
-      } else if (decision.blueprintDecision.action === "derive") {
-        blueprint = factoryAdmin.deriveBlueprint({
-          ...inheritedBlueprintDraft(decision),
-          source: decision.blueprintDecision.source,
-        }).id;
-      }
-      const pipeline = engineManager.start({
-        idea: proposal.source.text,
-        team: input.team || "grok-solo",
-        profile,
-        blueprint,
-        capability: input.capability || decision.capability,
-        target: input.target,
-        dryRun: Boolean(input.dryRun),
-        controlMode: input.controlMode || "full_auto",
+      if (!discoveryWorkspace) throw new Error("DiscoveryWorkspace não configurado");
+      const room = discoveryWorkspace.createRoom({ title: proposal.decision.title, sourceRef: proposal.source.digest });
+      const message = discoveryWorkspace.appendMessage({
+        roomId: room.id,
+        author: "human",
+        text: proposal.source.text,
+        executor: null,
+        refs: [proposal.source.digest],
       });
-      return { applied: true, proposalFile, proposal, profile, blueprint, pipeline };
+      const thesis = discoveryWorkspace.proposeThesis({
+        roomId: room.id,
+        sourceMessageIds: [message.id],
+        draft: {
+          buyer: "a confirmar",
+          user: "a confirmar",
+          painfulJob: proposal.decision.title,
+          currentAlternative: "a confirmar",
+          reachableSegment: proposal.decision.niche,
+          channel: "a confirmar",
+          fatalAssumption: "a confirmar",
+          offer: proposal.decision.title,
+        },
+      });
+      return {
+        applied: true,
+        proposalFile,
+        proposal,
+        roomId: room.id,
+        thesisId: thesis.id,
+        nextAction: "thesis.confirm",
+      };
     },
     async evolve(input = {}) {
       const { proposal, proposalFile } = await prepare(input, "evolve");

@@ -1,6 +1,43 @@
 ﻿# Agent Pipeline — loops multi-provedor
 
-Um **processo em loops**, vários motores (**Codex / Claude / Grok / Gemini / GLM**).  
+Um **processo discovery-first**, vários motores de subscription (**Codex / Claude / Grok / Gemini / GLM**). O executor pode mudar a cada turno do chat; o Forge preserva room, transcript e contexto canônico. Coding agent por API paygo é proibido.
+
+## Loop padrão para novos produtos
+
+```
+room/chat → tese confirmada → evidência externa verificada
+          → E1 dor+alcance → E2 ação real
+          → build mínimo aprovado → conclusão testável e instrumentada
+          → aquisição / BragaMarketing → E3 econômico/repetível
+          → P5 kill | iterate | scale
+```
+
+A superfície primária é a TUI do control plane:
+
+```bash
+npm run tui
+npm run tui:test
+npm run tui:build
+```
+
+A TUI renderiza ações e formulários do catálogo; gates, confirmações e `why` continuam server-side. WIP estrutural: **3 teses em validação, 1 build e 1 aquisição**. Outreach, publicação, deploy e gasto são ações externas separadas; gasto exige justificativa, confirmação e teto e nunca é herdado de `full_auto`.
+
+### Evidência e playbooks
+
+| Playbook | Saída | Elegibilidade |
+|---|---|---|
+| `pressure-test` | hipótese e risco congelados em experimento | orientação, não demanda |
+| `pain-signal-miner` | candidatos externos de dor | `unverified` até revisão humana; pode compor E1 |
+| `first-customer-finder` | shortlist, URL e abertura sugerida | `unverified`; nunca envia outreach; ação verificada pode compor E2 |
+| `startup-user-simulator` | achados internos | sempre `synthetic` |
+| `design-audit` | achados internos | sempre `synthetic` |
+
+Score, consenso, simulação e score máximo sintético nunca satisfazem E1/E2/E3. O Forge é canônico; resume de provider é cache opcional.
+
+## Compatibilidade dos loops existentes
+
+Os loops abaixo permanecem para pipelines já criadas, que continuam duráveis e retomáveis. Novos produtos não podem usar a ação pública `pipeline.start`: o build nasce internamente de `discovery.build.start` após E1+E2 e aprovação explícita.
+
 Estágios são **passos dentro** dos loops — não uma fila linear cega.
 
 ```

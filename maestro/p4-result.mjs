@@ -28,6 +28,12 @@ export function validateP4Result(result) {
     }
   }
   if (!VERDICTS.has(result.verdict)) errors.push("verdict inválido");
+  for (const field of ["thesisId", "experimentId"]) {
+    if (result[field] !== undefined && (typeof result[field] !== "string" || !result[field].trim())) errors.push(`${field} inválido`);
+  }
+  if (result.evidenceRefs !== undefined && (!Array.isArray(result.evidenceRefs) || result.evidenceRefs.some(ref => typeof ref !== "string" || !ref.trim()))) {
+    errors.push("evidenceRefs inválido");
+  }
 
   return { valid: errors.length === 0, errors };
 }

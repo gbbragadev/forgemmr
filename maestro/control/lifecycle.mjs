@@ -67,7 +67,7 @@ export function listLifecycle(root) {
   });
 }
 
-export function createLifecycleManager({ root, engineManager, now = () => Date.now() } = {}) {
+export function createLifecycleManager({ root, engineManager, discoveryWorkspace, now = () => Date.now() } = {}) {
   function load(appId) {
     return listLifecycle(root).find((entry) => entry.appId === appId) || defaultState(assertAppId(appId));
   }
@@ -103,9 +103,12 @@ export function createLifecycleManager({ root, engineManager, now = () => Date.n
       if (!state.p4 || !validateP4Result(state.p4).valid) throw new Error(`P4 de ${appId} ainda não foi registrado`);
 
       let pipeline = null;
+      let nextAction = null;
       if (decision === "iterate") {
         const feedback = String(input?.feedback || "").trim();
+        const nextHypothesis = String(input?.nextHypothesis || "").trim();
         if (feedback.length < 8) throw new Error("iterate precisa de feedback acionável");
+        if (nextHypothesis.length < 8) throw new Error("iterate precisa de nextHypothesis");
         if (!engineManager?.startFeedback) throw new Error("engine indisponível para iniciar iterate");
         pipeline = engineManager.startFeedback({
           appId,
@@ -115,25 +118,30 @@ export function createLifecycleManager({ root, engineManager, now = () => Date.n
           target: input.target,
           controlMode: input.controlMode,
         });
+        nextAction = { type: "test_hypothesis", hypothesis: nextHypothesis };
+      }
+      if (decision === "scale") {
+        const thesisId = state.p4.thesisId;
+        const experimentId = state.p4.experimentId;
+        if (!discoveryWorkspace || !thesisId || !experimentId) throw new Error("scale exige discovery, tese e experimento vinculados");
+        const gates = discoveryWorkspace.gatesFor(thesisId);
+        if (!gates.e3.ok) throw new Error(`scale exige E3: ${gates.e3.unmet.join(", ")}`);
+        const experiment = discoveryWorkspace.snapshot().experiments.find(item => item.id === experimentId && item.thesisId === thesisId);
+        if (!experiment || experiment.status !== "completed") throw new Error("scale exige experimento concluído");
+        if (!Number.isFinite(input.ceiling) || input.ceiling <= 0) throw new Error("scale exige ceiling positivo");
+        const measurementDate = String(input.measurementDate || "").trim();
+        if (!measurementDate || Number.isNaN(Date.parse(measurementDate))) throw new Error("scale exige measurementDate válida");
+        nextAction = { type: "scale_acquisition", ceiling: input.ceiling, measurementDate };
       }
 
       const decidedAt = new Date(now()).toISOString();
       const status = decision === "kill" ? "retired" : decision === "iterate" ? "iterating" : "scaling";
       state.status = status;
-      state.p5 = { decision, why, decidedAt };
+      state.p5 = { decision, why, decidedAt, ...(nextAction ? { nextAction } : {}) };
       state.updatedAt = decidedAt;
-      state.history.push({ type: "p5", at: decidedAt, decision, why });
+      state.history.push({ type: "p5", at: decidedAt, decision, why, ...(nextAction ? { nextAction } : {}) });
       const saved = save(state);
-      return {
-        ...saved,
-        ...(pipeline ? { pipeline } : {}),
-        nextActions:
-          decision === "kill"
-            ? ["Arquivar aprendizados", "Abrir nova hipótese P0"]
-            : decision === "iterate"
-              ? ["Acompanhar a pipeline ITERATE", "Repetir P4 após o próximo ship"]
-              : ["Escolher canal de escala", "Definir limite de custo e próxima medição"],
-      };
+      return { ...saved, ...(pipeline ? { pipeline } : {}), ...(nextAction ? { nextAction } : {}) };
     },
   };
 }

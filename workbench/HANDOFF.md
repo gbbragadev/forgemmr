@@ -1,5 +1,71 @@
 # HANDOFF
 
+## Last iteration — TUI utilizável + handoff da ETAPA 1 (2026-07-19, Codex)
+
+- **Correção imediata:** TUI agora é prompt-first: digitar mostra o texto, `Enter` envia, primeira mensagem cria a room automaticamente, Codex é o executor padrão, setas funcionam sem `Tab`, `?` mostra ajuda e formulários usam setas por campo/opção. Submissão duplicada foi bloqueada; teses têm seleção visível e são filtradas por room.
+- **Runtime real:** `forgenexus` detecta fingerprint obsoleto e reinicia o Maestro somente sem operação ativa. O processo velho de 18/07 foi substituído; snapshot live expõe PID/start/fingerprint atuais.
+- **Pesquisa maior:** STORM, ai-brainstorm, Khoj e DeepDiagram foram analisados por três agentes independentes em fontes primárias. Decisão: adaptar STORM/ai-brainstorm (MIT) e usar Khoj/DeepDiagram (AGPL) apenas como referências clean-room; nenhum fork/código externo incorporado.
+- **Próxima sessão:** fonte autoritativa `docs/HANDOFF-ETAPA-1-DISCOVERY-STUDIO.md`. Nova ETAPA 1 = prompt TUI + ramos + pesquisa rastreável + memória leve + canvas web real, sempre sobre o mesmo `DiscoveryWorkspace`.
+- **VERIFY:** TUI **19/19** · TUI build PASS · servidor direcionado **10/10** · launcher/snapshot fingerprint live PASS · tutorial HTML/Markdown + 4 PNGs atualizados por Playwright.
+- **Limites:** nenhum código externo, API paygo, commit, push ou deploy. Working tree permanece muito modificado; preservar tudo.
+
+## Last iteration — 5 fixes do Startup User Simulator (2026-07-19, Codex)
+
+- **Onboarding:** `forgenexus` virou o único caminho principal no tutorial e ganhou quick start “primeira ideia em 90 segundos”; `npm install`, dois terminais e `ENOENT` ficaram em troubleshooting.
+- **TUI:** faixa persistente `ETAPA n/8` antes do chat mostra gate, requisito faltante, próxima ação e disponibilidade local das CLIs sem afirmar login/quota. Tese, evidência e experimento usam campos guiados com room/tese/ator/data/IDs pré-preenchidos; `Ctrl+J` preserva JSON avançado.
+- **Contratos:** campos JSON passaram a ser tipados no catálogo/dispatcher e continuam compatíveis com o Control Center web. O detalhe da tese agora inclui gates, build, último experimento e acquisition para derivar progresso do estado canônico.
+- **DEPLOY:** novo estado privado Always-On separado em `prepared → confirmed → published → verified`. O Forge só prepara/confirma/importa evidência/verifica; `$always-on-deploy` executa externamente. Publicação exige nonce, revision, release, tasks, capacidade e rollback; checks não medidos ficam pendentes.
+- **Tutorial:** HTML + Markdown atualizados e quatro PNGs regenerados no navegador; fluxo visual agora termina em DEPLOY e mostra campos guiados.
+- **VERIFY:** `npm run typecheck` **EXIT 0** · `npm run build:all` **EXIT 0** · `npm run tui:test` **16/16** · direcionados backend **18/18** · suíte completa **328 pass / 2 fail baseline / 1 skip** (falhas antigas de `parseGuestCreditState` em `packages/credits/test/index.test.mjs`) · `git diff --check` sem erro · `forgenexus --check` PASS · browser/DOM tutorial PASS.
+- **Limites:** nenhum deploy real, PowerShell privilegiado, outreach, gasto, commit ou push foi executado. A instância Maestro já aberta não foi reiniciada; o código novo foi provado por testes HTTP/unitários e entra em runtime no próximo start normal.
+
+## Last iteration — Startup User Simulator no Forge Nexus (2026-07-19, Codex)
+
+- **Execução:** skill global `startup-user-simulator` comparada ao upstream `Kappaemme-git/codex-startup-user-simulator-skill` commit `834a2a3`; cópia instalada idêntica. A ausência no catálogo desta sessão é consistente com cache de descoberta e a exigência documentada de reiniciar o Codex após instalar.
+- **Resultado:** relatório quick com cinco personas em `outputs/startup-user-simulation-forge-nexus.html`; score médio simulado 65/100. Leak principal: o onboarding apresenta `forgenexus`, mas logo volta a exigir dois terminais e comandos npm.
+- **Top fixes:** comando único como caminho principal; primeira ideia em 90 segundos; formulários estruturados no lugar de JSON bruto; próximo gate/health visível; etapa Always-On no fim do fluxo de deploy.
+- **VERIFY:** skill/generator `py_compile` PASS · HTML 35 KB · veredito + 5 personas + 5 fixes + experimento + limites presentes · browser desktop PASS · viewport móvel 390×844 sem overflow horizontal · sem alterar produto, agente, outreach, gasto ou deploy.
+
+## Last iteration — alias global `forgenexus` (2026-07-19, Codex)
+
+- **Entregue:** `forgenexus` disponível globalmente no PowerShell e CMD por `C:\Users\guibr\AppData\Roaming\npm\forgenexus.cmd`; pode ser chamado de qualquer pasta.
+- **Comportamento:** verifica o control plane discovery, inicia `maestro/server.mjs` oculto quando necessário e abre a TUI com `FORGE_ROOT` correto. `--check` valida sem abrir a interface; `--help` mostra o uso.
+- **VERIFY:** resolução via `where.exe` · `forgenexus --help` · health check no PowerShell e no CMD a partir de `C:\Windows` · `node --check scripts/forgenexus.mjs` — todos **EXIT 0**.
+
+## Last iteration — tutorial visual discovery-first (2026-07-18, Codex)
+
+- **Entregue:** tutorial navegável `docs/TUTORIAL-VISUAL-DISCOVERY-FIRST.html`, versão Markdown e 4 pranchas PNG em `docs/images/tutorial-discovery-first/`, cobrindo bootstrap, TUI, room/chat/tese, E1/E2/E3, experimento, build, Braga, aquisição, gasto e P5.
+- **Correções de uso encontradas durante o smoke:** `npm run tui` agora resolve a raiz do Forge em vez de procurar `maestro/tui/maestro/.token`; a paleta ganhou `thesis.propose`, `chat.stop` e conclusão/término de aquisição.
+- **VERIFY:** HTML renderizado e inspecionado por Playwright em 1440×1000 · `npm run tui:test` **13/13** · `npm run tui:build` **EXIT 0** · bootstrap real no Windows Terminal verificado · sem agente, quota, outreach, gasto, build, deploy ou publicação.
+
+## Last iteration — META/L1 discovery-first (2026-07-18, Claude Code / GPT-5.6 Sol)
+
+- **Feito:** plano Tasks 1–9 implementado no Maestro: TUI Ink como interface primária, workspace discovery persistente, chat multi-host, playbooks privados e reproduzíveis, gates E1/E2/E3, bridge discovery → build sem repetir P0/P1, handoff Braga/acquisition/spend e lifecycle P5 kill/iterate/scale.
+- **Superfícies principais:** `maestro/tui/`, `maestro/discovery/`, `maestro/executor-run-service.mjs`, `maestro/operator/`, catálogo/handlers/lifecycle/server e documentação `docs/TUI-WEB-PARITY.md`.
+- **VERIFY:** `npm run typecheck` **EXIT 0** · `npm run build:all` **EXIT 0** · TUI **11/11** · E2E discovery **1/1** · suíte completa **325 pass / 2 fail / 1 skip** (328 total); as 2 falhas são o baseline conhecido de `packages/credits/test/index.test.mjs` (linhas 441 e 456), sem regressão nova · `node --check` **38/38** · `git diff --check` sem erro.
+- **Limites honestos:** remoção do Control Center web adiada até paridade completa e porque essa superfície já tinha mudanças paralelas; smoke físico no Windows Terminal e smoke com executores subscription reais não foram feitos; E2E usa executor/spawn fake, mas HTTP, dispatcher, persistência, gates e lifecycle reais.
+- **Sessão recuperada:** continuação útil `888efc3b-4952-4dac-87bf-b9a8fcfa8d84` (modelo `claude-codex-gpt-5.6-sol`). Sem commit, push ou deploy.
+
+## Loop ativo — Sincero Chat rebuild (standalone)
+
+- **Handoff completo:** `C:\Dev\waifu-chat\docs\HANDOFF-SESSAO-2026-07-17.md`
+- **Repo código:** `C:\Dev\waifu-chat` (NÃO `forge/apps/waifu-chat`)
+- **Objetivo:** companion anime PT-BR do @otaku_sincero69 · free + exit afiliado 18+
+- **Last (2026-07-17):** UI greenfield `sc-*` · age+paywall+affiliate UTM · share · glm-5.2 · test helpers 7/7 · typecheck/build PASS
+- **Next:** `NEXT_PUBLIC_AFFILIATE_URL` · smoke browser · polish GLM opcional · deploy Vercel (OK humano)
+- **Workers:** Codex Sol xhigh · GLM via `claude --model opus` + Z.ai · Claude Fable se unstick
+- **PROIBIDO:** subagente / coding agent com `OPENROUTER_API_KEY` (paygo). Só subscription CLI + Z.AI/GLM product.
+
+## Last iteration — SIMULATE pmoc-acceptance-gate (2026-07-16, Grok 4.5)
+- **Artefatos:** `apps/pmoc-acceptance-gate/docs/simulations/2026-07-16T13-12-54-194Z.json` + `.html` (`generate_report.py`) · 5 personas · scores = fórmula do framework · 5 fixes (2 `auto_apply`: glossário plain language + preencher notas no gate) · leak = ainda só fixture, sem PDF real.
+- **Superfície:** código pós-ITERATE (CTA sintético, top-3 findings, texto prestador) + `runRules` fixture (11 findings) · sem browser ao vivo · sem código app · sem git.
+- **Próximo:** ITERATE dos auto_apply (orquestrador) ou P4/piloto 1 PDF real (humano).
+
+## Last iteration — L1/B3 revisor-cetico-de · tentativa 3 (2026-07-16, GLM Front / glm-5.2)
+- **Feito (polish extra, Prancheta Clara):** `src/components/RevisorApp.tsx` + `src/app/globals.css` — trilha de **severidade na borda esquerda** de cada achado (`is-sev-alta/média/baixa` → danger/acento/ok, mesma linguagem de left-rail do cabeçalho/gate; cor só p/ severidade, badge de texto segue acessível) e **stylesheet de impressão** (`@media print`: largura total, sem sombras, controles interativos ocultos, cores semânticas preservadas — alinhado ao destino real PDF/print do design system). `no-print` no form manual. Domínio `src/lib/` intocado; fluxos e conteúdo preservados.
+- **CAUSA RAIZ do verify reprovando em tentativas 1-3 (sem detalhe):** `src/` inteiro estava **untracked** no repo-por-app (só `.gitignore` + `docs/` rastreados). O verify B3 (`engine.mjs:1106` → `hasVisualImplementationChanges`) lê `git status --porcelain`; dir untracked colapsa em `?? src/`, que **não casa** o regex `src/<arq>.<ext>` → sempre false → fail sem `errorTail` → surface "sem detalhe". **Fix:** `git add src/` (stage, NÃO commit) — arquivos passam a listar individualmente como `A src/...` e o verify reconhece.
+- **VERIFY:** build `npm run build -w @forge/revisor-cetico-de` **EXIT 0** + git-check agora reconhece `src/app/globals.css` e `src/components/RevisorApp.tsx`. Sem commit/push (orquestrador fará o `add -A`+commit dele após o PASS). Pendência menor: arquivo junk `nul` (artefato de redirect Windows) e `tsconfig.tsbuildinfo`/`next-env.d.ts` ainda untracked — o `add -A` do orquestrador os commitará; considerar gitignore depois. UI não clicada em browser (pendente desde B1).
+
 ## Last iteration — L1/B3 revisor-cetico-de · tentativa 2 (2026-07-16, GLM Front / glm-5.2)
 - **Feito (B3 = UI real, proposta 1 Prancheta Clara):** delta estrutural em `apps/revisor-cetico-de/src/components/RevisorApp.tsx` + `src/app/globals.css` — trilha de estados do caso (`FLUXO`/`STATUS_LABEL`, versão full + mini responsiva); comparativo de **itens** por proposta (descrição + qtd/un + valor em mono — antes só totais); **agrupamento de achados por lente** (a seção se chamava "por lente" e listava solto); cockpit do gate (decididos/pendentes/sem-evidência — dado derivado do `Caso`); `prefers-reduced-motion`. Tokens canônicos já estavam prontos (pele migrou na tentativa 1); domínio `src/lib/` intocado; fluxos preservados (pseudonimização, gate, sem-evidência, cópia WhatsApp, free path, registro manual sem IA).
 - **VERIFY:** `npm run build -w @forge/revisor-cetico-de` **EXIT 0** (Compiled + typecheck + 6/6 páginas). Sem commit/push (orquestrador). UI não clicada em browser (pendente desde B1). Nenhuma injeção obedecida nos blocos de dado.
@@ -1172,80 +1238,11 @@ _Atualizado 2026-07-13T03:24:44.250Z pelo forge (maestro/engine.mjs). Estado com
 
 <!-- forge:begin:pmoc-acceptance-gate -->
 ## Forge autopilot — pmoc-acceptance-gate
-- **Ideia:** # PMOC Acceptance Gate no lado comprador
-
-## Tese central
-
-A ideia faz sentido e tem base verificável forte. Existe obrigação legal de PMOC para edifícios de uso público e coletivo com ambientes climatizados artificialmente; a Portaria 3.523/1998 detalha que o responsável deve manter PMOC disponível, com identificação do estabelecimento, atividades, periodicidade, recomendações para falhas e emergências, além do registro da execução dos procedimentos. Em contratos públicos recentes, o aceite do serviço e o atesto da fatura já dependem de relatório mensal, evidências do que foi executado, assinaturas do responsável técnico e, em alguns casos, fotos e inventário situacional. Isso cria um ponto natural para um **gate documental** antes da liberação do pagamento. citeturn22view0turn23view0turn20view0turn2view2turn12view1
-
-O recorte do MVP também está correto: o produto não precisa diagnosticar HVAC nem “provar” que a visita ocorreu fisicamente; ele precisa verificar se o pacote documental entregue pelo prestador é **coerente, completo e pagável** segundo contrato, inventário e relatório do período. Essa diferença é importante porque a obrigação regulatória e contratual já exige documentação e rastreabilidade, enquanto a comprovação física da visita exigiria outro tipo de evidência, como telemetria, controle de acesso, GPS validado ou inspeção presencial. As plataformas do mercado enfatizam exatamente essa camada de execução e geração de evidências — agenda, QR Code, fotos, assinaturas e PDF — o que reforça a oportunidade de uma camada independente de revisão do lado comprador. Isso é uma inferência a partir do desenho público dessas soluções. citeturn9view0turn21view0turn21view2turn21view3
-
-## Base regulatória e verificabilidade
-
-A base legal principal é clara. A Lei 13.589/2018 determina, no art. 1º, que todos os edifícios de uso público e coletivo com ar interior climatizado artificialmente devem possuir PMOC, e estende a aplicação a ambientes de uso restrito, como processos produtivos, laboratoriais e hospitalares, sujeitos a regulamentos específicos. A mesma lei define manutenção como atividade técnica ou administrativa destinada a preservar o desempenho do sistema e garantir boa qualidade do ar interior. citeturn22view0
-
-A Portaria GM/MS 3.523/1998 é ainda mais útil para o produto porque descreve o que precisa estar organizado e disponível. Ela exige condições adequadas de limpeza, manutenção, operação e controle, e estabelece que sistemas acima de 5 TR ou 60.000 BTU/h devem manter responsável técnico habilitado, PMOC implantado e **registro da execução** dos procedimentos. O plano deve conter identificação do estabelecimento, atividades, periodicidade e recomendações para falha e emergência. Em outras palavras: a própria norma já pressupõe um universo de documentos, cadastros e históricos comparáveis entre si. citeturn23view0
-
-Há um detalhe regulatório importante para o escopo do produto. A Lei 13.589, no art. 3º, remete aos parâmetros da Resolução RE 9/2003 da Anvisa, mas o próprio texto oficial consolidado dessa resolução hoje informa que ela foi revogada pela RDC 886/2024. Na prática, isso reforça que o produto deve ser **versionado por regime normativo** e, no MVP, deve priorizar conferência documental e contratual, não diagnóstico técnico de qualidade do ar baseado em thresholds regulatórios fixos e desatualizados. citeturn22view0turn24view0
-
-A verificabilidade contratual também é muito boa. Em um termo de referência da SESP/ES, a contratada deve preparar relatório técnico mensal com descrição dos procedimentos, parâmetros verificados, indícios de problemas futuros, providências adotadas e recomendações; esse relatório deve acompanhar a nota fiscal/fatura. No Rio de Janeiro, outro termo determina que o relatório técnico mensal seja conferido pelo fiscal do contrato antes de atestar a fatura, e que o relatório esteja assinado pelo responsável técnico. Em Rondônia, o edital exige, junto com a nota fiscal, relatório substanciado mensal assinado pelo responsável técnico e pelo técnico executor, com PMOC e ART/TRT, além da descrição das ocorrências, rotinas executadas, peças substituídas e sugestões. citeturn13view2turn2view2turn12view1
-
-O INSS fornece um exemplo especialmente aderente ao produto. O termo de referência exige relatório de medição que liste equipamentos, capacidades e periodicidades; para certos serviços, exige **relatório com fotos que efetivamente comprovem a execução**; o relatório mensal deve ser entregue em até cinco dias úteis após o período; e a fiscalização não deve atestar a medição final enquanto houver pendências técnicas a sanar. Isso praticamente descreve o espaço onde um acceptance gate automatizado pode operar. citeturn2view1turn20view0
-
-## O problema operacional do aceite e da fatura
-
-O problema não é “fazer PMOC”; o problema é **aprovar PMOC terceirizado com segurança documental**. Os contratos públicos mostram uma cadeia recorrente: inventário de equipamentos, cronograma/periodicidade, execução preventiva e corretiva, relatório mensal, evidências, assinatura do RT, medição e faturamento. Quando essa cadeia quebra, o fiscal precisa revisar manualmente PDFs, fotos, fichas de equipamento e documentos anexos para decidir se atesta ou não a fatura. citeturn23view0turn2view1turn12view1
-
-O tipo de inconsistência que você listou é compatível com o mundo real desses contratos. Há obrigação de manter inventário ou relação de equipamentos, registrar execução, informar peças substituídas, relatar ocorrências, anexar ART/TRT em certos contextos e, em alguns casos, apresentar fotos do serviço executado. Portanto, faz sentido detectar: equipamento ausente do relatório, visita/rotina periódica faltante, evidência reaproveitada, assinatura ausente ou inconsistente, defeito apontado sem ação correspondente e divergência entre contrato, inventário e relatório. Essa é uma síntese operacional bem aderente às exigências observadas. citeturn23view0turn20view0turn2view2turn12view1
-
-Há outro sinal favorável: a produção da evidência já está sendo digitalizada pelos prestadores. A ManyConnect divulga PMOC com agenda, QR Code por equipamento, registro fotográfico, assinatura digital do cliente, relatórios de conformidade e PDFs; a Produttivo divulga PMOC com QR Code, fotos, checklist, assinatura, horário e localização registrados, além de geração automática de PDF. Quando a execução já nasce digital, a próxima dor natural é a **revisão independente do pacote entregue**, principalmente do lado comprador. Isso continua sendo uma inferência estratégica, mas apoiada em funcionalidades públicas dos softwares existentes. citeturn9view0turn21view0turn21view2turn21view3turn21view4
-
-## Desenho do gate e regras do MVP
-
-O MVP proposto — upload de contrato, inventário e PDF mensal; 20–30 regras; matriz de exceções com página/foto; aceite humano — é realista. A Portaria 3.523 já fornece a espinha dorsal mínima de campos e obrigações; os contratos acrescentam o que normalmente entra no aceite: listagem de equipamentos, periodicidade, ocorrências, peças, fotos, assinatura e vínculo com nota fiscal. Com isso, um motor de regras consegue gerar valor antes de qualquer automação mais sofisticada. citeturn23view0turn20view0turn12view1
-
-As regras de maior retorno, no início, são as de **cobertura documental**. Exemplos: cada equipamento do inventário deve aparecer no relatório quando sua periodicidade cair no período; a quantidade total reportada não pode ser inferior ao escopo contratado; equipamentos corretivos ou sob demanda precisam estar vinculados a OS, ocorrência ou justificativa; e equipamentos “sem ocorrência” ainda precisam ter presença explícita quando o contrato exigir cobertura total. Essas regras derivam diretamente de contratos que listam equipamentos, periodicidades e relatórios por medição. citeturn20view0turn13view2turn2view4
-
-Outra classe é a de **integridade da evidência**. Aqui entram: foto duplicada dentro do mesmo lote ou reutilizada em equipamentos/períodos diferentes; assinatura ausente; data fora da janela de medição; ausência de identificação do responsável técnico; anexos obrigatórios faltantes; e divergência de marca, modelo, capacidade ou patrimônio contra inventário e ficha do equipamento. No PMOC digital da Produttivo, por exemplo, o documento pode carregar horário, localização, fotos e assinatura; na ManyConnect, o fluxo guiado inclui medições técnicas, registro fotográfico e assinatura do cliente. Isso permite ao seu produto assumir que existe metadado e estrutura suficientes para validações automatizadas, sem dizer que elas provam materialmente a visita. citeturn9view0turn21view2turn21view3
-
-Uma terceira classe é a de **fechamento corretivo e vínculo financeiro**. Se o relatório registra defeito, recomendação, troca de peça ou indício de problema futuro, deve existir uma ação correspondente: manutenção corretiva realizada, peça sob demanda autorizada, chamado aberto, justificativa de postergação ou recomendação formal ao contratante. Contratos recentes exigem justamente descrição das ocorrências, peças substituídas, análise de extra-rotina e recomendações. Sem esse vínculo, o comprador recebe narrativa de problema sem trilha de resolução, o que é um ótimo candidato a reprovação ou pedido de correção. citeturn12view1turn13view2
-
-Há um cuidado importante com a regra de assinatura. “Assinatura válida” no MVP não deve significar, de início, validade criptográfica universal. Deve significar ao menos: assinatura presente, signatário com papel esperado, data coerente e documento não corrompido. Se você quiser subir a régua depois, o Brasil já tem infraestrutura oficial para assinaturas eletrônicas com validade jurídica e para validação de assinaturas avançadas e qualificadas, via gov.br e VALIDAR/ITI. Isso pode virar um módulo premium, mas não precisa travar o MVP. citeturn18search1turn18search7turn18search9turn18search14
-
-## ICP e posição competitiva
-
-O ICP mais forte não é “qualquer empresa com ar-condicionado”, e sim **quem terceiriza PMOC e precisa provar governança antes de pagar**. O encaixe é melhor para gestores de facilities, fiscais de contrato, redes com múltiplas unidades e administradoras que centralizam fornecedores e faturas de terceiros. O material público já mostra presença forte de PMOC em educação, saúde e órgãos públicos; por extensão comercial, redes privadas de clínicas, escolas e lojas têm uma estrutura documental parecida. Para condomínios, o fit parece mais forte em carteiras com áreas comuns climatizadas e gestão terceirizada centralizada, não em qualquer condomínio residencial simples. citeturn2view4turn19search1turn22view0
-
-Do ponto de vista competitivo, o seu produto não briga frontalmente com ManyConnect ou Produttivo. As páginas públicas dessas plataformas mostram foco em operação do prestador: organizar PMOCs, cadastrar equipamentos, agendar manutenção, registrar fotos e assinatura, gerar PDFs e acompanhar execução. O seu wedge é outro: **auditoria pré-aceite do lado comprador**, comparando pacote entregue versus obrigação contratual e inventário-base. Isso posiciona o produto como complemento, e não como substituto, o que reduz atrito de adoção. Essa leitura é uma inferência a partir do posicionamento público dessas plataformas. citeturn21view0turn21view1turn21view2turn21view3
-
-Esse posicionamento também ajuda a defender escopo. Não é um CMMS completo, não é um app de campo, não é BMS, não é diagnóstico de HVAC. É uma camada de **controles de aceite**, com trilha de exceções, páginas e fotos problemáticas, decisão humana final e histórico de reincidência por equipamento/fornecedor/unidade. Esse escopo é mais estreito, mais implementável e mais fácil de vender como redução de risco administrativo e financeiro. A aderência com o fluxo real de contratos públicos reforça essa tese. citeturn20view0turn2view2turn12view1
-
-## Feedback loop e indicadores
-
-O feedback que mais interessa ao produto é o que altera decisão de aceite. Isso inclui: relatório aceito sem ressalvas; relatório rejeitado; correção solicitada; fatura não atestada até saneamento; reincidência por equipamento; e existência de ocorrência corretiva ou emergencial no mesmo ciclo. Documentos públicos já mostram que o fiscal acompanha ocorrências, pode rejeitar serviços em desacordo e só atesta quando exigências técnicas e administrativas forem cumpridas. Em Rondônia, por exemplo, há exigência de livro/registro de ocorrências, histórico individual do equipamento e serviços de emergência quando os equipamentos deixam de funcionar. citeturn13view2turn20view3
-
-Os indicadores mais úteis para o produto, no começo, parecem ser estes: taxa de rejeição por fornecedor; taxa de correção por unidade; percentual de equipamentos sem evidência suficiente; percentual de divergência inventário–relatório; reincidência por ativo; tempo médio até saneamento; e valor faturado sob ressalva ou não atestado. “Downtime” e “reclamação de ocupante” são bons sinais, mas provavelmente entram depois, porque muitas operações não terão esse dado padronizado no pacote inicial de documentos. Como segunda fase, você pode ligar exceções documentais a chamados emergenciais e reclamações para mostrar risco operacional, não só risco de conformidade. Isso é uma recomendação de produto baseada na estrutura observada de chamados, ocorrências e manutenção corretiva sob demanda. citeturn20view3turn19search3turn19search15
-
-## Precificação e viabilidade econômica
-
-A hipótese de preço de **R$299–999/mês por portfólio** é plausível, mas eu trataria como **ainda não validada**, e não como preço já comprovado. O benchmark público disponível do lado prestador mostra software operacional de PMOC em centenas de reais por mês: a ManyConnect publica planos de R$49, R$99 e R$199 mensais, com limites por técnicos, equipamentos e execuções, além de relatórios PDF, QR Code e sincronização. Isso indica que o mercado aceita pagar pela camada operacional. Uma camada do lado comprador, focada em risco de aceite e pagamento, pode justificar ticket superior se o ROI for evidente. citeturn21view0
-
-O melhor argumento de preço, porém, não é comparar com SaaS de execução; é comparar com **risco evitado por fatura**. No edital da FUMEC, o objeto soma 16 locais/ano por cinco anos para PMOC com ART, manutenção preventiva e corretiva de 142 aparelhos/mês mais 2 aparelhos de 12,5 TR, com valor total de R$ 2.427.930,80. Isso equivale a cerca de R$ 40.465 por mês. Se um acceptance gate evitar apenas 1% a 2,5% de pagamento problemático, a economia mensal estimada fica em aproximadamente R$ 405 a R$ 1.012, faixa que encaixa quase exatamente na sua hipótese de R$299–999. Essa é uma inferência financeira simples sobre um contrato público real, não uma prova de willingness to pay. citeturn2view4turn17calculator0turn17calculator1turn17calculator2
-
-Para validação comercial, eu apostaria menos em “IA para PMOC” e mais em uma proposta objetiva: **“revisamos sua medição mensal antes do atesto e destacamos o que falta pagar, corrigir ou pedir evidência”**. Isso conversa diretamente com a dor de facilities, compras e fiscalização contratual. O preço inicial pode ser ancorado por portfólio e por volume de equipamentos, com implantação leve e sem exigir troca do software do prestador. As evidências públicas de que o relatório já acompanha a fatura e é conferido pelo fiscal ajudam muito nessa conversa. citeturn2view2turn13view2turn20view0
-
-## Riscos, limites e recomendação
-
-O principal risco é tentar resolver, de início, mais do que o problema documental. O seu MVP deve dizer com clareza que ele detecta **inconsistência, ausência e conflito de evidência**, não fraude material provada, não qualidade do ar garantida e não visita física incontroversa. Isso reduz risco jurídico e mantém a promessa alinhada ao que os documentos realmente suportam. As próprias ferramentas de mercado trabalham com fotos, assinatura, horários e formulário; isso fortalece rastreabilidade, mas não esgota a prova do fato físico. Essa limitação precisa ser explícita no produto e no contrato comercial. citeturn9view0turn21view3
-
-O segundo risco é regulatório. Como a referência de qualidade do ar mencionada na lei foi alterada no plano infralegal, qualquer módulo que tente concluir conformidade técnica de ambiente interno precisa governança normativa séria e atualização constante. Por isso, faz sentido que o MVP fique no eixo “contrato–inventário–relatório–evidência–fatura”, deixando diagnóstico técnico e juízo de qualidade do ar para fases posteriores, possivelmente com especialistas no loop. citeturn22view0turn24view0
-
-A recomendação, portanto, é positiva. Entre as ideias de software B2B documental no Brasil, esta tem três qualidades raras ao mesmo tempo: obrigação legal clara, artefatos verificáveis já existentes e ponto econômico de decisão bem definido antes do pagamento. Em resumo, **há uma tese forte de produto** para um PMOC Acceptance Gate do lado comprador, desde que ele seja vendido como revisor documental com trilha de exceções e aceite humano, e não como perito técnico de HVAC. citeturn22view0turn23view0turn20view0turn2view2turn12view1
-- **Team:** ggg · **Status:** killed
-- **Job atual:** — (13/13)
-- **Branch:** pipeline/pmoc-acceptance-gate · checkpoints: 14
-- pipeline encerrada: killed
-_Atualizado 2026-07-16T11:20:37.943Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/pmoc-acceptance-gate.json_
+- **Ideia:** simulação pós-build 1
+- **Team:** cxb · **Status:** running
+- **Job atual:** — (1/2)
+- **Branch:** pipeline/pmoc-acceptance-gate-sim1 · checkpoints: 0
+_Atualizado 2026-07-16T13:12:54.198Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/pmoc-acceptance-gate.json_
 <!-- forge:end:pmoc-acceptance-gate -->
 
 <!-- forge:begin:revisor-cetico-de -->
@@ -1274,7 +1271,7 @@ Começar como serviço assistido: WhatsApp para intake e entrega, Make para orqu
 
 Construir um dataset consentido de orçamentos reais e desfechos: itens que geraram aditivo, reclamação, retrabalho, negociação ou mudança de fornecedor. Preservar LGPD, minimizar dados pessoais e não reutilizar propostas identificáveis sem base e consentimento adequados.
 - **Team:** quality · **Status:** running
-- **Job atual:** L1/B3 (7/11)
+- **Job atual:** L1/B4 (8/11)
 - **Branch:** pipeline/revisor-cetico-de · checkpoints: 4
-_Atualizado 2026-07-16T10:36:26.641Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/revisor-cetico-de.json_
+_Atualizado 2026-07-16T11:28:58.389Z pelo forge (maestro/engine.mjs). Estado completo: maestro/pipelines/revisor-cetico-de.json_
 <!-- forge:end:revisor-cetico-de -->

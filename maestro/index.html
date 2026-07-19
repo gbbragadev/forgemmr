@@ -18,34 +18,22 @@
           <span class="brand-mark" aria-hidden="true">N</span>
           <div>
             <strong>Forge Nexus</strong>
-            <span>Central operacional</span>
+            <span>Central do operador</span>
           </div>
         </div>
 
         <nav class="primary-nav" aria-label="Navegação principal">
-          <button class="nav-item is-active" type="button" data-section="overview" aria-current="page">
-            <span class="nav-index">01</span><span>Visão geral</span>
+          <button class="nav-item is-active" type="button" data-section="home" aria-current="page">
+            <span class="nav-index">01</span><span>Home</span>
           </button>
-          <button class="nav-item" type="button" data-section="new-pipeline">
-            <span class="nav-index">02</span><span>Nova pipeline</span>
+          <button class="nav-item" type="button" data-section="idea">
+            <span class="nav-index">02</span><span>Ideia</span>
           </button>
-          <button class="nav-item" type="button" data-section="pipelines">
-            <span class="nav-index">03</span><span>Pipelines</span>
-          </button>
-          <button class="nav-item" type="button" data-section="decisions">
-            <span class="nav-index">04</span><span>Decisões</span>
+          <button class="nav-item" type="button" data-section="run">
+            <span class="nav-index">03</span><span>Run</span>
           </button>
           <button class="nav-item" type="button" data-section="factory">
-            <span class="nav-index">05</span><span>Fábrica</span>
-          </button>
-          <button class="nav-item" type="button" data-section="metrics">
-            <span class="nav-index">06</span><span>Métricas</span>
-          </button>
-          <button class="nav-item" type="button" data-section="memory">
-            <span class="nav-index">07</span><span>Memória</span>
-          </button>
-          <button class="nav-item" type="button" data-section="activity">
-            <span class="nav-index">08</span><span>Atividade</span>
+            <span class="nav-index">04</span><span>Fábrica</span>
           </button>
         </nav>
 
@@ -64,7 +52,7 @@
             <span></span><span></span><span></span>
           </button>
           <div class="topbar-title">
-            <span class="eyebrow">CENTRAL OPERACIONAL LOCAL</span>
+            <span class="eyebrow">O QUE PRECISA DE VOCÊ</span>
             <h1>Forge Nexus</h1>
           </div>
           <div class="topbar-actions">
@@ -83,49 +71,38 @@
             <button class="button button-secondary" id="retry-button" type="button">Tentar novamente</button>
           </div>
 
-          <section id="overview" class="work-area" aria-labelledby="overview-title">
+          <section id="home" class="work-area" aria-labelledby="home-title">
             <div class="section-heading">
               <div>
                 <span class="eyebrow">AGORA</span>
-                <h2 id="overview-title">Visão geral</h2>
-                <p>O estado da fábrica, as decisões e o próximo movimento seguro.</p>
+                <h2 id="home-title">Home</h2>
+                <p>Gates, bloqueios e o que está rodando — sem caçar em abas.</p>
               </div>
-              <button class="button button-primary" type="button" data-go-section="new-pipeline">Criar pipeline</button>
+              <button class="button button-primary" type="button" data-go-section="idea">Nova ideia</button>
             </div>
-            <div id="overview-content" class="section-content loading-grid" aria-busy="true"></div>
+            <div id="home-content" class="section-content loading-grid" aria-busy="true"></div>
           </section>
 
-          <section id="new-pipeline" class="work-area" aria-labelledby="new-pipeline-title" hidden>
+          <section id="idea" class="work-area" aria-labelledby="idea-title" hidden>
             <div class="section-heading">
               <div>
                 <span class="eyebrow">P0 → P5</span>
-                <h2 id="new-pipeline-title">Nova pipeline</h2>
-                <p>Transforme uma ideia em uma aposta executável, sem comandos.</p>
+                <h2 id="idea-title">Ideia</h2>
+                <p>Descreva a aposta e deixe a fábrica montar o caminho.</p>
               </div>
             </div>
-            <div id="new-pipeline-content" class="section-content"></div>
+            <div id="idea-content" class="section-content"></div>
           </section>
 
-          <section id="pipelines" class="work-area" aria-labelledby="pipelines-title" hidden>
+          <section id="run" class="work-area" aria-labelledby="run-title" hidden>
             <div class="section-heading">
               <div>
                 <span class="eyebrow">EXECUÇÃO</span>
-                <h2 id="pipelines-title">Pipelines</h2>
-                <p>Acompanhe cada aposta, ajuste o controle e recupere falhas.</p>
+                <h2 id="run-title">Run</h2>
+                <p>Pipeline, log ao vivo, gates e recuperação numa superfície só.</p>
               </div>
             </div>
-            <div id="pipelines-content" class="section-content"></div>
-          </section>
-
-          <section id="decisions" class="work-area" aria-labelledby="decisions-title" hidden>
-            <div class="section-heading">
-              <div>
-                <span class="eyebrow">GATES HUMANOS</span>
-                <h2 id="decisions-title">Decisões</h2>
-                <p>Nada irreversível passa sem contexto e uma escolha explícita.</p>
-              </div>
-            </div>
-            <div id="decisions-content" class="section-content"></div>
+            <div id="run-content" class="section-content"></div>
           </section>
 
           <section id="factory" class="work-area" aria-labelledby="factory-title" hidden>
@@ -133,43 +110,19 @@
               <div>
                 <span class="eyebrow">CONFIGURAÇÃO</span>
                 <h2 id="factory-title">Fábrica</h2>
-                <p>Perfis, times, providers e blueprints em um só lugar.</p>
+                <p>Times, profiles, blueprints, métricas e memória.</p>
               </div>
             </div>
-            <div id="factory-content" class="section-content"></div>
-          </section>
-
-          <section id="metrics" class="work-area" aria-labelledby="metrics-title" hidden>
-            <div class="section-heading">
-              <div>
-                <span class="eyebrow">RECEITA E SINAL</span>
-                <h2 id="metrics-title">Métricas</h2>
-                <p>Dados reais para decidir entre matar, iterar ou escalar.</p>
-              </div>
+            <div class="factory-subnav" role="tablist" aria-label="Áreas da fábrica">
+              <button type="button" class="subnav-item is-active" data-factory-tab="setup" role="tab" aria-selected="true">Setup</button>
+              <button type="button" class="subnav-item" data-factory-tab="metrics" role="tab" aria-selected="false">Métricas</button>
+              <button type="button" class="subnav-item" data-factory-tab="memory" role="tab" aria-selected="false">Memória</button>
+              <button type="button" class="subnav-item" data-factory-tab="activity" role="tab" aria-selected="false">Atividade</button>
             </div>
-            <div id="metrics-content" class="section-content"></div>
-          </section>
-
-          <section id="memory" class="work-area" aria-labelledby="memory-title" hidden>
-            <div class="section-heading">
-              <div>
-                <span class="eyebrow">CONTEXTO DURÁVEL</span>
-                <h2 id="memory-title">Memória</h2>
-                <p>Consulte, importe e governe o que a fábrica aprendeu — sem abrir um terminal.</p>
-              </div>
-            </div>
-            <div id="memory-content" class="section-content"></div>
-          </section>
-
-          <section id="activity" class="work-area" aria-labelledby="activity-title" hidden>
-            <div class="section-heading">
-              <div>
-                <span class="eyebrow">RASTREABILIDADE</span>
-                <h2 id="activity-title">Atividade</h2>
-                <p>Operações recentes, resultados sanitizados e eventos ao vivo.</p>
-              </div>
-            </div>
-            <div id="activity-content" class="section-content"></div>
+            <div id="factory-setup" class="section-content factory-tab"></div>
+            <div id="metrics-content" class="section-content factory-tab" hidden></div>
+            <div id="memory-content" class="section-content factory-tab" hidden></div>
+            <div id="activity-content" class="section-content factory-tab" hidden></div>
           </section>
         </main>
       </div>

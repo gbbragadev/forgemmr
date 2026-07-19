@@ -116,6 +116,25 @@ test("estado obsoleto, ação desconhecida e campos extras são rejeitados", asy
   }
 });
 
+test("campo json aceita objeto tipado ou texto JSON válido e rejeita texto inválido", async () => {
+  const action = descriptor({ id: "thesis.propose", fields: [{ name: "draft", label: "Tese", type: "json", required: true, options: [] }] });
+  const seen = [];
+  const fx = fixture({ actions: [action], handlers: { "thesis.propose": ({ input }) => (seen.push(input.draft), { ok: true }) } });
+  try {
+    const base = { actionId: action.id, appId: null, stateVersion: "state-v1", confirmation: null };
+    await fx.dispatcher.execute({ ...base, input: { draft: { buyer: "PMEs" } }, idempotencyKey: "idem-json-object" });
+    await fx.dispatcher.execute({ ...base, input: { draft: "{\"buyer\":\"PMEs\"}" }, idempotencyKey: "idem-json-string" });
+    assert.deepEqual(seen, [{ buyer: "PMEs" }, "{\"buyer\":\"PMEs\"}"]);
+    await expectControlError(
+      fx.dispatcher.execute({ ...base, input: { draft: "{" }, idempotencyKey: "idem-json-invalid" }),
+      400,
+      "input_type",
+    );
+  } finally {
+    fs.rmSync(fx.root, { recursive: true, force: true });
+  }
+});
+
 test("ação destrutiva exige nonce preso a ação, app e versão, de uso único", async () => {
   let removals = 0;
   const action = descriptor({ id: "pipeline.remove", scope: "pipeline:probe", risk: "destructive" });

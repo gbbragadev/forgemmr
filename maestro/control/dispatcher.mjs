@@ -80,6 +80,18 @@ function validateInput(action, input) {
       }
       continue;
     }
+    if (field.type === "json") {
+      if (typeof value === "string") {
+        try {
+          JSON.parse(value);
+        } catch {
+          throw new ControlError(400, "input_type", `${field.name} precisa ser JSON válido.`);
+        }
+      } else if (!value || typeof value !== "object") {
+        throw new ControlError(400, "input_type", `${field.name} precisa ser um objeto, lista ou texto JSON válido.`);
+      }
+      continue;
+    }
     if (field.type === "checkbox" && typeof value !== "boolean") {
       throw new ControlError(400, "input_type", `${field.name} precisa ser booleano.`);
     }

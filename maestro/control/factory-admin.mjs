@@ -148,6 +148,7 @@ export function createFactoryAdmin({
       id: definition.id,
       cli: definition.cli,
       installed: Boolean(executable),
+      status: executable ? "ready" : "missing",
       executable,
       loginSupported: Boolean(definition.loginArgs),
       models: definition.models,

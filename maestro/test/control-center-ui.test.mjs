@@ -4,25 +4,22 @@ import { readFileSync } from "node:fs";
 
 const readMaestroFile = (name) => readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
 
-test("Control Center exposes the eight zero-command work areas", () => {
+test("Control Center exposes four operator surfaces", () => {
   const html = readMaestroFile("index.html");
 
   assert.match(html, /Forge Nexus/);
   assert.doesNotMatch(html, />Maestro Control Center</);
   assert.match(html, /<nav[^>]+aria-label="Navegação principal"/i);
   assert.equal((html.match(/<h1\b/gi) || []).length, 1);
-  for (const id of [
-    "overview",
-    "new-pipeline",
-    "pipelines",
-    "decisions",
-    "factory",
-    "metrics",
-    "memory",
-    "activity",
-  ]) {
+  for (const id of ["home", "idea", "run", "factory"]) {
     assert.match(html, new RegExp(`<section[^>]+id="${id}"`, "i"), `missing ${id} work area`);
   }
+  assert.match(html, /data-factory-tab="metrics"/);
+  assert.match(html, /data-factory-tab="memory"/);
+  assert.match(html, /data-factory-tab="activity"/);
+  assert.match(html, /id="metrics-content"/);
+  assert.match(html, /id="memory-content"/);
+  assert.match(html, /id="activity-content"/);
   assert.match(html, /aria-live="polite"/i);
   assert.match(html, /<dialog\b[^>]+id="action-dialog"/i);
   assert.match(html, /<link[^>]+control-center\.css/i);
@@ -35,6 +32,10 @@ test("Control Center consumes the closed control-plane API without a command esc
   const js = readMaestroFile("control-center.js");
 
   assert.match(js, /Nexus indisponível/);
+  assert.match(js, /listAttention/);
+  assert.match(js, /function\s+renderHome\b/);
+  assert.match(js, /function\s+renderIdea\b/);
+  assert.match(js, /function\s+renderRun\b/);
   for (const name of [
     "loadSnapshot",
     "renderOverview",
@@ -86,8 +87,8 @@ test("Control Center consumes the closed control-plane API without a command esc
   assert.match(js, /Progresso ao vivo/);
   assert.match(js, /Full auto/);
   assert.match(js, /Automático até gate/);
-  assert.match(js, /function\s+sortPipelinesForList\b/);
-  assert.match(js, /function\s+pipelineListSubtitle\b/);
+  assert.match(js, /sortPipelinesForList/);
+  assert.match(js, /pipelineListSubtitle/);
   assert.match(js, /Em atenção/);
   assert.doesNotMatch(js, /pipeline\.currentJob\s*\|\|\s*pipeline\.idea/);
   assert.doesNotMatch(js, /\beval\s*\(/);
@@ -112,4 +113,6 @@ test("Control Center visual contract is responsive, accessible and tokenized", (
   assert.match(css, /\.pipeline-list-label/);
   assert.match(css, /line-clamp:\s*2/);
   assert.match(css, /\.meta-line-clamp/);
+  assert.match(css, /\.attention-list/);
+  assert.match(css, /\.factory-subnav/);
 });

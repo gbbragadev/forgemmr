@@ -5,7 +5,8 @@
   "description": "Starter genérico: ideia → app no ar por pipeline autônoma (profile-driven)",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "maestro/tui"
   ],
   "scripts": {
     "dev": "npm run dev -w @forge/waifu-chat",
@@ -30,7 +31,10 @@
     "nexus": "node maestro/supervisor.mjs",
     "control-center": "node maestro/supervisor.mjs",
     "forge": "node maestro/forge.mjs",
-    "maestro:open": "powershell -ExecutionPolicy Bypass -File scripts/start-maestro.ps1"
+    "maestro:open": "powershell -ExecutionPolicy Bypass -File scripts/start-maestro.ps1",
+    "tui": "npm run start -w @forge/tui",
+    "tui:build": "npm run build -w @forge/tui",
+    "tui:test": "npm run test -w @forge/tui"
   },
   "engines": {
     "node": ">=20"

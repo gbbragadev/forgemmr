@@ -1,4 +1,4 @@
-# Anime Forge — AGENTS.md
+# Forge Discovery-First — AGENTS.md
 
 > Contrato **único** para Codex, Claude Code, Grok, **Gemini**, GLM e qualquer agente.  
 > O processo é em **loops**. O modelo é só o motor de uma iteração.
@@ -8,13 +8,30 @@
 >
 > Detalhe dos loops: `docs/AGENT-PIPELINE.md` · Skill: `.agents/skills/ship-niche-app/SKILL.md`
 
-## Loops (leia isto primeiro)
+## Loop padrão (leia isto primeiro)
+
+```
+room/chat → tese confirmada → evidência verificada → E1/E2 → build mínimo
+          → conclusão instrumentada → aquisição/Braga → E3 → P5 kill|iterate|scale
+```
+
+- TUI primária: `npm run tui` (`npm run tui:test` / `npm run tui:build`).
+- Chat multi-host: o executor de subscription é escolhido por turno; sessões de provider são cache, o Forge é canônico.
+- E1 = dor + alcance; E2 = ação externa real; E3 = comportamento econômico/repetível.
+- Score, consenso, simulator e design audit são `synthetic`: nunca contam como demanda.
+- WIP: **3** teses em validação, **1** build, **1** aquisição.
+- Promoção de tese, build, outreach/publicação, deploy e gasto são fronteiras explícitas. Gasto exige `why`, confirmação e teto.
+- Não há outreach, deploy ou API paygo por padrão.
+
+Loops legados continuam válidos para pipelines já existentes e retomáveis:
 
 ```
 L0 PRODUCT  → P0 score → P1 content → P2 L1 build → P3 ship → P4 measure → P5 kill|scale
 L1 BUILD    → claim → implement|prompt → verify → fix* → handoff
 L2 HANDOFF  → limite → HANDOFF.md → outro agente → mesmo job
 ```
+
+Novos produtos não usam `pipeline.start`; passam pelo discovery e por `discovery.build.start` somente após E1+E2.
 
 | Atalho do user | Comportamento |
 |----------------|---------------|
@@ -30,9 +47,9 @@ L2 HANDOFF  → limite → HANDOFF.md → outro agente → mesmo job
 
 ## Orquestrador conversacional
 
-- Codex e Claude Code operam a fabrica com `.agents/skills/forge-operator/SKILL.md`.
-- Pedidos como "tive uma ideia", "crie o time/pipeline", "inicie" e "acompanhe" acionam essa skill.
-- A sessao atual e o orquestrador; os players do time executam jobs e o orquestrador acompanha eventos ate conclusao, blocker ou gate humano.
+- Codex e Claude Code operam a fábrica com `.agents/skills/forge-operator/SKILL.md`.
+- Pedidos como "tive uma ideia" abrem room/proposta no discovery; não criam profile, blueprint ou pipeline automaticamente.
+- Após tese confirmada e E1+E2, o orquestrador pode preparar o build mínimo; os players executam jobs e o orquestrador acompanha eventos até conclusão, blocker ou gate humano.
 - No Codex: `$forge-operator`. No Claude Code: `/forge-operator`. Linguagem natural equivalente tambem deve acionar a skill.
 
 ## Antes de editar
@@ -44,7 +61,7 @@ L2 HANDOFF  → limite → HANDOFF.md → outro agente → mesmo job
 
 ## O que é o repo
 
-Factory: **Tema + IA + Frontend + monetização** · vertical **anime**.
+Factory **profile-driven**: discovery + experimento + build mínimo + aquisição. Anime é um profile/legado útil, não o vertical fixo do Maestro.
 
 ```
 apps/waifu-chat      chat IA
