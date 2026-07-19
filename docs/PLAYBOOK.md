@@ -1,16 +1,44 @@
-# Playbook — Anime Forge (L0 Product Loop)
+# Playbook — Forge Discovery-First
 
-Pipeline de **negócio**. Código e handoff: `docs/AGENT-PIPELINE.md`.
+Pipeline de **negócio profile-driven**. Código e handoff: `docs/AGENT-PIPELINE.md`.
 
-## L0 em uma volta
+## Uma volta do loop padrão
 
 ```
-P0 score ──go──► P1 content test ──sinal|decisão──► P2 L1 build ──► P3 ship
-                                                                      │
-P5 kill|scale ◄── P4 measure (5–7 dias) ◄─────────────────────────────┘
+room/chat → tese confirmada → playbooks → evidência verificada
+          → E1 dor+alcance → E2 ação real → build mínimo
+          → conclusão instrumentada → aquisição/Braga
+          → E3 econômico/repetível → P5 kill|iterate|scale
 ```
 
-## Scorecard P0 (5 min)
+### Regras de passagem
+
+1. Chat é livre e multi-host; somente confirmação humana promove uma tese.
+2. `pain-signal-miner` e `first-customer-finder` importam candidatos externos como `unverified`.
+3. E1 exige dor e segmento/canal alcançável; E2 exige ação externa real verificada.
+4. `startup-user-simulator`, `design-audit`, score e consenso são sempre `synthetic` e nunca provam demanda.
+5. E1+E2 permitem **propor** build; aprovação explícita abre um único build mínimo.
+6. Aquisição exige build testável, instrumentação observada e slot livre.
+7. BragaMarketing recebe handoff versionado; o Forge não escreve no repo externo e importa métricas como `channel_metric`.
+8. E3 exige comportamento econômico/repetível e experimento concluído; `scale` cria teto e próxima data de medição.
+
+WIP: **3 teses em validação / 1 build / 1 aquisição**. Não há outreach, publicação, deploy ou gasto automático. Gasto exige `why`, confirmação e teto separado. Agentes usam somente CLIs de subscription, nunca paygo.
+
+## Playbooks provider-neutral
+
+| Playbook | Uso | Limite |
+|---|---|---|
+| `pressure-test` | explicitar hipótese fatal e risco | não produz evidência de demanda |
+| `pain-signal-miner` | encontrar sinais públicos de dor | URL candidata fica `unverified` |
+| `first-customer-finder` | mapear segmento e abertura sugerida | não contata ninguém |
+| `startup-user-simulator` | crítica sintética pós-build | nunca satisfaz E1/E2/E3 |
+| `design-audit` | crítica interna de interface | nunca satisfaz E1/E2/E3 |
+
+## Compatibilidade L0/P0–P5
+
+Pipelines legadas continuam retomáveis e os materiais abaixo seguem úteis para apps existentes. Para produto novo, P0/P1 podem informar a tese, mas não substituem evidência externa nem autorizam `pipeline.start`; a entrada pública é discovery-first.
+
+## Scorecard P0 (legado compatível)
 
 | Critério | Peso |
 |----------|------|

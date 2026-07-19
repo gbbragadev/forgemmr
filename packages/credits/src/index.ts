@@ -128,13 +128,13 @@ export function parseGuestCreditState(
       typeof parsed.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.day)
         ? parsed.day
         : base.day;
-    return normalizeDay({
+    return {
       day,
       used: clampInt(parsed.used, 0, freePerDay),
       freePerDay,
       coins: 0,
       weeklyUntil: null,
-    });
+    };
   } catch {
     return base;
   }

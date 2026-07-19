@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Forge Discovery — tutorial visual</title>
+  <style>
+    :root{--bg:#07100f;--panel:#0d1917;--panel2:#111f1c;--ink:#edf8f4;--muted:#91aaa3;--cyan:#66e8df;--yellow:#ffe56b;--green:#72f59c;--magenta:#ff78dc;--red:#ff7f82;--line:#28423d;--paper:#f4f1e8;--paperInk:#14211e}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 15% -10%,#153b35 0,transparent 36%),var(--bg);color:var(--ink);font:16px/1.55 Inter,Segoe UI,Arial,sans-serif}
+    main{max-width:1180px;margin:auto;padding:54px 28px 100px}.eyebrow{font:700 12px/1.2 Consolas,monospace;letter-spacing:.18em;color:var(--cyan);text-transform:uppercase}h1{font-size:clamp(42px,7vw,82px);line-height:.98;letter-spacing:-.05em;max-width:900px;margin:16px 0 24px}h2{font-size:34px;letter-spacing:-.035em;margin:0 0 10px}h3{font-size:20px;margin:0 0 8px}p{color:#c5d6d1;max-width:850px}.lede{font-size:20px}.pill{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--cyan);margin:0 6px 8px 0;font:700 12px Consolas,monospace}.grid{display:grid;gap:20px}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.three{grid-template-columns:repeat(3,minmax(0,1fr))}.card{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 18px 45px #0005}.section{padding-top:74px}.number{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--cyan);color:#08201c;font-weight:900;margin-bottom:16px}
+    code,pre,.terminal{font-family:Cascadia Code,Consolas,monospace}code{color:var(--yellow)}pre{white-space:pre-wrap;overflow:auto;background:#050908;border:1px solid var(--line);border-radius:12px;padding:16px;color:#d6eee8;font-size:13px}.cmd{border-left:4px solid var(--cyan)}.hint{border-left:4px solid var(--yellow);padding:12px 16px;background:#25220f;color:#fff5b7;border-radius:0 10px 10px 0}.danger{border-left-color:var(--red);background:#281416;color:#ffd9d9}.safe{border-left-color:var(--green);background:#10251a;color:#c9fbd8}
+    .terminal{margin-top:34px;background:#090d0c;border:1px solid #4c615c;border-radius:16px;box-shadow:0 32px 80px #0009;overflow:hidden}.terminal-bar{height:42px;display:flex;align-items:center;gap:8px;padding:0 14px;background:#18211f;color:#b8c8c4;font-size:12px}.dot{width:11px;height:11px;border-radius:50%;background:#ff6d6d}.dot:nth-child(2){background:#ffd36d}.dot:nth-child(3){background:#68e68e}.terminal-body{padding:18px}.brand{color:var(--cyan);font-weight:800;margin-bottom:10px}.progress{border:1px solid var(--cyan);padding:8px 12px;margin-bottom:10px;color:#d9efea;font-size:12px}.progress strong{color:var(--cyan)}.health{color:var(--muted)}.panes{display:grid;grid-template-columns:220px 1fr 300px;gap:8px}.pane{border:1px solid #7f938e;min-height:250px;padding:12px}.pane:first-child{border-color:var(--cyan)}.pane:last-child{border-color:var(--yellow)}.pane-title{font-weight:900;color:var(--cyan);border-bottom:1px solid #4c615c;padding-bottom:6px;margin-bottom:8px}.pane:last-child .pane-title{color:var(--yellow)}.selected{background:#eef7f4;color:#0b1614;padding:2px 5px}.action{display:block;color:var(--yellow)}.action.safe-action{color:var(--green)}.status{background:#eef7f4;color:#0b1614;padding:4px 8px;margin-top:8px;font-size:12px}.callouts{display:grid;grid-template-columns:220px 1fr 300px;gap:8px;margin-top:12px}.callout{color:var(--muted);font-size:13px}.callout b{color:var(--ink)}
+    .flow{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:24px}.flow-item{position:relative;padding:16px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);min-height:106px}.flow-item:not(:last-child):after{content:'→';position:absolute;right:-15px;top:38%;z-index:2;color:var(--cyan);font-size:22px}.flow-item strong{display:block;color:var(--cyan);font-size:13px}.flow-item span{font-size:12px;color:var(--muted)}
+    .palette{border:3px double var(--magenta);padding:14px;background:#090d0c;font-family:Cascadia Code,Consolas,monospace}.palette-title{color:var(--magenta);font-weight:900;margin-bottom:10px}.row{padding:4px 7px;color:#dcece8}.row.on{background:#f6ecf4;color:#1a1018}.row.off{color:#6d7c78}.risk{float:right;color:var(--yellow)}.form{border:3px double var(--magenta);padding:14px;background:#090d0c;font-family:Cascadia Code,Consolas,monospace}.field{padding:7px;border-bottom:1px solid #263632}.field.focus{background:#eef7f4;color:#0b1614}.required{color:var(--red)}
+    .gates{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.gate{border:1px solid var(--line);border-top:5px solid var(--yellow);border-radius:14px;padding:18px;background:var(--panel)}.gate.open{border-top-color:var(--green)}.gate b{display:block;font-size:28px;color:var(--yellow)}.gate.open b{color:var(--green)}.gate ul{padding-left:18px;color:#bdd0cb}.journey{display:grid;grid-template-columns:1fr 1fr;gap:18px}.journey .card{position:relative;padding-left:70px}.journey .number{position:absolute;left:20px;top:20px}.keys{display:flex;flex-wrap:wrap;gap:10px}.key{border:1px solid #6b7b77;border-bottom-width:3px;border-radius:7px;padding:5px 9px;background:#18221f;color:#fff;font:700 13px Consolas,monospace}details{margin-top:18px;border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel)}summary{cursor:pointer;color:var(--yellow);font-weight:800}.footer{margin-top:76px;padding:24px;border-top:1px solid var(--line);color:var(--muted)}
+    @media(max-width:850px){.two,.three,.journey,.gates{grid-template-columns:1fr}.panes,.callouts{grid-template-columns:1fr}.flow{grid-template-columns:1fr}.flow-item:not(:last-child):after{content:'↓';right:50%;top:auto;bottom:-24px}.pane{min-height:160px}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Forge · operação local · 19 jul 2026</div>
+    <h1>Da ideia à evidência antes do build.</h1>
+    <p class="lede">Um comando abre a TUI discovery-first; formulários guiados e uma faixa persistente conduzem da primeira ideia ao deploy Always-On auditável.</p>
+    <span class="pill">forgenexus</span><span class="pill">TUI primária</span><span class="pill">campos guiados</span><span class="pill">deploy auditável</span>
+  </header>
+
+  <section id="hero-shot" class="terminal" aria-label="Visão geral da TUI">
+    <div class="terminal-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>FORGE TUI — C:\Dev\forge</span></div>
+    <div class="terminal-body">
+      <div class="brand">FORGE NEXUS // DIGITE E PRESSIONE ENTER</div>
+      <div class="health" style="margin-bottom:10px">Digite direto · Enter envia · ↑↓ rooms · ←→ teses · : ações · Ctrl+N nova room · ? ajuda</div>
+      <div class="progress"><strong>ETAPA 3/8 · E1 + E2</strong> · gate: Dor e reach verificadas<br>falta: reach externo verificado · próxima: <span style="color:var(--yellow)">Registrar evidência</span><br><span class="health">HEALTH LOCAL · codex:cli-pronta · grok:cli-pronta · claude:ausente · não comprova login/quota</span></div>
+      <div class="panes">
+        <div class="pane"><div class="pane-title">ROOMS / THESES</div><div class="selected">› Tutorial visual — ideia</div><div>◇ confirmed · thesis-…</div></div>
+        <div class="pane"><div class="pane-title" style="color:#edf8f4">CHAT · Tutorial visual</div><div>YOU: Quem sofre mais com este problema?</div><div style="color:var(--green)">codex: O comprador provável é…</div><div style="color:var(--green)">grok: O risco fatal da tese é…</div><div style="margin-top:12px;color:var(--cyan)">› Digite sua ideia ou mensagem e pressione Enter</div><div class="health">Enter envia · executor: codex</div></div>
+        <div class="pane"><div class="pane-title">EVIDENCE / EXPERIMENT / GATES</div><div>Tese: confirmed</div><div>Evidências: 3</div><div>Experimentos: 1</div><div class="health">Ações abaixo abrem com :</div><br><span class="action safe-action">· Registrar evidência</span><span class="action">· Propor build</span><span class="action">· Iniciar validação</span><span class="action">· Preparar handoff Braga</span></div>
+      </div>
+      <div class="status">online · DIGITE + ENTER · ↑↓ rooms · : ações · ? ajuda</div>
+      <div class="callouts"><div class="callout"><b>1. Navegação</b><br>Rooms e teses persistidas.</div><div class="callout"><b>2. Conversa multi-host</b><br>Escolha Codex, Claude, Grok, GLM ou Gemini por turno.</div><div class="callout"><b>3. Estado e gates</b><br>O servidor decide o que está liberado.</div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="number">0</div><h2>Primeira ideia em 90 segundos</h2>
+    <p class="hint safe"><code>forgenexus</code> é o único caminho principal: localiza o Forge, atualiza um Maestro obsoleto, aguarda o health e abre a TUI.</p>
+    <div class="grid three">
+      <div class="card"><h3>1 · Abra</h3><pre class="cmd">forgenexus</pre><p>Pode executar em PowerShell ou CMD, de qualquer pasta.</p></div>
+      <div class="card"><h3>2 · Digite direto</h3><pre>› Quero validar uma forma de
+reduzir o retrabalho de gestores</pre><p>Não clique e não pressione Tab. O prompt já está ativo.</p></div>
+      <div class="card"><h3>3 · Pressione Enter</h3><pre>Enter → cria a primeira room
+      → envia com Codex</pre><p>Sucesso: room à esquerda, mensagem no chat e faixa em <code>ETAPA 2/8 · TESE</code>.</p></div>
+    </div>
+    <details><summary>Solução de problemas · comandos manuais</summary><pre class="cmd">cd C:\Dev\forge
+npm install       # apenas se node_modules não existir
+npm run maestro   # terminal 1
+npm run tui       # terminal 2</pre><p><code>ENOENT ... maestro/.token</code> significa que o servidor não iniciou. Se a porta 8799 estiver ocupada, teste o health existente antes de abrir outra instância. No Windows prefira <code>npm.cmd</code>/<code>npx.cmd</code> quando a ExecutionPolicy bloquear arquivos <code>.ps1</code>.</p></details>
+  </section>
+
+  <section id="flow-shot" class="section">
+    <div class="number">1</div><h2>O fluxo inteiro em uma linha</h2>
+    <p>O build não é o começo. Primeiro o Forge exige uma tese explícita e evidência externa verificada.</p>
+    <div class="flow">
+      <div class="flow-item"><strong>ROOM</strong><span>Ideia e conversa</span></div>
+      <div class="flow-item"><strong>TESE</strong><span>Comprador, dor, oferta e risco fatal</span></div>
+      <div class="flow-item"><strong>E1 + E2</strong><span>Dor real + canal alcançável</span></div>
+      <div class="flow-item"><strong>EXPERIMENTO</strong><span>Ação observável e teto</span></div>
+      <div class="flow-item"><strong>BUILD</strong><span>Mínimo instrumentado</span></div>
+      <div class="flow-item"><strong>E3</strong><span>Ação pós-build</span></div>
+      <div class="flow-item"><strong>P4 + P5</strong><span>Medir; kill, iterate ou scale</span></div>
+      <div class="flow-item"><strong>DEPLOY</strong><span>Prepare, confirm, publish, verify</span></div>
+    </div>
+    <div class="gates" style="margin-top:30px">
+      <div class="gate"><b>E1</b><h3>Dor verificada</h3><p>Fonte externa, revisão humana e validação <code>pain</code>.</p></div>
+      <div class="gate"><b>E2</b><h3>Reach verificado</h3><p>Canal ou segmento realmente alcançável, validação <code>reach</code>.</p></div>
+      <div class="gate"><b>E3</b><h3>Ação pós-build</h3><p>Evento real de uso/conversão ligado ao experimento.</p></div>
+    </div>
+  </section>
+
+  <section id="palette-shot" class="section">
+    <div class="number">2</div><h2>Abra a paleta e use campos guiados</h2>
+    <p>Use a paleta só para ações avançadas: pressione <span class="key">:</span>, navegue com <span class="key">↑</span> <span class="key">↓</span> e use <span class="key">Enter</span>. No formulário, ↑↓ troca o campo e ←→ troca a opção.</p>
+    <div class="grid two">
+      <div class="palette"><div class="palette-title">COMMAND PALETTE · ↑↓ seleciona · Enter executa</div><div class="row">Criar room <span class="risk">[safe]</span></div><div class="row">Enviar mensagem <span class="risk">[safe]</span></div><div class="row on">› Propor tese <span class="risk">[guarded]</span></div><div class="row">Confirmar tese <span class="risk">[guarded]</span></div><div class="row">Executar playbook <span class="risk">[guarded]</span></div><div class="row">Registrar evidência <span class="risk">[guarded]</span></div><div class="row">Criar experimento <span class="risk">[guarded]</span></div><div class="row">Propor build <span class="risk">[guarded]</span></div><div class="row">Iniciar aquisição <span class="risk">[external]</span></div></div>
+      <div class="form"><div class="palette-title">FORM · Propor tese · CAMPOS GUIADOS</div><div class="field">Room<span class="required">*</span>: room-d718…</div><div class="field focus">Comprador<span class="required">*</span>: síndico</div><div class="field">Usuário<span class="required">*</span>: técnico</div><div class="field">Trabalho doloroso<span class="required">*</span>: provar manutenção</div><div class="field">Canal<span class="required">*</span>: WhatsApp</div><div class="field">Assunção fatal<span class="required">*</span>: pagará pela auditoria</div><br><div style="color:var(--yellow)">Ctrl+J → JSON avançado · Enter → revisão</div></div>
+    </div>
+    <p class="hint safe"><strong>Caminho principal sem JSON:</strong> tese, evidência e experimento têm campos nomeados. <code>Ctrl+J</code> preserva o contrato JSON original para importação e depuração. O primeiro Enter valida; o segundo confirma.</p>
+  </section>
+
+  <section class="section">
+    <div class="number">3</div><h2>Room, chat e tese</h2>
+    <div class="journey">
+      <div class="card"><div class="number">1</div><h3>Criar room</h3><p>A primeira mensagem cria a room automaticamente. Para separar outro contexto, use <code>Ctrl+N</code>.</p><pre>{
+  "title": "Gestores perdem horas conferindo PMOC",
+  "sourceRef": "entrevista-2026-07"
+}</pre></div>
+      <div class="card"><div class="number">2</div><h3>Conversar por executor</h3><p>Digite no prompt e pressione <code>Enter</code>. Codex é o executor padrão; a paleta permite configuração avançada por turno.</p><pre>Mensagem: "Pressione a hipótese de comprador e canal."
+Executor: grok
+Máximo de turnos: 2</pre></div>
+      <div class="card"><div class="number">3</div><h3>Propor tese</h3><p><code>: → Propor tese</code>. Preencha comprador, usuário, trabalho doloroso, alternativa atual, segmento, canal, assunção fatal e oferta.</p><pre>Comprador: síndico
+Usuário: técnico
+Dor: provar manutenção
+Alternativa: planilha
+Canal: WhatsApp
+Oferta: auditoria documental</pre></div>
+      <div class="card"><div class="number">4</div><h3>Confirmar tese</h3><p><code>: → Confirmar tese</code>. Informe o ID exibido no painel e o ator humano.</p><pre>Tese: thesis-…
+Ator: guilherme</pre><p>A confirmação é humana; conversar com agentes não promove a tese sozinho.</p></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="number">4</div><h2>Evidência e experimento</h2>
+    <div class="grid two">
+      <div class="card"><h3>Registrar evidência</h3><pre>Observação: 3 síndicos relataram retrabalho
+Inferência: dor recorrente
+Valida: pain
+Polaridade: supporting
+Fonte: https://fonte.example/registro
+Data: 2026-07-19 · Sintética: false</pre><p>Depois use <code>Verificar evidência</code>: <code>verified</code> ou <code>rejected</code>.</p></div>
+      <div class="card"><h3>Criar experimento</h3><pre>Hipótese: síndicos respondem à oferta
+Método: outreach manual
+Ação esperada: responder
+Sucesso: 2 respostas · Kill: 0 respostas
+Janela: 7 dias · Teto: 0</pre><p>Simulação ajuda a pensar, mas <strong>não abre E1/E2/E3</strong>.</p></div>
+    </div>
+    <p class="hint danger">First Customer Finder gera shortlist e abertura sugerida; não envia mensagens. Outreach, publicação, deploy e gasto continuam sendo ações humanas/externas separadas.</p>
+  </section>
+
+  <section id="delivery-shot" class="section">
+    <div class="number">5</div><h2>Do gate à medição e ao deploy</h2>
+    <div class="gates">
+      <div class="gate open"><b>01</b><h3>Propor build</h3><p>Exige tese confirmada, E1 e E2. O brief declara hipótese, escopo mínimo, evento, sucesso e kill.</p></div>
+      <div class="gate open"><b>02</b><h3>Iniciar build</h3><p><code>discovery.build.start</code> pula P0/P1 somente porque o discovery já entregou essas decisões.</p></div>
+      <div class="gate open"><b>03</b><h3>Concluir mínimo</h3><p>Informe URL/artefato e confirme que a instrumentação foi observada.</p></div>
+    </div>
+    <div class="grid three" style="margin-top:18px">
+      <div class="card"><h3>Braga handoff</h3><p>Prepare, exporte localmente e importe o retorno canônico. Nada é enviado automaticamente.</p></div>
+      <div class="card"><h3>Aquisição</h3><p>Iniciar é risco <code>external</code>. Concluir ou terminar exige motivo e ator.</p></div>
+      <div class="card"><h3>Gasto</h3><p><code>requested</code>, <code>ceiling</code>, <code>why</code> e checkbox. Orçamento zero não autoriza gasto futuro.</p></div>
+    </div>
+    <div class="flow" style="grid-template-columns:repeat(3,1fr)"><div class="flow-item"><strong>KILL</strong><span>Assunção fatal caiu</span></div><div class="flow-item"><strong>ITERATE</strong><span>Sinal parcial; teste seguinte explícito</span></div><div class="flow-item"><strong>SCALE</strong><span>E3 e experimento sustentam expansão</span></div></div>
+    <h2 style="margin-top:38px">DEPLOY Always-On · quatro estados reais</h2>
+    <p>Disponível depois do ship concluído ou de P5 = <code>scale</code>. O Forge não executa PowerShell privilegiado nem confunde request com publicação.</p>
+    <div class="grid two">
+      <div class="card"><h3>1 · PREPARE</h3><p>Registra source, exposição privada/pública, persistência, workload, SLO, start e health check.</p></div>
+      <div class="card"><h3>2 · CONFIRM</h3><p>Revisão humana explícita. Congela a intenção, mas ainda não publica.</p></div>
+      <div class="card"><h3>3 · PUBLISH</h3><p>Execute <code>$always-on-deploy</code> fora do Forge; importe revision, release, tasks e evidências operacionais.</p></div>
+      <div class="card"><h3>4 · VERIFY</h3><p>Health, ownership, rota externa, capacidade e rollback. O que não foi medido permanece pendente.</p></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="number">6</div><h2>Teclas que você realmente usa</h2>
+    <div class="keys"><span class="key">digite</span> prompt ativo <span class="key">Enter</span> envia <span class="key">↑ ↓</span> rooms/campos <span class="key">← →</span> teses/opções <span class="key">:</span> ações <span class="key">Ctrl+N</span> nova room <span class="key">?</span> ajuda <span class="key">Ctrl+U</span> limpa <span class="key">Ctrl+J</span> guiado/JSON <span class="key">Esc</span> volta <span class="key">Ctrl+C</span> sai</div>
+    <p class="hint safe" style="margin-top:24px"><strong>Sem clique e sem Tab:</strong> o terminal é keyboard-first. Digite como no Codex ou Claude Code; os painéis laterais são contexto visual.</p>
+    <p class="hint" style="margin-top:24px">A faixa persistente mostra etapa, gate, requisito faltante, próxima ação e health das CLIs. <code>cli-pronta</code> não comprova login nem quota.</p>
+  </section>
+
+  <footer class="footer">Fonte de verdade: catálogo do servidor + <code>DiscoveryWorkspace</code> + estado privado Always-On. Este tutorial não executou agente, outreach, gasto, build ou deploy real.</footer>
+</main>
+</body>
+</html>

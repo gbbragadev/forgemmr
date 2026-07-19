@@ -101,7 +101,7 @@ function setupTestDir() {
   return root;
 }
 
-test("POST /api/pipeline/start com body válido chama engine.start() com argumentos corretos", async (t) => {
+test("POST /api/pipeline/start recusa start legado sem chamar engine", async (t) => {
   const root = setupTestDir();
   const engine = fakeEngine();
   const server = createMaestroServer({
@@ -122,15 +122,11 @@ test("POST /api/pipeline/start com body válido chama engine.start() com argumen
     body: JSON.stringify({ appId: "test-app", idea: "test mutation" }),
   });
 
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 409);
   const data = await response.json();
-  assert.equal(data.ok, true);
-  assert.equal(data.pipeline.appId, "test-app");
-  assert.equal(engine.calls.length, 1);
-  assert.deepEqual(engine.calls[0].method, "start");
-  assert.equal(engine.calls[0].args.appId, "test-app");
-  assert.equal(engine.calls[0].args.idea, "test mutation");
-  assert.equal(engine.calls[0].args.controlMode, "full_auto");
+  assert.equal(data.ok, false);
+  assert.match(data.error, /discovery\.build\.start/);
+  assert.equal(engine.calls.length, 0);
 });
 
 test("POST /api/pipeline/start com JSON inválido retorna erro 409", async (t) => {

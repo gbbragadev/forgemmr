@@ -917,6 +917,63 @@ input[type="radio"] {
   overflow: auto;
 }
 
+/* Operator Home — attention queue */
+.attention-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attention-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+
+.attention-card.kind-gate,
+.attention-card.kind-p4 {
+  border-left: 3px solid var(--warning);
+}
+
+.attention-card.kind-stuck,
+.attention-card.kind-rate_limit,
+.attention-card.kind-deploy_fail {
+  border-left: 3px solid var(--danger);
+}
+
+.attention-card.kind-running {
+  border-left: 3px solid var(--success);
+}
+
+.factory-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.subnav-item {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.subnav-item.is-active {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: rgb(196 108 255 / 0.12);
+}
+
 .pipeline-list-label {
   position: sticky;
   top: 0;

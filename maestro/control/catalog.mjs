@@ -1,7 +1,7 @@
 const RISKS = new Set(["safe", "guarded", "external", "destructive"]);
 
-function field(name, label, type, { required = false, options = [] } = {}) {
-  return { name, label, type, required, options };
+function field(name, label, type, { required = false, options = [], help = null, defaultValue = null } = {}) {
+  return { name, label, type, required, options, ...(help ? { help } : {}), ...(defaultValue !== null ? { defaultValue } : {}) };
 }
 
 function action({ id, scope, label, description, risk, enabled = true, blockedReason = null, expectedEffect, fields = [] }) {
@@ -27,7 +27,7 @@ function pendingGate(pipeline) {
  * Catálogo state-driven. O browser renderiza estes descritores, mas nunca escolhe
  * comandos, executáveis ou caminhos de arquivo.
  */
-export function createActionCatalog({ pipelines = [], teams = [], profiles = [], blueprints = [], providers = [], lifecycle = [], memoryActions = [] } = {}) {
+export function createActionCatalog({ pipelines = [], teams = [], profiles = [], blueprints = [], providers = [], executors = providers, lifecycle = [], deployments = [], memoryActions = [], discovery = null } = {}) {
   const teamIds = teams.map((team) => team.id);
   const profileIds = profiles.map((profile) => profile.slug);
   const blueprintIds = blueprints.filter((blueprint) => !blueprint.archived).map((blueprint) => blueprint.id);
@@ -39,19 +39,10 @@ export function createActionCatalog({ pipelines = [], teams = [], profiles = [],
       id: "operator.ingest",
       scope: "factory",
       label: "Ingerir ideia ou plano",
-      description: "Lê texto, arquivo, pasta ou URL; decide profile/blueprint e inicia apenas quando o risco permite.",
+      description: "Lê texto, arquivo, pasta ou URL e cria uma room com proposta de tese para confirmação humana.",
       risk: "guarded",
-      expectedEffect: "Persiste uma decisão explicável e, se segura ou aprovada, cria os contratos necessários e inicia a pipeline.",
-      fields: [
-        field("source", "Ideia, caminho ou URL", "textarea", { required: true }),
-        field("team", "Time", "select", { required: true, options: teamIds }),
-        field("capability", "Capability (opcional)", "select", { options: ["static", "quiz", "chat"] }),
-        field("target", "Target (opcional)", "select", { options: ["cf-pages", "cf-workers", "gh-pages"] }),
-        field("controlMode", "Modo de controle", "select", { options: ["full_auto", "autopilot_to_gate", "guided", "manual"] }),
-        field("reviewOnly", "Somente propor", "checkbox"),
-        field("dryRun", "Dry-run", "checkbox"),
-        field("approved", "Aplicar mesmo quando exigir revisão", "checkbox"),
-      ],
+      expectedEffect: "Persiste a decisão de intake, a room e a proposta; nunca cria profile, blueprint ou pipeline.",
+      fields: [field("source", "Ideia, caminho ou URL", "textarea", { required: true })],
     }),
     action({
       id: "operator.evolve",
@@ -69,24 +60,44 @@ export function createActionCatalog({ pipelines = [], teams = [], profiles = [],
         field("approved", "Proposta revisada e aprovada", "checkbox"),
       ],
     }),
-    action({
-      id: "pipeline.start",
+    ...[
+      ["room.create", "Criar room", "safe", [field("title", "Título", "text", { required: true }), field("sourceRef", "Fonte", "text")]],
+      ["room.message", "Adicionar mensagem", "safe", [field("roomId", "Room", "text", { required: true }), field("author", "Autor", "text", { required: true }), field("text", "Mensagem", "textarea", { required: true }), field("executor", "Executor", "text")]],
+      ["thesis.propose", "Propor tese", "guarded", [field("roomId", "Room", "text", { required: true }), field("draft", "Tese (JSON)", "json", { required: true }), field("sourceMessageIds", "Mensagens (JSON)", "json")]],
+      ["thesis.confirm", "Confirmar tese", "guarded", [field("thesisId", "Tese", "text", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["validation.start", "Iniciar validação", "guarded", [field("thesisId", "Tese", "text", { required: true }), field("experimentId", "Experimento", "text", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["evidence.record", "Registrar evidência", "guarded", [field("thesisId", "Tese", "text", { required: true }), field("evidence", "Evidência (JSON)", "json", { required: true })]],
+      ["evidence.verify", "Verificar evidência", "guarded", [field("evidenceId", "Evidência", "text", { required: true }), field("actor", "Ator", "text", { required: true }), field("decision", "Decisão", "select", { required: true, options: ["verified", "rejected"] }), field("notes", "Notas", "textarea")]],
+      ["experiment.create", "Criar experimento", "guarded", [field("thesisId", "Tese", "text", { required: true }), field("experiment", "Experimento (JSON)", "json", { required: true })]],
+      ["experiment.complete", "Concluir experimento", "guarded", [field("experimentId", "Experimento", "text", { required: true }), field("evidenceIds", "Evidências (JSON)", "json"), field("interpretation", "Interpretação", "textarea", { required: true }), field("decision", "Decisão", "text", { required: true })]],
+      ["build.propose", "Propor build", "guarded", [field("thesisId", "Tese", "text", { required: true }), field("brief", "Brief (JSON)", "json", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["discovery.build.start", "Iniciar build aprovado", "guarded", [field("thesisId", "Tese", "text", { required: true }), field("startOptions", "Opções (JSON)", "json"), field("actor", "Ator", "text", { required: true })]],
+      ["build.complete", "Concluir build mínimo", "guarded", [field("buildId", "Build", "text", { required: true }), field("url", "URL", "text"), field("artifact", "Artefato", "text"), field("instrumentationObserved", "Instrumentação observada", "checkbox", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["build.terminate", "Terminar build mínimo", "guarded", [field("buildId", "Build", "text", { required: true }), field("status", "Estado terminal", "select", { required: true, options: ["killed", "failed"] }), field("reason", "Motivo", "textarea", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["experiment.validation_asset.attach", "Anexar asset de validação", "guarded", [field("experimentId", "Experimento", "text", { required: true }), field("asset", "Asset (JSON)", "json", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["braga.prepare", "Preparar handoff Braga", "guarded", [field("thesisId", "Tese", "text", { required: true }), field("experimentId", "Experimento", "text", { required: true }), field("testedMessage", "Mensagem testada", "textarea", { required: true }), field("assets", "Assets (JSON)", "json"), field("events", "Eventos (JSON)", "json", { required: true }), field("baseline", "Baseline (JSON)", "json", { required: true }), field("timebox", "Timebox", "text", { required: true }), field("budget", "Orçamento (JSON)", "json", { required: true }), field("legalRestrictions", "Restrições legais (JSON)", "json", { required: true })]],
+      ["braga.export", "Exportar handoff Braga", "guarded", [field("handoffId", "Handoff", "text", { required: true }), field("target", "Caminho local", "text", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["acquisition.start", "Iniciar aquisição", "external", [field("thesisId", "Tese", "text", { required: true }), field("experimentId", "Experimento", "text", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["acquisition.complete", "Concluir aquisição", "guarded", [field("acquisitionId", "Aquisição", "text", { required: true }), field("reason", "Resultado", "textarea", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["acquisition.terminate", "Terminar aquisição", "guarded", [field("acquisitionId", "Aquisição", "text", { required: true }), field("reason", "Motivo", "textarea", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["spend.approve", "Aprovar gasto", "external", [field("experimentId", "Experimento", "text", { required: true }), field("requested", "Solicitado", "number", { required: true }), field("ceiling", "Teto", "number", { required: true }), field("why", "Justificativa", "textarea", { required: true }), field("actor", "Ator", "text", { required: true }), field("confirmed", "Confirmo o teto", "checkbox", { required: true })]],
+      ["braga.return.import", "Importar retorno Braga", "guarded", [field("result", "Retorno (JSON)", "json", { required: true }), field("actor", "Ator", "text", { required: true })]],
+      ["chat.send", "Enviar mensagem", "safe", [field("roomId", "Room", "text", { required: true }), field("text", "Mensagem", "textarea", { required: true }), field("playerId", "Executor", "select", { required: true, options: executors.map(executor => executor.id) }), field("maxTurns", "Máximo de turnos", "number"), field("resumeToken", "Token de resume", "text")]],
+      ["chat.stop", "Parar chat", "guarded", [field("runId", "Run", "text", { required: true })]],
+      ["playbook.run", "Executar playbook", "guarded", [field("playbookId", "Playbook", "select", { required: true, options: ["pressure-test", "pain-signal-miner", "first-customer-finder", "startup-user-simulator", "design-audit"] }), field("thesisId", "Tese", "text", { required: true }), field("playerId", "Executor", "select", { required: true, options: executors.map(executor => executor.id) }), field("input", "Entrada (JSON)", "json", { required: true })]],
+      ["playbook.import", "Importar saída validada", "guarded", [field("localRunId", "Run local", "text", { required: true }), field("thesisId", "Tese", "text", { required: true })]],
+      ["playbook.revise", "Propor revisão de playbook", "guarded", [field("playbookId", "Playbook", "select", { required: true, options: ["pressure-test", "pain-signal-miner", "first-customer-finder", "startup-user-simulator", "design-audit"] }), field("actor", "Ator", "text", { required: true }), field("content", "Novo conteúdo", "textarea", { required: true }), field("reason", "Motivo", "textarea", { required: true })]],
+    ].map(([id, label, risk, fields]) => action({
+      id,
       scope: "factory",
-      label: "Criar pipeline",
-      description: "Estrutura uma ideia e inicia o Forge no time e modo escolhidos.",
-      risk: "safe",
-      expectedEffect: "Cria um app-id isolado; full_auto resolve gates locais verificados e para em fronteiras externas ou humanas.",
-      fields: [
-        field("idea", "Ideia", "textarea", { required: true }),
-        field("team", "Time", "select", { required: true, options: teamIds }),
-        field("profile", "Profile", "select", { options: profileIds }),
-        field("blueprint", "Blueprint", "select", { options: blueprintIds }),
-        field("capability", "Capability", "select", { options: ["auto", "static", "quiz", "chat"] }),
-        field("target", "Target", "select", { options: ["auto", "cf-pages", "cf-workers", "gh-pages"] }),
-        field("dryRun", "Dry-run", "checkbox"),
-        field("controlMode", "Modo de controle", "select", { options: ["full_auto", "autopilot_to_gate", "guided", "manual"] }),
-      ],
-    }),
+      label,
+      description: "Ação discovery-first controlada pelo estado canônico.",
+      risk,
+      enabled: Boolean(discovery),
+      blockedReason: "DiscoveryWorkspace não configurado.",
+      expectedEffect: "Atualiza o DiscoveryWorkspace e incrementa sua revision.",
+      fields,
+    })),
     action({
       id: "profile.create",
       scope: "factory",
@@ -230,6 +241,7 @@ export function createActionCatalog({ pipelines = [], teams = [], profiles = [],
     }),
   ];
   const lifecycleByApp = new Map(lifecycle.map((entry) => [entry.appId, entry]));
+  const deploymentByApp = new Map(deployments.map((entry) => [entry.appId, entry]));
   const actionApps = new Set();
   actions.push(...memoryActions);
 
@@ -238,7 +250,9 @@ export function createActionCatalog({ pipelines = [], teams = [], profiles = [],
     actionApps.add(appId);
     const scope = `pipeline:${appId}`;
     const state = lifecycleByApp.get(appId);
+    const deployment = deploymentByApp.get(appId);
     const canMeasure = !["running", "paused_gate", "paused_control", "blocked"].includes(pipelineStatus);
+    const canDeploy = pipelineStatus === "done" || state?.p5?.decision === "scale";
     actions.push(
       action({
         id: "p4.record",
@@ -276,9 +290,87 @@ export function createActionCatalog({ pipelines = [], teams = [], profiles = [],
           field("decision", "Decisão", "choice", { required: true, options: ["kill", "iterate", "scale"] }),
           field("why", "Por quê?", "textarea", { required: true }),
           field("feedback", "Feedback da iteração", "textarea"),
+          field("nextHypothesis", "Próxima hipótese", "textarea"),
+          field("ceiling", "Teto de escala", "number"),
+          field("measurementDate", "Data da próxima medição", "text"),
           field("team", "Time da iteração", "select", { options: teamIds }),
           field("dryRun", "Iterar em dry-run", "checkbox"),
           field("controlMode", "Modo de controle", "select", { options: ["full_auto", "autopilot_to_gate", "guided", "manual"] }),
+        ],
+      }),
+      action({
+        id: "always-on.prepare",
+        scope,
+        label: "Preparar deploy Always-On",
+        description: "Define identidade, origem, exposição, persistência, workload, SLO e health sem executar PowerShell.",
+        risk: "guarded",
+        enabled: canDeploy && (!deployment || deployment.status === "prepared"),
+        blockedReason: !canDeploy ? "Conclua o ship ou decida scale no P5 antes do deploy." : `Deploy já avançou para ${deployment?.status}.`,
+        expectedEffect: "Persiste um request privado para a skill $always-on-deploy; nada é publicado nesta etapa.",
+        fields: [
+          field("sourceRoot", "Source root", "text", { required: true, help: `Precisa apontar para apps/${appId}.` }),
+          field("visibility", "Exposição", "select", { required: true, options: ["private", "public"] }),
+          field("hostname", "Hostname público", "text"),
+          field("startCommand", "Comando de start", "text", { required: true }),
+          field("migrationCommand", "Comando de migration", "text"),
+          field("persistentData", "Dados persistentes", "textarea", { required: true }),
+          field("workload", "Workload esperado", "textarea", { required: true }),
+          field("slo", "SLO", "textarea", { required: true }),
+          field("healthCheck", "Health check", "text", { required: true }),
+          field("actor", "Ator", "text", { required: true }),
+        ],
+      }),
+      action({
+        id: "always-on.confirm",
+        scope,
+        label: "Confirmar request Always-On",
+        description: "Revisão humana explícita antes da publicação operacional.",
+        risk: "guarded",
+        enabled: deployment?.status === "prepared",
+        blockedReason: "Prepare o request Always-On antes de confirmar.",
+        expectedEffect: "Congela a intenção revisada; ainda não executa nem publica nada.",
+        fields: [
+          field("why", "Motivo da confirmação", "textarea", { required: true }),
+          field("reviewed", "Revisei exposição, dados, workload e SLO", "checkbox", { required: true }),
+          field("actor", "Ator", "text", { required: true }),
+        ],
+      }),
+      action({
+        id: "always-on.publish.record",
+        scope,
+        label: "Registrar publicação Always-On",
+        description: "Importa a evidência produzida externamente pela skill $always-on-deploy.",
+        risk: "external",
+        enabled: deployment?.status === "confirmed",
+        blockedReason: "Confirme o request antes de registrar a publicação externa.",
+        expectedEffect: "Registra revision, release, tasks e evidências; o Forge não executa o deploy privilegiado.",
+        fields: [
+          field("revision", "Revision publicada", "text", { required: true }),
+          field("releasePath", "Release path", "text", { required: true }),
+          field("tasks", "Tasks publicadas", "textarea", { required: true }),
+          field("healthUrl", "Health URL", "text"),
+          field("capacityEvidence", "Evidência de capacidade", "textarea", { required: true }),
+          field("rollbackEvidence", "Evidência de rollback", "textarea", { required: true }),
+          field("actor", "Ator", "text", { required: true }),
+        ],
+      }),
+      action({
+        id: "always-on.verify",
+        scope,
+        label: "Verificar deploy Always-On",
+        description: "Fecha health, ownership, rota externa, capacidade e rollback sem esconder pendências.",
+        risk: "guarded",
+        enabled: ["published", "verified"].includes(deployment?.status),
+        blockedReason: "Registre primeiro a evidência de publicação da skill Always-On.",
+        expectedEffect: "Marca verified e mantém capacity/rollback pendentes quando não foram medidos ou testados.",
+        fields: [
+          field("localHealth", "Health local", "select", { required: true, options: ["pass", "fail"] }),
+          field("ownership", "Ownership", "select", { required: true, options: ["pass", "fail"] }),
+          field("externalHealth", "Health externo", "select", { required: true, options: ["pass", "fail", "not-applicable"] }),
+          field("capacity", "Capacidade", "select", { required: true, options: ["pass", "fail", "not-measured"] }),
+          field("rollback", "Rollback", "select", { required: true, options: ["pass", "fail", "not-tested"] }),
+          field("notes", "Notas", "textarea"),
+          field("actor", "Ator", "text", { required: true }),
         ],
       }),
     );

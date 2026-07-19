@@ -1709,7 +1709,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
     const blueprint = params.blueprint || "generic";
     const controlMode = normalizeControlMode(params.controlMode);
     // tipo do app: sem --capability o P0 decide (declara "Tipo:" no scorecard; GO do p0-go aplica)
-    const capabilityAuto = blueprint === "generic" && (!params.capability || params.capability === "auto");
+    let capabilityAuto = blueprint === "generic" && (!params.capability || params.capability === "auto");
     const capability = capabilityAuto ? "static" : params.capability || "static";
     const appId = deriveAppId(params);
     if (!appId) throw new Error("não consegui derivar app-id — passe --app-id ou --slug");
@@ -1731,6 +1731,12 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
 
     // DS gerado por projeto: pula DS-GEN se este app já tem design system (só generic)
     let jobs = plan.jobs;
+    const discoveryContext = params.discoveryContext ? structuredClone(params.discoveryContext) : null;
+    if (discoveryContext) {
+      jobs = jobs.filter((job) => !["L0/P0", "L0/P1", "P3"].includes(job));
+      if (!jobs.includes("FOUNDATION")) jobs.unshift("FOUNDATION");
+      capabilityAuto = false;
+    }
     let existingDsChoice = null;
     const existingDesignSystem = path.join(root, runDocRel(appId, "design-system"));
     if (plan.jobSpecs === null && fs.existsSync(existingDesignSystem)) {
@@ -1760,6 +1766,7 @@ export function createEngine({ root, emitLog, emitPipeline, appId: boundAppId, c
       jobIndex: 0,
       currentJob: null,
       blueprint,
+      discoveryContext,
       slug: appId,
       projectDir: plan.jobSpecs ? path.join(root, ".forge", "projects", appId) : null,
       jobSpecs: plan.jobSpecs,
@@ -2402,6 +2409,24 @@ export function createEngineManager({ root, emitLog, emitPipeline, memory = null
       const appId = deriveAppId(params);
       if (!appId) throw new Error("não consegui derivar app-id — passe appId/slug ou uma ideia com texto");
       return engineFor(appId).start(params);
+    },
+    startFromDiscovery({ thesisId, buildProposal, ...options }) {
+      if (!thesisId || !buildProposal?.id) throw new Error("discovery build exige thesisId e BuildProposal");
+      const appId = slugify(options.appId || buildProposal.appId || `${buildProposal.capability}-${thesisId}`);
+      if (!appId) throw new Error("não consegui derivar appId discovery");
+      const existing = engines.get(appId)?.snapshot();
+      if (existing?.discoveryContext?.thesisId === thesisId && existing?.discoveryContext?.buildProposal?.id === buildProposal.id) return existing;
+      const snapshot = engineFor(appId).start({
+        ...options,
+        appId,
+        idea: buildProposal.hypothesisToTest,
+        capability: buildProposal.capability,
+        profile: buildProposal.profile,
+        blueprint: buildProposal.blueprint,
+        controlMode: options.controlMode || "full_auto",
+        discoveryContext: structuredClone({ thesisId, buildProposal }),
+      });
+      return snapshot;
     },
     startFeedback(params) {
       const appId = slugify(params.appId || "");

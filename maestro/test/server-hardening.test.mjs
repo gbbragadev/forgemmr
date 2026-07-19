@@ -115,17 +115,17 @@ test("readBody aceita body pequeno com JSON válido", async (t) => {
   const { token } = await tokenResponse.json();
 
   // POST com body pequeno deve funcionar
-  const response = await fetch(`${baseUrl}/api/pipeline/start`, {
+  const response = await fetch(`${baseUrl}/api/pipeline/feedback`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       "x-maestro-token": token,
     },
-    body: JSON.stringify({ idea: "test" }),
+    body: JSON.stringify({ appId: "test", feedback: "body pequeno válido" }),
   });
   assert.equal(response.status, 200, "POST com body válido pequeno deve retornar 200");
   const data = await response.json();
-  assert.ok(data.pipeline);
+  assert.equal(typeof data, "object");
 });
 
 test("streamFile entrega arquivo estático e trata erro de stream", async (t) => {

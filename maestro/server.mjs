@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 // buildSpawn = matriz única de executores; sanitizers com fonte única em adapters.mjs.
 import {
-  buildSpawn,
+  appendPrivateFile,
   cleanupExternalizedPrompts,
   isNoiseLine,
   makeRedactor,
@@ -35,14 +35,22 @@ import { ControlError, createControlDispatcher } from "./control/dispatcher.mjs"
 import { createEngineActionHandlers } from "./control/handlers.mjs";
 import { createFactoryAdmin } from "./control/factory-admin.mjs";
 import { createLifecycleManager } from "./control/lifecycle.mjs";
+import { createAlwaysOnDeployManager } from "./control/always-on-deploy.mjs";
 import { createMemoryActionHandlers } from "./memory/control.mjs";
 import { createMemoryService, createUnavailableMemoryService } from "./memory/service.mjs";
 import { createRunEventStore } from "./control/run-events.mjs";
 import { createForgeOperator } from "./operator.mjs";
+import { createDiscoveryWorkspace } from "./discovery/workspace.mjs";
+import { buildCanonicalBrief } from "./discovery/context.mjs";
+import { createExecutorRunService } from "./executor-run-service.mjs";
+import { createPlaybookService } from "./discovery/playbooks.mjs";
+import { runtimeSourceFingerprint } from "./runtime-version.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const PORT = Number(process.env.MAESTRO_PORT || 8799);
+const SERVER_STARTED_AT = new Date().toISOString();
+const SOURCE_FINGERPRINT = runtimeSourceFingerprint(ROOT);
 const ROSTER_PATH = path.join(__dirname, "roster.json");
 
 // Token por instalação: bloqueia CSRF de sites no browser contra o loopback.
@@ -81,70 +89,6 @@ const state = {
 
 /** @type {Set<import('node:http').ServerResponse>} */
 const sseClients = new Set();
-/** @type {import('node:child_process').ChildProcess | null} */
-let child = null;
-
-/**
- * Buffer bytes → only emit complete lines ending in \n.
- * \r alone = TUI overwrite of current line (keep buffer, don't emit crumbs).
- */
-function createStreamSanitizer(prefix = "") {
-  let buf = "";
-  let lastEmitted = "";
-  let lastProgressAt = 0;
-
-  return {
-    push(chunk) {
-      let s = stripAnsi(String(chunk));
-      for (let i = 0; i < s.length; i++) {
-        const ch = s[i];
-        if (ch === "\r") {
-          // TUI redraw: discard current incomplete line (status spinner)
-          buf = "";
-          continue;
-        }
-        if (ch === "\n") {
-          const line = buf.replace(/\s+$/, "");
-          buf = "";
-          if (isNoiseLine(line)) continue;
-          // dedupe identical consecutive lines (spinners)
-          if (line === lastEmitted) continue;
-          lastEmitted = line;
-          log(prefix + line);
-          continue;
-        }
-        buf += ch;
-        // hard cap buffer (don't grow forever on binary noise)
-        if (buf.length > 8000) buf = buf.slice(-2000);
-      }
-      // Optional: throttle status line without newline (e.g. "Running… 45%")
-      const soft = buf.trim();
-      if (
-        soft.length >= 12 &&
-        /[A-Za-z]/.test(soft) &&
-        !isNoiseLine(soft) &&
-        soft !== lastEmitted &&
-        Date.now() - lastProgressAt > 2500
-      ) {
-        // only if it looks like a real status sentence
-        if (/\b(run|build|error|pass|fail|writing|created|done|npm|✓|✗|▶)\b/i.test(soft)) {
-          lastProgressAt = Date.now();
-          lastEmitted = soft;
-          log(prefix + soft + " …");
-          // don't clear buf — still waiting for \n
-        }
-      }
-    },
-    flush() {
-      const line = buf.replace(/\s+$/, "");
-      buf = "";
-      if (!isNoiseLine(line) && line !== lastEmitted) {
-        log(prefix + line);
-      }
-    },
-  };
-}
-
 function log(line, metadata = {}, runEvents = null) {
   let msg = redactLog(stripAnsi(typeof line === "string" ? line : String(line))).trimEnd();
   // strip accidental "stderr: " prefix noise labels we no longer want for clean TUI
@@ -219,334 +163,10 @@ function readRoster() {
   return JSON.parse(fs.readFileSync(ROSTER_PATH, "utf8"));
 }
 
-function resolveBin(name) {
-  const isWin = process.platform === "win32";
-  const home = process.env.USERPROFILE || process.env.HOME || "";
-  const candidates = [
-    name,
-    isWin ? `${name}.exe` : name,
-    path.join(home, ".grok", "bin", isWin ? "grok.exe" : "grok"),
-    path.join(home, ".local", "bin", name),
-  ];
-  // which via PATH — spawn will resolve; prefer known grok path
-  if (name === "grok" || name === "grok.exe") {
-    const p = path.join(home, ".grok", "bin", isWin ? "grok.exe" : "grok");
-    if (fs.existsSync(p)) return p;
-  }
-  return name;
-}
-
-/**
- * @param {string} goal
- * @param {{ executor?: string, playerId?: string, maxTurns?: number }} opts
- */
-function startRun(goal, opts = {}, runtime = {}) {
-  const runRoot = runtime.root || ROOT;
-  const spawnRun = runtime.spawnImpl || spawn;
-  if (state.status === "running") {
-    return { ok: false, error: "Já existe uma run em andamento. Aguarde ou POST /api/stop." };
-  }
-  if (!goal || !String(goal).trim()) {
-    return { ok: false, error: "goal vazio" };
-  }
-
-  const roster = readRoster();
-  let executor = (opts.executor || "grok").toLowerCase();
-  let player = null;
-
-  if (opts.playerId) {
-    player = roster.players.find((p) => p.id === opts.playerId) || null;
-    if (player) executor = (player.cli || executor).toLowerCase();
-  }
-
-  // normalize
-  if (executor === "grok-solo" || executor === "xai") executor = "grok";
-  if (executor === "claude-code") executor = "claude";
-
-  const maxTurns = opts.maxTurns || 30;
-  const fullGoal =
-    goal.trim() +
-    "\n\n---\nMaestro HQ constraints:\n" +
-    "- Repo: " +
-    runRoot +
-    "\n- Surgical / YAGNI. Gate: npm run build if code changes.\n" +
-    "- Do not commit secrets. Product AI = Z.AI (ZAI_API_KEY), not coding brain.\n" +
-    "- Update workbench/HANDOFF.md when done.\n";
-
-  state.status = "running";
-  state.executor = executor;
-  state.goal = fullGoal;
-  state.startedAt = new Date().toISOString();
-  state.endedAt = null;
-  state.exitCode = null;
-  state.logs = [];
-  state.pid = null;
-  broadcastStatus();
-
-  // Goal em arquivo por ad-hoc run — evita race com pipelines concorrentes
-  const goalDir = path.join(__dirname, "runs", `adhoc-${Date.now()}`);
-  fs.mkdirSync(goalDir, { recursive: true });
-  const goalFile = path.join(goalDir, "goal.txt");
-  try {
-    writePrivateFile(goalFile, fullGoal);
-  } catch (e) {
-    state.status = "error";
-    state.exitCode = 1;
-    state.endedAt = new Date().toISOString();
-    log(`✗ não escreveu goal file: ${e}`);
-    broadcastStatus();
-    return { ok: false, error: String(e) };
-  }
-
-  // Matriz de executores unificada em adapters.mjs (mesma da engine autopilot)
-  let spec;
-  try {
-    spec = buildSpawn(executor, fullGoal, { root: runRoot, maxTurns });
-  } catch (err) {
-    state.status = "error";
-    state.exitCode = 1;
-    state.endedAt = new Date().toISOString();
-    log(`✗ executor inválido: ${err instanceof Error ? err.message : err}`);
-    broadcastStatus();
-    return { ok: false, error: String(err) };
-  }
-  const { cmd, args } = spec;
-
-  const runsDir = path.join(__dirname, "runs");
-  fs.mkdirSync(runsDir, { recursive: true });
-  const runId = new Date().toISOString().replace(/[:.]/g, "-");
-  const rawLogPath = path.join(runsDir, `${runId}-${executor}.raw.log`);
-  const rawFd = openPrivateFile(rawLogPath);
-
-  log(`▶ Run start · executor=${executor} · player=${player?.id || "—"}`);
-  log(`  raw log → maestro/runs/${path.basename(rawLogPath)}`);
-  log(`$ ${cmd} … [goal]`);
-
-  const quietUi = false; // grok agora roda via -p (headless real, output limpo) — ver adapters.mjs
-
-  try {
-    child = spawnRun(cmd, args, {
-      cwd: runRoot,
-      env: spec.env,
-      shell: false,
-      windowsHide: true,
-    });
-  } catch (err) {
-    try {
-      fs.closeSync(rawFd);
-    } catch {
-      /* ignore */
-    }
-    state.status = "error";
-    state.exitCode = 1;
-    state.endedAt = new Date().toISOString();
-    log(`✗ spawn failed: ${err instanceof Error ? err.message : err}`);
-    broadcastStatus();
-    return { ok: false, error: String(err) };
-  }
-
-  state.pid = child.pid ?? null;
-  broadcastStatus();
-
-  if (quietUi) {
-    log("⏳ Grok trabalhando… (log limpo: só marcos + arquivos alterados)");
-    log("   Dica: raw TUI completo está no .raw.log se precisar debugar");
-  }
-
-  const outSan = createStreamSanitizer("");
-  const errSan = createStreamSanitizer("");
-  let jsonBuf = "";
-
-  const redact = makeRedactor();
-  const onChunk = (buf, isErr) => {
-    buf = redact(buf); // nunca gravar segredos em raw log
-    try {
-      fs.writeSync(rawFd, buf);
-    } catch {
-      /* ignore */
-    }
-    if (quietUi) {
-      // Parse JSON lines if any clean line appears
-      jsonBuf += String(buf);
-      // keep jsonBuf bounded
-      if (jsonBuf.length > 500000) jsonBuf = jsonBuf.slice(-100000);
-      // try extract useful JSON events from mixed stream
-      const lines = jsonBuf.split("\n");
-      jsonBuf = lines.pop() || "";
-      for (const line of lines) {
-        const t = line.trim();
-        if (!t.startsWith("{")) continue;
-        try {
-          const ev = JSON.parse(t);
-          const kind = ev.type || ev.event || ev.kind || "";
-          const tool = ev.tool || ev.name || ev.toolName || "";
-          const text =
-            ev.message?.content ||
-            ev.content ||
-            ev.text ||
-            ev.result ||
-            ev.summary ||
-            "";
-          if (kind && /tool|result|error|assistant|message|done|complete/i.test(String(kind))) {
-            const snippet = String(text || tool || kind).replace(/\s+/g, " ").slice(0, 160);
-            log(`· ${kind}${tool ? " " + tool : ""}${snippet ? ": " + snippet : ""}`);
-          } else if (ev.error) {
-            log(`✗ ${String(ev.error).slice(0, 200)}`);
-          }
-        } catch {
-          /* not pure json */
-        }
-      }
-      return;
-    }
-    if (isErr) errSan.push(buf);
-    else outSan.push(buf);
-  };
-
-  child.stdout?.on("data", (buf) => onChunk(buf, false));
-  child.stderr?.on("data", (buf) => onChunk(buf, true));
-  child.on("error", (err) => {
-    log(`✗ process error: ${err.message}`);
-  });
-  child.on("close", (code) => {
-    try {
-      fs.closeSync(rawFd);
-    } catch {
-      /* ignore */
-    }
-    if (!quietUi) {
-      outSan.flush();
-      errSan.flush();
-    }
-    finishRun(code, runRoot);
-  });
-
-  // Heartbeat clean status
-  const heartbeat = setInterval(() => {
-    if (state.status !== "running") {
-      clearInterval(heartbeat);
-      return;
-    }
-    const sec = Math.round((Date.now() - new Date(state.startedAt).getTime()) / 1000);
-    log(`… ainda rodando (${sec}s) · pid=${state.pid}`);
-  }, 8000);
-
-  // Watch interesting files for clean progress
-  const watched = new Map(); // path -> mtime
-  const watchPaths = [
-    path.join(__dirname, "e2e-result.md"),
-    path.join(runRoot, "workbench", "HANDOFF.md"),
-    path.join(runRoot, "workbench", "QUEUE.md"),
-  ];
-  const fileWatch = setInterval(() => {
-    if (state.status !== "running") {
-      clearInterval(fileWatch);
-      clearInterval(heartbeat);
-      return;
-    }
-    for (const p of watchPaths) {
-      try {
-        if (!fs.existsSync(p)) continue;
-        const st = fs.statSync(p);
-        const prev = watched.get(p);
-        if (prev && st.mtimeMs !== prev) {
-          log(`📝 atualizado: ${path.relative(runRoot, p)}`);
-        }
-        watched.set(p, st.mtimeMs);
-      } catch {
-        /* ignore */
-      }
-    }
-    // e2e pass auto-stop
-    const e2ePath = path.join(__dirname, "e2e-result.md");
-    try {
-      if (fs.existsSync(e2ePath)) {
-        const txt = fs.readFileSync(e2ePath, "utf8");
-        if (/status:\s*\*\*PASS\*\*|status:\s*PASS/i.test(txt)) {
-          log("✓ e2e-result.md PASS — encerrando (anti-hang)");
-          clearInterval(fileWatch);
-          clearInterval(heartbeat);
-          stopRun();
-          setTimeout(() => {
-            if (state.status === "running") finishRun(0, runRoot);
-            else if (state.exitCode !== 0) {
-              state.status = "done";
-              state.exitCode = 0;
-              broadcastStatus();
-            }
-          }, 1200);
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-  }, 2000);
-
-  // hard cap 12 min
-  setTimeout(() => {
-    if (state.status === "running") {
-      log("■ timeout 12min — stop");
-      clearInterval(fileWatch);
-      clearInterval(heartbeat);
-      stopRun();
-    }
-  }, 12 * 60 * 1000);
-
-  return {
-    ok: true,
-    executor,
-    playerId: player?.id || null,
-    pid: state.pid,
-    rawLog: path.relative(runRoot, rawLogPath),
-  };
-}
-
-function finishRun(code, runRoot = ROOT) {
-  if (state.status !== "running" && state.status !== "error") {
-    // already finalized
-  }
-  state.exitCode = code;
-  state.endedAt = new Date().toISOString();
-  state.status = code === 0 ? "done" : "error";
-  state.pid = null;
-  child = null;
-  if (code === 0) cleanupExternalizedPrompts(runRoot);
-  log(code === 0 ? "✓ Run finished OK" : `✗ Run finished exit=${code}`);
-  broadcastStatus();
-  try {
-    const snap = {
-      ...state,
-      logs: state.logs.slice(-200),
-    };
-    fs.writeFileSync(
-      path.join(__dirname, "last-run.json"),
-      JSON.stringify(snap, null, 2),
-      "utf8"
-    );
-  } catch {
-    /* ignore */
-  }
-}
-
-function stopRun() {
-  if (!child) return { ok: false, error: "Nenhuma run ativa" };
-  log("■ Stop requested");
-  try {
-    if (process.platform === "win32" && child.pid) {
-      spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { shell: true });
-    } else {
-      child.kill("SIGTERM");
-    }
-  } catch (err) {
-    return { ok: false, error: String(err) };
-  }
-  return { ok: true };
-}
-
 function contentType(file) {
   if (file.endsWith(".html")) return "text/html; charset=utf-8";
   if (file.endsWith(".json")) return "application/json; charset=utf-8";
-  if (file.endsWith(".js")) return "text/javascript; charset=utf-8";
+  if (file.endsWith(".js") || file.endsWith(".mjs")) return "text/javascript; charset=utf-8";
   if (file.endsWith(".css")) return "text/css; charset=utf-8";
   if (file.endsWith(".md")) return "text/markdown; charset=utf-8";
   if (file.endsWith(".png")) return "image/png";
@@ -648,6 +268,8 @@ export function createMaestroServer({
   engineManager,
   operationStore,
   memoryService,
+  discoveryWorkspace,
+  alwaysOnDeployManager,
   spawnImpl = spawn,
 } = {}) {
   const runEvents = createRunEventStore({ root, redact: redactLog });
@@ -668,13 +290,138 @@ export function createMaestroServer({
       memory,
     });
   const operations = operationStore || createOperationStore({ root });
+  const discovery = discoveryWorkspace || createDiscoveryWorkspace({ root, engineManager: engine });
   const factoryAdmin = createFactoryAdmin({ root, spawnImpl });
-  const lifecycleManager = createLifecycleManager({ root, engineManager: engine });
+  const lifecycleManager = createLifecycleManager({ root, engineManager: engine, discoveryWorkspace: discovery });
+  const alwaysOn = alwaysOnDeployManager || createAlwaysOnDeployManager({ root });
+  const chatRuns = new Map();
+  const legacyRunFiles = new Map();
+  const rosterPath = path.join(root, "maestro", "roster.json");
+  const rosterPlayers = () => JSON.parse(fs.readFileSync(rosterPath, "utf8")).players || [];
+  const resolvePlayerId = ({ playerId, executor } = {}) => {
+    const players = rosterPlayers();
+    if (playerId) return playerId;
+    if (executor) {
+      const wanted = String(executor).toLowerCase();
+      return players.find(player => [player.id, player.adapter, player.cli].filter(Boolean).map(String).map(value => value.toLowerCase()).includes(wanted))?.id
+        || `unknown-executor:${wanted}`;
+    }
+    return players.find(player => [player.id, player.adapter, player.cli].some(value => String(value || "").toLowerCase() === "grok"))?.id
+      || players[0]?.id
+      || null;
+  };
+  const emitChatEvent = (payload) => {
+    const event = runEvents.append({ runId: payload.runId, eventType: payload.type, line: JSON.stringify(payload) });
+    const data = `id: ${event.sequence}\ndata: ${JSON.stringify({ ...payload, sequence: event.sequence })}\n\n`;
+    for (const client of sseClients) {
+      const filter = client.maestroEventFilter || {};
+      if (filter.runId && filter.runId !== payload.runId) continue;
+      try { client.write(data); } catch { sseClients.delete(client); }
+    }
+  };
+  let playbookService;
+  const runner = createExecutorRunService({
+    root,
+    rosterPath,
+    spawnImpl,
+    emit(type, payload) {
+      if (type === "run.started") {
+        state.status = "running";
+        state.executor = payload.executor;
+        state.startedAt = payload.startedAt;
+        state.endedAt = null;
+        state.exitCode = null;
+        state.pid = payload.pid;
+        state.logs = [];
+        broadcastStatus();
+        return;
+      }
+      const metadata = chatRuns.get(payload.runId);
+      if (type === "run.chunk") {
+        if (payload.scope?.kind === "playbook" && payload.scope.localRunId && playbookService) {
+          playbookService.appendRawLog({ localRunId: payload.scope.localRunId, text: payload.text });
+        }
+        if (payload.scope === "legacy") {
+          const legacy = legacyRunFiles.get(payload.runId);
+          if (legacy) appendPrivateFile(legacy.rawLogPath, payload.text);
+        }
+        state.logs.push(`[${new Date().toISOString().slice(11, 19)}] ${payload.text}`);
+        if (state.logs.length > 2000) state.logs.splice(0, state.logs.length - 2000);
+        if (metadata) emitChatEvent({ type: "chat.chunk", runId: payload.runId, roomId: metadata.roomId, playerId: payload.playerId, stream: payload.stream, text: payload.text });
+        return;
+      }
+      if (type === "run.finished") {
+        state.status = payload.status === "done" ? "done" : "error";
+        state.endedAt = payload.endedAt;
+        state.exitCode = payload.exitCode;
+        state.pid = null;
+        broadcastStatus();
+        finishLegacyRun(payload.runId, payload.exitCode);
+        if (!metadata) return;
+        const player = rosterPlayers().find(candidate => candidate.id === metadata.playerId) || {};
+        const text = payload.status === "done"
+          ? (payload.response || "Resposta concluída sem conteúdo.")
+          : `Falha auditável (${payload.status}): ${payload.error || "erro desconhecido"}${payload.response ? `\nParcial: ${payload.response}` : ""}`;
+        discovery.appendMessage({ roomId: metadata.roomId, author: "assistant", text, executor: { playerId: metadata.playerId, provider: player.adapter || player.cli || null, model: player.model || null }, refs: [payload.runId] });
+        emitChatEvent({ type: "chat.finished", runId: payload.runId, roomId: metadata.roomId, playerId: metadata.playerId, status: payload.status });
+        chatRuns.delete(payload.runId);
+      }
+    },
+  });
+  playbookService = createPlaybookService({ root, runner, workspace: discovery });
+  const chatController = {
+    send(input) {
+      const room = discovery.getRoom(input.roomId);
+      discovery.appendMessage({ roomId: room.id, author: "human", text: input.text, executor: null, refs: [] });
+      const snapshot = discovery.snapshot();
+      const candidates = snapshot.theses.filter(thesis => thesis.roomId === room.id);
+      const thesis = [...candidates].reverse().find(item => ["confirmed", "validating"].includes(item.stage)) || candidates.at(-1) || null;
+      const prompt = buildCanonicalBrief({
+        room: discovery.getRoom(room.id),
+        thesis,
+        evidence: thesis ? snapshot.evidence.filter(item => item.thesisId === thesis.id) : [],
+        experiments: thesis ? snapshot.experiments.filter(item => item.thesisId === thesis.id) : [],
+        maxBytes: 32_000,
+      });
+      const playerId = resolvePlayerId(input);
+      const result = runner.start({ scope: { kind: "chat", roomId: room.id }, playerId, prompt, maxTurns: input.maxTurns, resumeToken: input.resumeToken });
+      if (!result.ok) {
+        discovery.appendMessage({ roomId: room.id, author: "system", text: `Falha auditável ao iniciar chat: ${result.error}`, executor: { playerId }, refs: [] });
+        return { ...result, roomId: room.id, playerId };
+      }
+      chatRuns.set(result.runId, { roomId: room.id, playerId });
+      return { ...result, roomId: room.id };
+    },
+    stop(input) { return runner.stop(input); },
+  };
+  const runFactory = (goal, options = {}) => {
+    state.goal = String(goal || "");
+    const playerId = resolvePlayerId(options);
+    const runRoot = root;
+    const runDir = path.join(root, "maestro", "runs", `adhoc-${Date.now()}-${crypto.randomUUID()}`);
+    fs.mkdirSync(runDir, { recursive: true, mode: 0o700 });
+    const goalFile = path.join(runDir, "goal.txt");
+    const rawLogPath = path.join(runDir, "raw.log");
+    writePrivateFile(goalFile, String(goal || ""));
+    const rawFd = openPrivateFile(rawLogPath);
+    fs.closeSync(rawFd);
+    const result = runner.start({ scope: "legacy", playerId, prompt: goal, maxTurns: options.maxTurns, resumeToken: options.resumeToken });
+    if (result.ok) legacyRunFiles.set(result.runId, { runRoot, goalFile, rawLogPath });
+    return result.ok ? { ...result, rawLog: path.relative(runRoot, rawLogPath) } : result;
+  };
+  function finishLegacyRun(runId, code) {
+    const legacy = legacyRunFiles.get(runId);
+    if (!legacy) return;
+    const { runRoot } = legacy;
+    if (code === 0) cleanupExternalizedPrompts(runRoot);
+    legacyRunFiles.delete(runId);
+  }
   const forgeOperator = createForgeOperator({
     root,
     factoryAdmin,
     engineManager: engine,
-    runFactory: (goal, options, runtime) => startRun(goal, options, { ...runtime, spawnImpl }),
+    discoveryWorkspace: discovery,
+    runFactory,
   });
   const audit = createAuditLog({ root });
   const confirmations = createConfirmationManager();
@@ -684,8 +431,11 @@ export function createMaestroServer({
       engineManager: engine,
       operations: operations.list(),
       providerHealth: factoryAdmin.listProviders(),
-      server: { host, port },
+      server: { host, port, pid: process.pid, startedAt: SERVER_STARTED_AT, sourceFingerprint: SOURCE_FINGERPRINT },
       memory,
+      discoveryWorkspace: discovery,
+      runner: runner.snapshot(),
+      alwaysOnDeployments: alwaysOn.list(),
     });
   const control = createControlDispatcher({
     getSnapshot: controlSnapshot,
@@ -693,12 +443,30 @@ export function createMaestroServer({
     audit,
     confirmations,
     handlers: {
-      ...createEngineActionHandlers({ root, engineManager: engine, factoryAdmin, lifecycleManager, forgeOperator }),
+      ...createEngineActionHandlers({ root, engineManager: engine, factoryAdmin, lifecycleManager, alwaysOnDeployManager: alwaysOn, forgeOperator, discoveryWorkspace: discovery, chatController, playbookService }),
       ...createMemoryActionHandlers(memory),
     },
     emitEvent: (type, payload) => {
-      const data = `data: ${JSON.stringify({ type, ...payload })}\n\n`;
+      const result = payload?.result || {};
+      const projected = {
+        type,
+        operationId: payload?.id || null,
+        actionId: payload?.actionId || null,
+        status: payload?.status || null,
+        appId: payload?.appId || null,
+        roomId: result.roomId || (payload?.actionId?.startsWith("room.") ? result.id : null),
+        thesisId: result.thesisId || (payload?.actionId?.startsWith("thesis.") ? result.id : null),
+      };
+      const event = runEvents.append({
+        runId: "control",
+        eventType: "operation",
+        line: JSON.stringify(projected),
+      });
+      const data = `id: ${event.sequence}\ndata: ${JSON.stringify({ ...projected, sequence: event.sequence })}\n\n`;
       for (const client of sseClients) {
+        const filter = client.maestroEventFilter || {};
+        if (filter.runId && filter.runId !== "control") continue;
+        if (filter.appId && filter.appId !== projected.appId) continue;
         try {
           client.write(data);
         } catch {
@@ -726,8 +494,9 @@ export function createMaestroServer({
     return;
   }
 
-  // toda mutação exige o token por instalação (maestro/.token)
-  if (method === "POST" && url.pathname.startsWith("/api/") && !checkToken(req)) {
+  // toda mutação e leitura privada de discovery exigem o token por instalação.
+  const privateDiscoveryRead = method === "GET" && url.pathname.startsWith("/api/discovery/");
+  if (((method === "POST" && url.pathname.startsWith("/api/")) || privateDiscoveryRead) && !checkToken(req)) {
     sendJson(res, 401, { ok: false, error: "X-Maestro-Token ausente/inválido — leia maestro/.token" });
     return;
   }
@@ -759,6 +528,31 @@ export function createMaestroServer({
       sendJson(res, 200, controlSnapshot());
     } catch (error) {
       sendJson(res, 500, { ok: false, error: `control_snapshot_failed: ${error instanceof Error ? error.message : String(error)}` });
+    }
+    return;
+  }
+
+  const discoveryRead = url.pathname.match(/^\/api\/discovery\/(rooms|theses)\/([A-Za-z0-9_-]+)$/);
+  if (discoveryRead && method === "GET") {
+    try {
+      let value;
+      if (discoveryRead[1] === "rooms") {
+        value = discovery.getRoom(discoveryRead[2]);
+      } else {
+        const thesis = discovery.getThesis(discoveryRead[2]);
+        const discoveryState = discovery.snapshot?.() || {};
+        value = {
+          ...thesis,
+          gates: discovery.gatesFor?.(thesis.id) || {},
+          build: discoveryState.builds?.find(item => item.id === thesis.buildId) || null,
+          experiment: [...(discoveryState.experiments || [])].reverse().find(item => item.thesisId === thesis.id) || null,
+          acquisition: discoveryState.acquisitions?.find(item => item.id === thesis.acquisitionId) || null,
+        };
+      }
+      const redactDiscovery = makeRedactor();
+      sendJson(res, 200, JSON.parse(redactDiscovery(JSON.stringify(value))));
+    } catch (error) {
+      sendJson(res, 404, { ok: false, error: redactLog(error instanceof Error ? error.message : String(error)) });
     }
     return;
   }
@@ -903,7 +697,16 @@ export function createMaestroServer({
     let initial = `data: ${JSON.stringify({ type: "hello", status: state.status })}\n\n`;
     if (replay.length) {
       for (const event of replay) {
-        initial += `id: ${event.sequence}\ndata: ${JSON.stringify(event)}\n\n`;
+        if (event.runId === "control" && event.eventType === "operation") {
+          try {
+            const projected = JSON.parse(event.line);
+            initial += `id: ${event.sequence}\ndata: ${JSON.stringify({ ...projected, sequence: event.sequence })}\n\n`;
+          } catch {
+            // Evento control inválido não é exposto.
+          }
+        } else {
+          initial += `id: ${event.sequence}\ndata: ${JSON.stringify(event)}\n\n`;
+        }
       }
     } else if (!after && !appId && !runId) {
       for (const line of state.logs.slice(-80)) {
@@ -919,11 +722,12 @@ export function createMaestroServer({
   if (url.pathname === "/api/run" && method === "POST") {
     try {
       const body = await readBody(req);
-      const result = startRun(body.goal || body.prompt || "", {
+      const result = runFactory(body.goal || body.prompt || "", {
         executor: body.executor,
         playerId: body.playerId,
         maxTurns: body.maxTurns,
-      }, { root, spawnImpl });
+        resumeToken: body.resumeToken,
+      });
       sendJson(res, result.ok ? 200 : 409, result);
     } catch (e) {
       const status = Number.isInteger(e?.status) ? e.status : 400;
@@ -933,7 +737,8 @@ export function createMaestroServer({
   }
 
   if (url.pathname === "/api/stop" && method === "POST") {
-    sendJson(res, 200, stopRun());
+    const activeRunId = runner.snapshot().activeRunId;
+    sendJson(res, 200, activeRunId ? runner.stop({ runId: activeRunId }) : { ok: false, error: "Nenhuma run ativa" });
     return;
   }
 
@@ -951,7 +756,7 @@ export function createMaestroServer({
       const body = await readBody(req);
       const action = url.pathname.split("/").pop();
       if (action === "start") {
-        sendJson(res, 200, { ok: true, pipeline: engine.start({ ...body, controlMode: body.controlMode || "full_auto" }) });
+        sendJson(res, 409, { ok: false, error: "Novos produtos exigem discovery.build.start." });
       } else if (action === "feedback") {
         sendJson(res, 200, { ok: true, pipeline: engine.startFeedback({ ...body, controlMode: body.controlMode || "full_auto" }) });
       } else if (action === "decide") {

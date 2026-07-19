@@ -4,8 +4,22 @@ Uma linha = uma **iteração** de loop. Limpar ao terminar.
 
 | slot | agent | loop | job | app / area | since | notes |
 |------|-------|------|-----|------------|-------|-------|
-| F | glm-front | L1 | L1/B3 | revisor-cetico-de | 10:36 | forge autopilot |
+| F | claude-opus | L1 | L1/B4 | revisor-cetico-de | 13:13 | forge autopilot |
+| F | cxb-grok1 | L1 | SIMULATE | pmoc-acceptance-gate | 13:12 | forge autopilot |
+| F | claude-opus | L1 | L1/B4 | revisor-cetico-de | 11:28 | forge autopilot |
 | A | Codex | META/P3 | deploy feedback routing | maestro | 2026-07-16 07:25 | domínio completo + provider → target/baseUrl/subdomain |
+
+_(META/L1 TUI prompt-first + handoff ETAPA 1 liberado 2026-07-19 — Codex · digitar+Enter + room automática + setas sem Tab + launcher anti-runtime obsoleto · STORM/ai-brainstorm/Khoj/DeepDiagram analisados por 3 agentes · handoff `docs/HANDOFF-ETAPA-1-DISCOVERY-STUDIO.md` · TUI 19/19 + build + servidor 10/10 · sem código externo/commit/push/deploy)_
+
+_(META/L1 5 fixes Startup User Simulator liberado 2026-07-19 — Codex · onboarding `forgenexus` único + quick start 90s + formulários guiados/JSON avançado + faixa gate/health + Always-On prepare→confirm→publish evidence→verify · typecheck/build:all PASS · TUI 16/16 · suíte 328 pass/2 baseline fail/1 skip · browser tutorial PASS · sem deploy real/commit/push)_
+
+_(META/DX alias global `forgenexus` liberado 2026-07-19 — Codex · shim PowerShell/CMD em PATH + auto-start/health do Maestro + TUI · `--check` validado de cwd externo · sem commit/push/deploy)_
+
+_(META/SIMULATE startup-user-simulator liberado 2026-07-19 — Codex · skill instalada idêntica ao upstream `834a2a3` · relatório Forge Nexus quick com 5 personas em `outputs/startup-user-simulation-forge-nexus.html` · gerador/desktop/mobile PASS · sem alterar produto/deploy)_
+
+_(META/DOCS tutorial visual discovery-first liberado 2026-07-18 — Codex · HTML + Markdown + 4 pranchas · fix bootstrap `npm run tui` + paleta thesis/chat/acquisition · TUI 13/13 · build PASS · sem agente/quota/outreach/gasto/build/deploy/publicação)_
+
+_(META/L1 discovery-first Tasks 1–9 liberado 2026-07-18 — Claude Code / GPT-5.6 Sol · TUI + workspace/chat/playbooks/gates + bridge build + Braga/acquisition/P5 + E2E · typecheck/build:all PASS · suíte 325 pass / 2 baseline fail / 1 skip · sem commit/push/deploy · claims D/T7 liberadas)_
 
 _(L1/B2 revisor-cetico-de liberado 2026-07-16 — Claude Opus / claude-opus · `content/personas/revisor-pack-v3.json`: **3 lentes ORIGINAIS densas pt-BR** = as 3 do system design aprovado (`engenheiro-cetico` · `cliente-escaldado` · `orcamentista-experiente`), fechando a pendência do B1 (v1 tinha scope/commercial/evidence-reviewer) · cores da paleta **Prancheta Clara** · **wire:** `app.config.ts`→v3 + `fixture.ts` 3 strings `lente:` remapeadas (1 lente por achado) + `test/domain.test.mjs` repontado (lia v1 hardcoded — o app não carrega v1) · **colapso 5→3 sem perder guardrail:** escalonamento a profissional habilitado (ART), evidência fonte·região·data·confiança, doc de terceiro = dado, LLM propõe/humano dispõe nas **3/3**; **9/9 critérios com dono, 0 órfãos** · pack **pt-BR only** (system design fixa i18n pt-BR; nenhum consumidor lê `en`) · **VERIFY:** `npm run build -w @forge/revisor-cetico-de` **EXIT 0** · test **6/6** · JSON válido 3/3 sem campo vazio · linguagem proibida só sob `PROIBIDO:` · **não verificado:** build não valida lente (`Achado.lente` é `string` — só o test pega), lentes não exercitadas contra LLM (B4), UI não clicada · **gotcha:** Grep tool pula `apps/` (git nested) → usar `grep -rn` via Bash · `revisor-pack-v2.json` ficou órfão (conteúdo morto, não removi — não é minha sujeira) · v1/v2 mantidos · sem git · claim liberado)_
 

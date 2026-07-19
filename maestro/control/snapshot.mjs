@@ -96,9 +96,14 @@ function pipelineCacheKey(pipelineMap) {
     .join("|");
 }
 
-export function buildControlSnapshot({ root, engineManager, operations = [], now = new Date(), server = {}, providerHealth = null, memory = null }) {
+export function buildControlSnapshot({ root, engineManager, operations = [], now = new Date(), server = {}, providerHealth = null, memory = null, discoveryWorkspace = null, runner = null, alwaysOnDeployments = [] }) {
   const pipelineMap = engineManager?.snapshot?.() || {};
-  const key = pipelineCacheKey(pipelineMap);
+  const discoveryState = discoveryWorkspace?.snapshot?.() || null;
+  const runnerKey = runner
+    ? `${runner.activeRunId || "none"}:${(runner.runs || []).map(run => `${run.id}:${run.status}:${run.endedAt || ""}`).join(",")}`
+    : "none";
+  const deploymentKey = alwaysOnDeployments.map(entry => `${entry.appId}:${entry.status}:${entry.updatedAt || ""}`).sort().join(",");
+  const key = `${pipelineCacheKey(pipelineMap)}|discovery:${discoveryState?.revision ?? "none"}|runner:${runnerKey}|always-on:${deploymentKey}`;
   const nowMs = now instanceof Date ? now.getTime() : Date.now();
   if (
     _snapshotCache &&
@@ -115,6 +120,7 @@ export function buildControlSnapshot({ root, engineManager, operations = [], now
   const profiles = listProfiles(root);
   const roster = normalizeRoster(root);
   const providers = providerHealth || roster.providers;
+  const executors = roster.providers;
   const teams = roster.teams;
   const blueprints = listBlueprints(root);
   const decisions = pendingDecisions(pipelines);
@@ -137,8 +143,21 @@ export function buildControlSnapshot({ root, engineManager, operations = [], now
     blueprints,
     providers,
     lifecycle,
+    deployments: alwaysOnDeployments,
     memoryActions: createMemoryActions(memoryStatus),
+    discovery: discoveryState,
   });
+  const discovery = discoveryState ? {
+    revision: discoveryState.revision,
+    rooms: discoveryState.rooms.map((room) => ({ id: room.id, title: room.title, messageCount: room.messages.length, updatedAt: room.updatedAt })),
+    theses: discoveryState.theses.map((thesis) => ({ id: thesis.id, roomId: thesis.roomId, stage: thesis.stage, evidenceCount: thesis.evidenceIds.length, experimentCount: thesis.experimentIds.length })),
+    counts: {
+      rooms: discoveryState.rooms.length,
+      theses: discoveryState.theses.length,
+      evidence: discoveryState.evidence.length,
+      experiments: discoveryState.experiments.length,
+    },
+  } : { revision: null, rooms: [], theses: [], counts: { rooms: 0, theses: 0, evidence: 0, experiments: 0 } };
   const core = {
     server: {
       status: "online",
@@ -156,6 +175,12 @@ export function buildControlSnapshot({ root, engineManager, operations = [], now
     pipelines,
     decisions,
     lifecycle,
+    alwaysOnDeployments,
+    discovery,
+    runner: runner ? {
+      activeRunId: runner.activeRunId,
+      runs: (runner.runs || []).map(({ response, error, ...run }) => run),
+    } : { activeRunId: null, runs: [] },
     memory: memoryStatus,
     stats,
     operations: operations.slice(),

@@ -69,7 +69,8 @@ test("createMaestroServer expõe HTTP real sem iniciar a porta 8799 ao importar"
   assert.equal(controlSnapshot.status, 200);
   const control = await controlSnapshot.json();
   assert.match(control.version, /^[a-f0-9]{16}$/);
-  assert.ok(control.actions.some((action) => action.id === "pipeline.start"));
+  assert.equal(control.actions.some((action) => action.id === "pipeline.start"), false);
+  assert.ok(control.actions.some((action) => action.id === "discovery.build.start"));
 
   const denied = await fetch(`${baseUrl}/api/pipeline/start`, {
     method: "POST",
@@ -92,9 +93,9 @@ test("createMaestroServer expõe HTTP real sem iniciar a porta 8799 ao importar"
     },
     body: JSON.stringify({ idea: "probe" }),
   });
-  assert.equal(accepted.status, 200);
-  assert.equal((await accepted.json()).pipeline.appId, "control-probe");
-  assert.deepEqual(engine.calls, [{ idea: "probe", controlMode: "full_auto" }]);
+  assert.equal(accepted.status, 409);
+  assert.match((await accepted.json()).error, /discovery\.build\.start/);
+  assert.deepEqual(engine.calls, []);
 
   const freshSnapshot = await (await fetch(`${baseUrl}/api/control/snapshot`)).json();
   const execute = await fetch(`${baseUrl}/api/control/actions/execute`, {
@@ -104,9 +105,9 @@ test("createMaestroServer expõe HTTP real sem iniciar a porta 8799 ao importar"
       "x-maestro-token": token,
     },
     body: JSON.stringify({
-      actionId: "pipeline.start",
+      actionId: "room.create",
       appId: null,
-      input: { idea: "pela central", team: "dry-run" },
+      input: { title: "Room pela central" },
       stateVersion: freshSnapshot.version,
       idempotencyKey: "http-idem-123456",
       confirmation: null,

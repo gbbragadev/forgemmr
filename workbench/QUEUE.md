@@ -8,6 +8,7 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Backlog
 
+- [ ] **META/L1** ETAPA 1 Discovery Studio — executar T0+T1 de `docs/HANDOFF-ETAPA-1-DISCOVERY-STUDIO.md` (schema v2 + IdeaBranch nativo, test-first; sem código AGPL/paygo)
 - [ ] **L0/P4** Measure revisor-cetico-de (5–7d) — **humano** · https://revisor-cetico-de.gbbragadev.com
 - [ ] **L0/P4** Measure / piloto pmoc-acceptance-gate — conversas + 1 PDF real (kill 30–45d) · hooks em `apps/pmoc-acceptance-gate/docs/content-hooks.md`
 - [ ] **L0/P4** Measure revisor-cetico-de (5–7d) — **humano** · https://revisor-cetico-de.gbbragadev.com
@@ -21,10 +22,29 @@ Uma iteração = um job. Claim em `CLAIMS.md`.
 
 ## Doing
 
-- [ ] **L1/B3** revisor-cetico-de — forge autopilot
-- [ ] **META/P3** Corrigir feedback de deploy — interpretar domínio completo/provider e aplicar target + baseUrl + subdomain — Codex
+- [ ] **SINCERO/J7** polish visual opcional (GLM brief) se G-visual pedir
+- [ ] **L1/B4** revisor-cetico-de — forge autopilot
+- [ ] **SIMULATE** pmoc-acceptance-gate — forge autopilot
+- [ ] **META/P3** Corrigir feedback de deploy — Codex
+
+## Sincero rebuild (standalone · topologia A)
+
+- [x] **SINCERO/J0** UI-CONTRACT + DESIGN + workbench — Grok (2026-07-17)
+- [x] **SINCERO/J1–J6** UI greenfield + age + paywall afiliado + chat wire + share — Grok central (2026-07-17)
+- [x] **SINCERO/J8** build/typecheck PASS (2026-07-17 Grok · exit 0)
+- [x] **SINCERO/J9** AGENTS + PRODUCT + .env.example affiliate
+- [ ] **SINCERO/deploy** gate humano
+
 ## Done
 
+- [x] **META/L1** TUI prompt-first + launcher anti-runtime obsoleto + handoff ETAPA 1 — texto+Enter, room automática, setas sem Tab, 3 agentes analisaram STORM/ai-brainstorm/Khoj/DeepDiagram; TUI 19/19 + build + servidor 10/10 (2026-07-19, Codex)
+- [x] **META/L1** 5 fixes do Startup User Simulator — `forgenexus` único, primeira ideia em 90s, formulários guiados + JSON avançado, faixa gate/health e DEPLOY Always-On em 4 estados auditáveis (2026-07-19, Codex)
+- [x] **META/SIMULATE** Startup User Simulator no Forge Nexus — 5 personas, HTML visual, desktop/mobile PASS; leak principal = onboarding contradiz `forgenexus` com dois terminais (2026-07-19, Codex)
+- [x] **META/DX** Alias global `forgenexus` — PowerShell/CMD, qualquer cwd, auto-start seguro do Maestro + TUI · checks PASS (2026-07-19, Codex)
+- [x] **META/DOCS** Tutorial visual discovery-first — HTML + Markdown + 4 pranchas, bootstrap TUI corrigido, paleta completa · TUI 13/13 + build PASS (2026-07-18, Codex)
+- [x] **META/L1** Discovery-first Tasks 1–9 — TUI primária + discovery workspace/chat/playbooks/gates + bridge build + Braga/acquisition/P5 + E2E · typecheck/build:all PASS · 325 pass / 2 baseline fail / 1 skip (2026-07-18, Claude Code GPT-5.6 Sol)
+
+- [x] **L1/B3** revisor-cetico-de — forge/glm-front (2026-07-16)
 - [x] **L1/B2** revisor-cetico-de — forge/claude-opus (2026-07-16)
 - [x] **L1/B2** revisor-cetico-de — forge/claude-opus (2026-07-16)
 - [x] **L1/B2** revisor-cetico-de — forge/claude-opus (2026-07-16) · `content/personas/revisor-pack-v3.json` 3 lentes densas pt-BR (engenheiro-cetico/cliente-escaldado/orcamentista-experiente) = as 3 do system design aprovado · wire `app.config.ts` + fixture + test · 9/9 critérios com dono, 0 órfãos · guardrails do v2 (evidência/escalonamento) dobrados nas 3 · build EXIT 0 · test 6/6 · próximo: **L1/B3** UI Prancheta Clara

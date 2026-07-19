@@ -1,23 +1,57 @@
-# Forge — fábrica autônoma de apps: **ideia → app no ar**
+# Forge — fábrica discovery-first: **tese → evidência → experimento → produto**
 
-Forge é um **orquestrador de coding agents** que leva uma ideia da cabeça até um app publicado,
-com o humano decidindo só nos pontos que importam. Não é um framework de app nem um wrapper de
-LLM: é a **fábrica** — a linha de montagem, os operários (CLIs de IA), os gates de qualidade e o
-git de cada produto.
+Forge é um **orquestrador profile-driven de discovery e coding agents**. Novos produtos começam
+em uma room, viram tese somente após confirmação humana e precisam de evidência externa verificada
+antes do build mínimo. Não é um framework de app nem um wrapper de LLM: é a **fábrica** — discovery,
+experimentos, linha de montagem, executores por assinatura, gates de qualidade e git de cada produto.
 
 > **Genérico por design.** O vertical (nicho, marca, domínio, idioma, regras) vive num **profile**
 > trocável. O mesmo motor produz um quiz de anime, um advergame ou um SaaS B2B — o que muda é o
 > profile, não o código do maestro. (Este repo nasceu como `anime-forge` e foi generalizado.)
 
-## Abrir sem terminal
+## Superfície principal: TUI discovery
 
-Dê duplo clique em **`forge-control-center.cmd`** na raiz. O supervisor reutiliza o Maestro se ele
-já estiver saudável; caso contrário, inicia uma instância local e abre
-<http://127.0.0.1:8799>. Pela central você cria e controla pipelines, responde gates, configura
-times/profiles/providers e registra P4/P5 sem decorar comandos.
+```bash
+npm run tui          # cliente local do control plane
+npm run tui:test     # testes de input, SSE, catálogo e payloads
+npm run tui:build    # typecheck/build da TUI
+forgenexus           # atalho global deste host; garante o Maestro e abre a TUI
+```
 
-- Tutorial visual: [`docs/GUIA-VISUAL.html`](docs/GUIA-VISUAL.html)
-- Manual da central: [`docs/MAESTRO.md`](docs/MAESTRO.md)
+A entrada normal agora é igual a um coding agent: **digite a ideia e pressione `Enter`**. Não é
+necessário clicar, usar `Tab`, criar a primeira room manualmente ou procurar “Enviar mensagem” na
+paleta. `↑`/`↓` troca rooms, `←`/`→` troca teses, `:` abre ações avançadas e `?` mostra ajuda.
+
+A TUI é um cliente fino e keyboard-first: rooms, chat multi-host, tese, evidência, experimento,
+build, BragaMarketing e aquisição são ações do catálogo do servidor. As regras de confirmação,
+`why`, gates e gasto permanecem server-side. O Control Center web legado continua disponível em
+<http://127.0.0.1:8799>, mas não tem paridade completa e sua retirada foi adiada; veja
+[`docs/TUI-WEB-PARITY.md`](docs/TUI-WEB-PARITY.md). Para começar pela interface nova, use o
+[`tutorial visual discovery-first`](docs/TUTORIAL-VISUAL-DISCOVERY-FIRST.md). O tutorial e o manual legados continuam úteis:
+[`docs/GUIA-VISUAL.html`](docs/GUIA-VISUAL.html) e [`docs/MAESTRO.md`](docs/MAESTRO.md).
+
+O próximo incremento planejado da primeira etapa — ramificação de ideias, pesquisa com fontes,
+memória leve e canvas web — está especificado em
+[`docs/HANDOFF-ETAPA-1-DISCOVERY-STUDIO.md`](docs/HANDOFF-ETAPA-1-DISCOVERY-STUDIO.md).
+
+### Referências para a nova ETAPA 1
+
+Quatro projetos open source foram analisados como referências de produto e arquitetura. Eles não
+serão simplesmente incorporados ao Forge: a integração precisa preservar o `DiscoveryWorkspace`,
+os gates humanos, os executores por assinatura e a distinção entre sugestão sintética e evidência
+externa verificada.
+
+| Projeto | O que ensina ao Forge | Licença e decisão |
+|---|---|---|
+| [STORM](https://github.com/stanford-oval/storm) | Pesquisa multi-perspectiva: transformar um tema em perguntas, queries, fontes citáveis, outline e mapa de conhecimento. | **MIT.** Adaptar perspectivas, proveniência e candidatos de evidência; não trazer geração de artigo, LiteLLM ou a stack Python completa. |
+| [ai-brainstorm](https://github.com/mikecreighton/ai-brainstorm) | Árvore de ideias com linhagem, restrições explícitas e diretivas como inverter premissas, mudar perspectiva e combinar conceitos. | **MIT.** Portar conceitos para TypeScript e limitar a poucos ramos; não adotar o MCTS/paygo como gate de produto. |
+| [Khoj](https://github.com/khoj-ai/khoj) | Pesquisa dentro da conversa, fontes visíveis, memória, filtros de escopo, progresso e cancelamento. | **AGPL-3.0.** Referência clean-room; não copiar nem embutir o produto ou seu stack Django/FastAPI/pgvector. |
+| [DeepDiagram](https://github.com/LingyiChen-AI/DeepDiagram) | Experiência chat + canvas, streaming, ramificações, detalhe por nó e exportação visual. | **AGPL-3.0.** Referência visual clean-room; o canvas do Forge será derivado deterministicamente do estado canônico. |
+
+A direção resultante é híbrida: **TUI prompt-first** para uso rápido como Codex/Claude Code e um
+**Discovery Canvas web realmente clicável** para ramos, fontes e mapas. Nenhum resultado de
+brainstorm ou pesquisa abre E1/E2 automaticamente. A análise completa, revisões fixadas, riscos e
+plano T0–T6 estão no handoff acima.
 
 ---
 
@@ -32,47 +66,45 @@ Quatro princípios que o código **impõe** (são mecanismos, não conselhos):
 
 | Princípio | Como o Forge força isso |
 |---|---|
-| **Nunca API paga por chamada** | Só CLIs de subscription. Não existe client HTTP de LLM no repo — agentes são processos (`spawn`), não requests. |
-| **Kill antes de construir** | O P0 (scorecard) roda **antes** de qualquer linha de código e termina num gate `go / retry / kill`. Ideia ruim morre custando 1 job. |
-| **Verify objetivo, não autodeclarado** | Job só passa se o **artefato existe** ou o **build sai exit 0**. O agente dizer "pronto" não vale nada. Falhou 3×? Rollback (git) + troca de player. |
-| **Humano nos gates, não no loop** | A pipeline anda sozinha e **para** onde a decisão é irreversível ou de gosto: matar a ideia, aprovar a arquitetura, escolher o design, aprovar o visual, autorizar o deploy. |
+| **Nunca API paga por chamada** | Coding agents usam somente CLIs de subscription. O executor é escolhido por turno no chat multi-host; não há paygo implícito. |
+| **Prova antes de produto** | Score, consenso e simulação são `synthetic`: ajudam a pensar, mas nunca satisfazem E1/E2/E3 nem liberam build. |
+| **Verify objetivo, não autodeclarado** | Evidência externa precisa ser verificada; build só termina com URL/artefato e instrumentação observada. |
+| **Humano nas fronteiras externas** | Promover tese, iniciar build, outreach/publicação, deploy e gasto são ações separadas. Gasto exige confirmação, justificativa e teto explícito. |
+
+WIP estrutural: no máximo **3 teses em validação, 1 build e 1 aquisição real**. Não há outreach,
+publicação, deploy ou gasto automático; `full_auto` não herda autorização para essas ações.
 
 ---
 
-## 2. A pipeline
+## 2. O loop discovery-first
 
 ```
-ideia
-  │
-  ├─ L0/P0      scorecard (mercado, custo, risco legal, TIPO do app)  ──▶ ⏸ gate p0-go       go | retry | kill
-  ├─ FOUNDATION system design (arquitetura, dados, decisões, riscos)  ──▶ ⏸ gate foundation-review
-  ├─ DS-GEN     3 propostas de design system (HTML navegável)         ──▶ ⏸ gate ds-pick     1 | 2 | 3 | retry | kill
-  ├─ L0/P1      content hooks (o que vai atrair usuário)
-  ├─ L1/B1      scaffold do app (Next.js, no workspace npm)
-  ├─ L1/B2      conteúdo / personas / dados
-  ├─ L1/B3      UI polida seguindo o DS escolhido                     ──▶ ⏸ gate b3-visual   (preview real no navegador)
-  ├─ L1/B4      wire da API              (só capability `chat`)
-  ├─ L1/B5      ship-check (build, lint, typecheck)
-  ├─ SIMULATE   5 clientes simulados + relatório JSON/HTML
-  │             └─ fixes seguros: no máx. 1× ITERATE → B5            ──▶ ⏸ gate deploy
-  └─ P3         ship: merge no repo do app + deploy                   ──▶ app no ar
+room + chat multi-host
+  → promoção humana da tese
+  → playbooks + evidência externa verificada
+  → E1 (dor + alcance)
+  → E2 (ação real)
+  → proposta e aprovação do build mínimo
+  → build concluído com URL/artefato + instrumentação observada
+  → aquisição / handoff BragaMarketing
+  → métricas importadas como evidência
+  → E3 (comportamento econômico/repetível)
+  → P5 kill | iterate | scale
 ```
 
-Depois de publicado, o loop de melhoria (`forge feedback`):
+Os playbooks provider-neutral são `pressure-test`, `pain-signal-miner`,
+`first-customer-finder`, `startup-user-simulator` e `design-audit`. Pain miner e finder geram
+candidatos externos inicialmente `unverified`; somente revisão humana os torna elegíveis.
+Simulator e design audit são sempre `synthetic`, ainda que produzam score máximo.
 
-```
-feedback do dono ──▶ ITERATE ──▶ ⏸ gate iterate-visual ──▶ L1/B5 ──▶ ⏸ gate deploy ──▶ redeploy
-```
+Depois de E2, `startFromDiscovery` congela tese, profile, blueprint, critérios e referências de
+evidência e entra no menor subconjunto útil do build legado. O build não abre aquisição enquanto
+não houver entrega testável e instrumentada. BragaMarketing recebe/exporta dossiê versionado; o
+Forge não escreve no repositório externo e importa o retorno como `channel_metric`.
 
-O simulador é uma heurística estruturada, não entrevista, analytics nem previsão de conversão.
-Exatamente cinco personas examinam a interface real. Só copy/layout/estados reversíveis marcados
-com alta confiança podem entrar na única rodada automática; auth, billing, dados, deploy, domínio,
-segurança e decisões legais sempre ficam para revisão humana.
-
-**O tipo do app (`static | quiz | chat`) é decidido pelo P0**, não por você num menu: o scorecard
-declara `Tipo:` e o gate `p0-go` confirma (com `retry`+feedback se você discordar). O `go` aplica a
-sequência de jobs e o alvo de deploy (chat ⇒ server host; senão static host). Quem tem contexto para
-dizer se a ideia precisa de backend é o P0 — e esse custo aparece no scorecard, antes do build.
+Pipelines criadas antes deste contrato continuam duráveis e retomáveis pelos comandos legados.
+Para **novos produtos**, `pipeline.start` não é uma ação pública: todo entrypoint passa pelo
+`DiscoveryWorkspace` e por `discovery.build.start` após E1+E2 e aprovação explícita.
 
 ---
 
@@ -205,7 +237,7 @@ node maestro/forge.mjs      # ou: npm run forge   (o server sobe sozinho)
 | Comando | O que faz |
 |---|---|
 | `forge` | **Wizard**: profile → ideia (aceita caminho `.md`/`.txt`) → nome do app → time → confirmar |
-| `forge ingest <texto\|arquivo\|pasta\|URL> [--team X] [--review-only] [--apply]` | Tria profile/blueprint, persiste a decisão e inicia quando seguro/aprovado |
+| `forge ingest <texto\|arquivo\|pasta\|URL> [--team X] [--review-only] [--apply]` | Cria room/proposta para revisão no discovery; nunca cria profile, blueprint ou pipeline automaticamente |
 | `forge evolve <texto\|arquivo\|pasta\|URL> [--executor codex] [--apply]` | Propõe mudança no próprio Forge; sem `--apply` nunca executa agente |
 | `forge new "<ideia>" [--team X] [--app-id X] [--dry-run]` | Start direto. Com `--idea-file doc.md` o app-id vem do **nome do arquivo** |
 | `forge feedback` | **TUI de iteração**: escolhe o app → escreve o feedback → escolhe o time |
